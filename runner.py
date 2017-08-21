@@ -23,16 +23,16 @@ def updateInputs(inputs, scoring, ph):
 	rocketLeagueBaseAddress = rwm.GetBaseAddress(pid)
 
 	processHandle = OpenProcess(PROCESS_ALL_ACCESS, False, pid)
-	
+
 	blueScore = None
 	orangeScore = None
 	blueDemo = None
 	orangeDemo = None
-	
+
 	addresses = ph.GetAddressVector(processHandle,rocketLeagueBaseAddress)
 	while(True):
 		values = ph.GetValueVector(processHandle, addresses)
-		
+
 		# Process scoring to see if any new goals or demos
 		if (blueScore == None):
 			# Need to update values if don't already exist
@@ -87,7 +87,7 @@ def runAgent(inputs, scoring, agent, q):
 		except Queue.Full:
 			pass
 		time.sleep(0.01)
-			
+
 if __name__ == '__main__':
 
 	time.sleep(3) # Sleep 3 second before starting to give me time to set things up
@@ -98,41 +98,41 @@ if __name__ == '__main__':
 	agent2 = AlwaysTowardsBallAgent.agent("orange")
 	q1 = Queue(1)
 	q2 = Queue(1)
-	
+
 	output1 = [16383, 16383, 32767, 0, 0, 0, 0]
 	output2 = [16383, 16383, 32767, 0, 0, 0, 0]
-	
+
 	rtd = realTimeDisplay.real_time_display()
 	rtd.build_initial_window(agent1.get_bot_name(), agent2.get_bot_name())
-	
+
 	ph = PlayHelper.play_helper()
-	
+
 	p1 = Process(target=updateInputs, args=(inputs, scoring, ph))
 	p1.start()
 	p2 = Process(target=runAgent, args=(inputs, scoring, agent1, q1))
 	p2.start()
 	p3 = Process(target=runAgent, args=(inputs, scoring, agent2, q2))
 	p3.start()
-	
+
 	while (True):
 		updateFlag = False
-		
+
 		rtd.UpdateDisplay((inputs,scoring))
-		
+
 		try:
 			output1 = q1.get()
 			updateFlag = True
 		except Queue.Empty:
 			pass
-			
+
 		try:
 			output2 = q2.get()
 			updateFlag = True
 		except Queue.Empty:
 			pass
-		
+
 		if (updateFlag):
 			ph.update_controllers(output1, output2)
-		
+
 		rtd.UpdateKeyPresses(output1, output2)
 		time.sleep(0.01)
