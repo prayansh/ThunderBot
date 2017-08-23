@@ -8,12 +8,23 @@ import java.util.ArrayList;
 
 public class Plan {
 
+    private final Posture posture;
     private ArrayList<Step> steps = new ArrayList<>();
     private int currentStepIndex = 0;
     private boolean hasBegun = false;
     private boolean isComplete = false;
 
+    public enum Posture {
+        DEFENSIVE,
+        NEUTRAL
+    }
+
     public Plan() {
+        this(Posture.NEUTRAL);
+    }
+
+    public Plan(Posture posture) {
+        this.posture = posture;
     }
 
     public Plan withStep(Step step) {
@@ -62,4 +73,7 @@ public class Plan {
         return isComplete;
     }
 
+    public Posture getPosture() {
+        return posture;
+    }
 }

@@ -5,12 +5,12 @@ public class AgentOutput {
     public static final int MAX_TILT = 32767;
 
     // 0 is straight, -1 is hard left, 1 is hard right.
-    private float steeringTilt;
-    private float pitchTilt;
+    private double steeringTilt;
+    private double pitchTilt;
 
     // 0 is none, 1 is full
-    private float acceleration;
-    private float deceleration;
+    private double acceleration;
+    private double deceleration;
 
     private boolean jumpDepressed;
     private boolean boostDepressed;
@@ -19,22 +19,22 @@ public class AgentOutput {
     public AgentOutput() {
     }
 
-    public AgentOutput withSteer(float steeringTilt) {
+    public AgentOutput withSteer(double steeringTilt) {
         this.steeringTilt = steeringTilt;
         return this;
     }
 
-    public AgentOutput withPitch(float pitchTilt) {
+    public AgentOutput withPitch(double pitchTilt) {
         this.pitchTilt = pitchTilt;
         return this;
     }
 
-    public AgentOutput withAcceleration(float acceleration) {
+    public AgentOutput withAcceleration(double acceleration) {
         this.acceleration = acceleration;
         return this;
     }
 
-    public AgentOutput withDeceleration(float deceleration) {
+    public AgentOutput withDeceleration(double deceleration) {
         this.deceleration = deceleration;
         return this;
     }
@@ -67,14 +67,14 @@ public class AgentOutput {
         };
     }
 
-    private int convertMagnitudeWithNegatives(float tilt) {
-        float normalized = (tilt + 1) / 2;
+    private int convertMagnitudeWithNegatives(double tilt) {
+        double normalized = (tilt + 1) / 2;
         return convertMagnitudeOnlyPositive(normalized);
     }
 
-    private int convertMagnitudeOnlyPositive(float normalized) {
-        float intScaled = normalized * MAX_TILT;
-        return Math.round(intScaled);
+    private int convertMagnitudeOnlyPositive(double normalized) {
+        double intScaled = normalized * MAX_TILT;
+        return (int) Math.round(intScaled);
     }
 
     @Override
@@ -84,10 +84,10 @@ public class AgentOutput {
 
         AgentOutput that = (AgentOutput) o;
 
-        if (Float.compare(that.steeringTilt, steeringTilt) != 0) return false;
-        if (Float.compare(that.pitchTilt, pitchTilt) != 0) return false;
-        if (Float.compare(that.acceleration, acceleration) != 0) return false;
-        if (Float.compare(that.deceleration, deceleration) != 0) return false;
+        if (Double.compare(that.steeringTilt, steeringTilt) != 0) return false;
+        if (Double.compare(that.pitchTilt, pitchTilt) != 0) return false;
+        if (Double.compare(that.acceleration, acceleration) != 0) return false;
+        if (Double.compare(that.deceleration, deceleration) != 0) return false;
         if (jumpDepressed != that.jumpDepressed) return false;
         if (boostDepressed != that.boostDepressed) return false;
         return slideDepressed == that.slideDepressed;
@@ -95,10 +95,16 @@ public class AgentOutput {
 
     @Override
     public int hashCode() {
-        int result = (steeringTilt != +0.0f ? Float.floatToIntBits(steeringTilt) : 0);
-        result = 31 * result + (pitchTilt != +0.0f ? Float.floatToIntBits(pitchTilt) : 0);
-        result = 31 * result + (acceleration != +0.0f ? Float.floatToIntBits(acceleration) : 0);
-        result = 31 * result + (deceleration != +0.0f ? Float.floatToIntBits(deceleration) : 0);
+        int result;
+        long temp;
+        temp = Double.doubleToLongBits(steeringTilt);
+        result = (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(pitchTilt);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(acceleration);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(deceleration);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
         result = 31 * result + (jumpDepressed ? 1 : 0);
         result = 31 * result + (boostDepressed ? 1 : 0);
         result = 31 * result + (slideDepressed ? 1 : 0);

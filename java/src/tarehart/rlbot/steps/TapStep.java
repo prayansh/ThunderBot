@@ -3,9 +3,6 @@ package tarehart.rlbot.steps;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
-
 public class TapStep implements Step {
     private AgentOutput output;
     private boolean isComplete;
@@ -13,10 +10,10 @@ public class TapStep implements Step {
     private int frameCount;
 
     public TapStep(AgentOutput output) {
-        this(output, 1);
+        this(1, output);
     }
 
-    public TapStep(AgentOutput output, int numFrames) {
+    public TapStep(int numFrames, AgentOutput output) {
         this.output = output;
         this.numFrames = numFrames;
     }

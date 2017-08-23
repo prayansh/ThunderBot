@@ -1,7 +1,5 @@
 package tarehart.rlbot.steps;
 
-import com.sun.javafx.geom.Vec2f;
-import com.sun.javafx.geom.Vec3f;
 import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
@@ -32,25 +30,31 @@ public class ChaseBallStep implements Step {
             return plan.getOutput(input);
         }
 
+        if (input.getMyBoost() < 10 && GetBoostStep.seesOpportunisticBoost(input)) {
+            plan = new Plan().withStep(new GetBoostStep());
+            plan.begin();
+            return plan.getOutput(input);
+        }
+
         SpaceTime intercept = SteerUtil.predictBallInterceptFlat(input);
         Duration timeTillIntercept = Duration.between(LocalDateTime.now(), intercept.time);
+        double correctionAngleRad = SteerUtil.getCorrectionAngleRad(input, intercept.space);
         long millisTillIntercept = timeTillIntercept.toMillis();
-        if (intercept.space.z > 5 && millisTillIntercept < 5000 && input.getMyBoost() > 50) {
+        if (Math.abs(correctionAngleRad) < Math.PI / 24 && millisTillIntercept < 5000 && input.getMyBoost() > 50) {
 
             SpaceTime intercept3d = SteerUtil.predictBallIntercept(input, intercept);
 
             if (intercept3d.space.z > 3 && AERIAL_RISE_RATE * millisTillIntercept / 1000.0 < intercept3d.space.z) {
                 // Time to get up!
                 System.out.println("Performing Aerial!");
-                plan = new Plan().withStep(new TurnTowardInterceptStep())
-                        .withSubPlan(SetPieces.performAerial());
+                plan = SetPieces.performAerial();
                 plan.begin();
                 return plan.getOutput(input);
             }
         }
 
         if (millisTillIntercept > 3000 && input.getMyBoost() < 1 &&
-                Math.abs(SteerUtil.getCorrectionAngleRad(input, intercept.space)) < Math.PI / 12) {
+                Math.abs(correctionAngleRad) < Math.PI / 12) {
             System.out.println("Front flipping after ball!");
             plan = SetPieces.frontFlip();
             plan.begin();

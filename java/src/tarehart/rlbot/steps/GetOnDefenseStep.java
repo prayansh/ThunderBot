@@ -14,7 +14,7 @@ public class GetOnDefenseStep implements Step {
     private SplineHandle targetLocation = null;
 
     private static final float GOAL_DISTANCE = 97;
-    private static final float HANDLE_LENGTH = 50;
+    private static final float HANDLE_LENGTH = 30;
 
     public static final SplineHandle BLUE_GOAL = new SplineHandle(new Vector3(0, -GOAL_DISTANCE, 0), new Vector3(-HANDLE_LENGTH, 0, 0), new Vector3(HANDLE_LENGTH, 0, 0));
     public static final SplineHandle ORANGE_GOAL = new SplineHandle(new Vector3(0, GOAL_DISTANCE, 0), new Vector3(-HANDLE_LENGTH, 0, 0), new Vector3(HANDLE_LENGTH, 0, 0));
@@ -44,7 +44,7 @@ public class GetOnDefenseStep implements Step {
         }
 
 
-        if (input.getMyBoost() < 1 && target.distance(input.getMyPosition()) > 60 && Math.abs(SteerUtil.getCorrectionAngleRad(input, target)) < Math.PI / 20) {
+        if (input.getMyBoost() < 1 && target.distance(input.getMyPosition()) > 80 && Math.abs(SteerUtil.getCorrectionAngleRad(input, target)) < Math.PI / 20) {
             System.out.println("Front flipping toward goal!");
             plan = SetPieces.frontFlip();
             plan.begin();

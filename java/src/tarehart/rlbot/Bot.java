@@ -22,22 +22,23 @@ public class Bot {
 
     public AgentOutput getOutput(AgentInput input) {
 
-        if (GetOnDefenseStep.needDefense(input)) {
-            currentPlan = new Plan().withStep(new GetOnDefenseStep());
-            currentPlan.begin();
-        } else if (input.getMyBoost() < 30 && input.getMyPosition().distance(input.ballPosition) > 80) {
-            currentPlan = new Plan().withStep(new GetBoostStep());
+        if (GetOnDefenseStep.needDefense(input) && (currentPlan == null || currentPlan.getPosture() != Plan.Posture.DEFENSIVE)) {
+            currentPlan = new Plan(Plan.Posture.DEFENSIVE).withStep(new GetOnDefenseStep());
             currentPlan.begin();
         }
 
         if (currentPlan == null || currentPlan.isComplete()) {
-            currentPlan = SetPieces.chaseBall();
-            currentPlan.begin();
+            if (input.getMyBoost() < 30 && input.getMyPosition().distance(input.ballPosition) > 80) {
+                currentPlan = new Plan().withStep(new GetBoostStep());
+                currentPlan.begin();
+            } else {
+                currentPlan = SetPieces.chaseBall();
+                currentPlan.begin();
+            }
         }
 
         if (currentPlan != null) {
             if (currentPlan.isComplete()) {
-                System.out.println("Finished plan.");
                 currentPlan = null;
             } else {
                 return currentPlan.getOutput(input);

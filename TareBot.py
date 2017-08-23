@@ -1,7 +1,5 @@
 from py4j.java_gateway import JavaGateway
 from py4j.java_gateway import GatewayParameters
-import json
-import time
 
 '''
 Hi! You can use this code as a template to create your own bot.  Also if you don't mind writing a blurb
@@ -29,7 +27,5 @@ class agent:
 		return "TareBot"
 
 	def get_output_vector(self, input):
-		print("%.4f   %d" % (input[0][32], time.time() * 1000))
-
-		stringOutput = gAgent.getOutputVector([list(input[0]), list(input[1])], self.team)
-		return json.loads(stringOutput)
+		listOutput = gAgent.getOutputVector([list(input[0]), list(input[1])], self.team)
+		return list(listOutput)

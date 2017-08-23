@@ -15,13 +15,13 @@ public class Agent {
     }
 
 
-    public String getOutputVector(ArrayList<ArrayList<Float>> input, String team) {
+    public int[] getOutputVector(ArrayList<ArrayList<Double>> input, String team) {
 
         AgentInput translatedInput = new AgentInput(input, Bot.Team.valueOf(team.toUpperCase()));
 
         Bot bot = bots.get(team);
         AgentOutput output = bot.getOutput(translatedInput);
         int[] outputForPython = output.toPython();
-        return Arrays.toString(outputForPython);
+        return outputForPython;
     }
 }

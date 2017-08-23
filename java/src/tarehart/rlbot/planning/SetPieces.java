@@ -10,19 +10,28 @@ public class SetPieces {
     public static Plan frontFlip() {
 
         return new Plan()
-                .withStep(new TapStep(
+                .withStep(new TapStep(2,
                         new AgentOutput()
+                                .withPitch(-1)
                                 .withJump(true)
                                 .withAcceleration(1)))
-                .withStep(new TapStep(
+                .withStep(new TapStep(2,
                         new AgentOutput()
+                                .withPitch(-1)
                                 .withAcceleration(1)
                 ))
-                .withStep(new TapStep(
+                .withStep(new BlindStep(
                         new AgentOutput()
                                 .withJump(true)
                                 .withAcceleration(1)
-                                .withPitch(-1)))
+                                .withPitch(-1),
+                        Duration.ofMillis(50)))
+                .withStep(new BlindStep(
+                        new AgentOutput()
+                                .withAcceleration(1)
+                                .withPitch(-1),
+                        Duration.ofMillis(50)
+                ))
                 .withStep(new LandGracefullyStep());
     }
 
@@ -44,14 +53,14 @@ public class SetPieces {
                         new AgentOutput()
                             .withJump(true)
                             .withPitch(1),
-                        Duration.ofMillis(320)
+                        Duration.ofMillis(350)
                 ))
                 .withStep(new BlindStep(
                         new AgentOutput()
                             .withJump(true)
                             .withPitch(-1)
                             .withBoost(true),
-                        Duration.ofMillis(320)
+                        Duration.ofMillis(350)
                 ))
                 .withStep(new BlindStep(
                         new AgentOutput()

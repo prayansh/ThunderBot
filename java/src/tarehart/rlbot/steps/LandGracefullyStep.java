@@ -14,7 +14,7 @@ public class LandGracefullyStep implements Step {
 
     public AgentOutput getOutput(AgentInput input) {
 
-        if (input.getMyPosition().z < .4f) {
+        if (input.getMyPosition().z < .35f) {
             isComplete = true;
             return new AgentOutput().withAcceleration(1);
         } else {
@@ -28,17 +28,17 @@ public class LandGracefullyStep implements Step {
             plan = new Plan();
 
             if (rollNext) {
-                float rollDirection = Math.signum(rot.rollRightDesire);
-                float rollNeed = Math.abs(rot.rollRightDesire);
+                double rollDirection = Math.signum(rot.rollRightDesire);
+                double rollNeed = Math.abs(rot.rollRightDesire);
                 int rollDuration = (int) (rollNeed * 60);
                 //System.out.println(String.format("Rolling %s for %sms.", rollDirection, rollDuration));
-                plan.withStep(new BlindStep(new AgentOutput().withSlide(true).withSteer(rollDirection), Duration.ofMillis(rollDuration)))
-                        .withStep(new BlindStep(new AgentOutput().withSlide(true).withSteer(-rollDirection).withAcceleration(1), Duration.ofMillis(rollDuration)));
+                plan.withStep(new BlindStep(new AgentOutput().withSlide(true).withSteer(-rollDirection), Duration.ofMillis(rollDuration)))
+                        .withStep(new BlindStep(new AgentOutput().withSlide(true).withSteer(rollDirection).withAcceleration(1), Duration.ofMillis(rollDuration)));
                 rollNext = false;
             } else {
 
-                float pitchDirection = Math.signum(rot.noseZ) * Math.signum(rot.roofZ);
-                float pitchNeed = Math.abs(rot.noseZ);
+                double pitchDirection = -Math.signum(rot.noseZ) * Math.signum(rot.roofZ);
+                double pitchNeed = Math.abs(rot.noseZ);
                 int pitchDuration = (int) (pitchNeed * 400);
 
                 //System.out.println(String.format("Pitching %s for %sms.", pitchDirection, pitchDuration));

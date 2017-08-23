@@ -15,8 +15,8 @@ public class AgentInput {
     public final Vector3 bluePosition;
     public final CarRotation blueRotation;
     public final CarRotation orangeRotation;
-    public final float orangeBoost;
-    public final float blueBoost;
+    public final double orangeBoost;
+    public final double blueBoost;
     public final Bot.Team team;
     public final Vector3 orangeVelocity;
     public final Vector3 blueVelocity;
@@ -30,12 +30,12 @@ public class AgentInput {
      *
      * @param input
      */
-    public AgentInput(ArrayList<ArrayList<Float>> input, Bot.Team team) {
+    public AgentInput(ArrayList<ArrayList<Double>> input, Bot.Team team) {
 
         this.team = team;
 
-        ArrayList<Float> neuralInputs = input.get(0);
-        ArrayList<Float> scoring = input.get(1);
+        ArrayList<Double> neuralInputs = input.get(0);
+        ArrayList<Double> scoring = input.get(1);
 
         blueScore = scoring.get(0).intValue();
         orangeScore = scoring.get(1).intValue();
@@ -70,7 +70,7 @@ public class AgentInput {
         return team == Bot.Team.BLUE ? blueRotation : orangeRotation;
     }
 
-    public float getMyBoost() {
+    public double getMyBoost() {
         return team == Bot.Team.BLUE ? blueBoost : orangeBoost;
     }
 }
