@@ -1,6 +1,7 @@
 package tarehart.rlbot;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,13 +15,13 @@ public class Agent {
     }
 
 
-    public int[] getOutputVector(ArrayList<ArrayList<Number>> input, String team) {
+    public String getOutputVector(ArrayList<ArrayList<Float>> input, String team) {
 
         AgentInput translatedInput = new AgentInput(input, Bot.Team.valueOf(team.toUpperCase()));
 
         Bot bot = bots.get(team);
         AgentOutput output = bot.getOutput(translatedInput);
         int[] outputForPython = output.toPython();
-        return outputForPython;
+        return Arrays.toString(outputForPython);
     }
 }

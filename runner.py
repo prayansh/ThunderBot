@@ -8,6 +8,7 @@ import ReadWriteMem
 import PlayHelper
 import array
 import AlwaysTowardsBallAgent
+import TareBot
 
 OpenProcess = windll.kernel32.OpenProcess
 CloseHandle = windll.kernel32.CloseHandle
@@ -95,7 +96,7 @@ if __name__ == '__main__':
 	inputs = Array('f', [0.0 for x in range(38)])
 	scoring = Array('f', [0.0 for x in range(12)])
 	agent1 = AlwaysTowardsBallAgent.agent("blue")
-	agent2 = AlwaysTowardsBallAgent.agent("orange")
+	agent2 = TareBot.agent("orange")
 	q1 = Queue(1)
 	q2 = Queue(1)
 

@@ -1,6 +1,5 @@
 package tarehart.rlbot;
 
-import com.sun.javafx.geom.Vec3f;
 import mikera.vectorz.Vector3;
 
 import java.util.ArrayList;
@@ -31,32 +30,32 @@ public class AgentInput {
      *
      * @param input
      */
-    public AgentInput(ArrayList<ArrayList<Number>> input, Bot.Team team) {
+    public AgentInput(ArrayList<ArrayList<Float>> input, Bot.Team team) {
 
         this.team = team;
 
-        ArrayList<Number> neuralInputs = input.get(0);
-        ArrayList<Number> scoring = input.get(1);
+        ArrayList<Float> neuralInputs = input.get(0);
+        ArrayList<Float> scoring = input.get(1);
 
         blueScore = scoring.get(0).intValue();
         orangeScore = scoring.get(1).intValue();
         blueDemo = scoring.get(2).intValue();
         orangeDemo = scoring.get(3).intValue();
 
-        ballPosition = new Vector3(neuralInputs.get(7).floatValue(), neuralInputs.get(2).floatValue(), neuralInputs.get(6).floatValue());
-        ballVelocity = new Vector3(neuralInputs.get(31).floatValue(), neuralInputs.get(33).floatValue(), neuralInputs.get(32).floatValue());
+        ballPosition = new Vector3(neuralInputs.get(7), neuralInputs.get(2), neuralInputs.get(6));
+        ballVelocity = new Vector3(neuralInputs.get(31), neuralInputs.get(33), neuralInputs.get(32));
 
-        orangePosition = new Vector3(neuralInputs.get(18).floatValue(), neuralInputs.get(3).floatValue(), neuralInputs.get(17).floatValue());
-        orangeVelocity = new Vector3(neuralInputs.get(34).floatValue(), neuralInputs.get(36).floatValue(), neuralInputs.get(35).floatValue());
-        orangeRotation = new CarRotation(neuralInputs.get(19).floatValue(), neuralInputs.get(22).floatValue(), neuralInputs.get(25).floatValue(),
-                neuralInputs.get(27).floatValue(), neuralInputs.get(26).floatValue());
-        orangeBoost = neuralInputs.get(37).floatValue();
+        orangePosition = new Vector3(neuralInputs.get(18), neuralInputs.get(3), neuralInputs.get(17));
+        orangeVelocity = new Vector3(neuralInputs.get(34), neuralInputs.get(36), neuralInputs.get(35));
+        orangeRotation = new CarRotation(neuralInputs.get(19), neuralInputs.get(22), neuralInputs.get(25),
+                neuralInputs.get(27), neuralInputs.get(26));
+        orangeBoost = neuralInputs.get(37);
 
-        bluePosition = new Vector3(neuralInputs.get(5).floatValue(), neuralInputs.get(1).floatValue(), neuralInputs.get(4).floatValue());
-        blueVelocity = new Vector3(neuralInputs.get(28).floatValue(), neuralInputs.get(30).floatValue(), neuralInputs.get(29).floatValue());
-        blueRotation = new CarRotation(neuralInputs.get(8).floatValue(), neuralInputs.get(4).floatValue(), neuralInputs.get(7).floatValue(),
-                neuralInputs.get(16).floatValue(), neuralInputs.get(15).floatValue());
-        blueBoost = neuralInputs.get(0).floatValue();
+        bluePosition = new Vector3(neuralInputs.get(5), neuralInputs.get(1), neuralInputs.get(4));
+        blueVelocity = new Vector3(neuralInputs.get(28), neuralInputs.get(30), neuralInputs.get(29));
+        blueRotation = new CarRotation(neuralInputs.get(8), neuralInputs.get(4), neuralInputs.get(7),
+                neuralInputs.get(16), neuralInputs.get(15));
+        blueBoost = neuralInputs.get(0);
     }
 
     public Vector3 getMyPosition() {
