@@ -1,20 +1,25 @@
 package tarehart.rlbot.steps;
 
-import com.sun.javafx.geom.Vec3f;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.Bot;
+import tarehart.rlbot.math.SplineHandle;
+import tarehart.rlbot.planning.Plan;
+import tarehart.rlbot.planning.SetPieces;
 import tarehart.rlbot.planning.SteerUtil;
 
 public class GetOnDefenseStep implements Step {
     private boolean isComplete = false;
-    private Vector3 targetLocation = null;
+    private SplineHandle targetLocation = null;
 
     private static final float GOAL_DISTANCE = 97;
+    private static final float HANDLE_LENGTH = 50;
 
-    public static final Vector3 BLUE_GOAL = new Vector3(0, GOAL_DISTANCE, 0);
-    public static final Vector3 ORANGE_GOAL = new Vector3(0, GOAL_DISTANCE, 0);
+    public static final SplineHandle BLUE_GOAL = new SplineHandle(new Vector3(0, -GOAL_DISTANCE, 0), new Vector3(-HANDLE_LENGTH, 0, 0), new Vector3(HANDLE_LENGTH, 0, 0));
+    public static final SplineHandle ORANGE_GOAL = new SplineHandle(new Vector3(0, GOAL_DISTANCE, 0), new Vector3(-HANDLE_LENGTH, 0, 0), new Vector3(HANDLE_LENGTH, 0, 0));
+
+    private Plan plan;
 
     public AgentOutput getOutput(AgentInput input) {
 
@@ -22,11 +27,30 @@ public class GetOnDefenseStep implements Step {
             init(input);
         }
 
-        if (!needDefense(input) || SteerUtil.getDistanceFromMe(input, targetLocation) < 20) {
+        if (plan != null && !plan.isComplete()) {
+            return plan.getOutput(input);
+        }
+
+        if (!needDefense(input) || SteerUtil.getDistanceFromMe(input, targetLocation.getLocation()) < 20) {
             isComplete = true;
             return new AgentOutput().withSlide(true);
+        }
+
+        Vector3 target;
+        if (targetLocation.isWithinHandleRange(input.getMyPosition())) {
+            target = targetLocation.getLocation();
         } else {
-            return SteerUtil.steerTowardPosition(input, targetLocation);
+            target = targetLocation.getFarthestHandle(input.ballPosition);
+        }
+
+
+        if (input.getMyBoost() < 1 && target.distance(input.getMyPosition()) > 60 && Math.abs(SteerUtil.getCorrectionAngleRad(input, target)) < Math.PI / 20) {
+            System.out.println("Front flipping toward goal!");
+            plan = SetPieces.frontFlip();
+            plan.begin();
+            return plan.getOutput(input);
+        } else {
+            return SteerUtil.steerTowardPosition(input, target);
         }
     }
 
@@ -45,10 +69,10 @@ public class GetOnDefenseStep implements Step {
 
     public static boolean needDefense(AgentInput input) {
 
-        Vector3 myGoal = input.team == Bot.Team.BLUE ? GetOnDefenseStep.BLUE_GOAL : GetOnDefenseStep.ORANGE_GOAL;
+        SplineHandle myGoal = input.team == Bot.Team.BLUE ? GetOnDefenseStep.BLUE_GOAL : GetOnDefenseStep.ORANGE_GOAL;
 
         double relativeBallY = input.ballPosition.y - input.getMyPosition().y;
-        double relativeGoalY = myGoal.y - input.getMyPosition().y;
+        double relativeGoalY = myGoal.getLocation().y - input.getMyPosition().y;
         return relativeBallY * relativeGoalY > 0 && Math.abs(relativeGoalY) > 10;
     }
 }

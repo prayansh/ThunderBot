@@ -14,7 +14,7 @@ public class LandGracefullyStep implements Step {
 
     public AgentOutput getOutput(AgentInput input) {
 
-        if (input.getMyPosition().z < .8f) {
+        if (input.getMyPosition().z < .4f) {
             isComplete = true;
             return new AgentOutput().withAcceleration(1);
         } else {
@@ -31,9 +31,9 @@ public class LandGracefullyStep implements Step {
                 float rollDirection = Math.signum(rot.rollRightDesire);
                 float rollNeed = Math.abs(rot.rollRightDesire);
                 int rollDuration = (int) (rollNeed * 60);
-                System.out.println(String.format("Rolling %s for %sms.", rollDirection, rollDuration));
+                //System.out.println(String.format("Rolling %s for %sms.", rollDirection, rollDuration));
                 plan.withStep(new BlindStep(new AgentOutput().withSlide(true).withSteer(rollDirection), Duration.ofMillis(rollDuration)))
-                        .withStep(new BlindStep(new AgentOutput().withSlide(true).withSteer(-rollDirection), Duration.ofMillis(rollDuration)));
+                        .withStep(new BlindStep(new AgentOutput().withSlide(true).withSteer(-rollDirection).withAcceleration(1), Duration.ofMillis(rollDuration)));
                 rollNext = false;
             } else {
 
@@ -41,9 +41,9 @@ public class LandGracefullyStep implements Step {
                 float pitchNeed = Math.abs(rot.noseZ);
                 int pitchDuration = (int) (pitchNeed * 400);
 
-                System.out.println(String.format("Pitching %s for %sms.", pitchDirection, pitchDuration));
+                //System.out.println(String.format("Pitching %s for %sms.", pitchDirection, pitchDuration));
                 plan.withStep(new BlindStep(new AgentOutput().withPitch(pitchDirection), Duration.ofMillis(pitchDuration)))
-                        .withStep(new BlindStep(new AgentOutput().withPitch(-pitchDirection), Duration.ofMillis(pitchDuration)));
+                        .withStep(new BlindStep(new AgentOutput().withPitch(-pitchDirection).withAcceleration(1), Duration.ofMillis(pitchDuration)));
 
                 rollNext = true;
             }
