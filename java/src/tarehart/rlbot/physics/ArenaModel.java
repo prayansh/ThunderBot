@@ -12,6 +12,7 @@ import com.bulletphysics.dynamics.RigidBodyConstructionInfo;
 import com.bulletphysics.dynamics.constraintsolver.SequentialImpulseConstraintSolver;
 import com.bulletphysics.linearmath.DefaultMotionState;
 import com.bulletphysics.linearmath.Transform;
+import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.math.SpaceTime;
 
@@ -30,6 +31,8 @@ public class ArenaModel {
     private static final int WALL_LENGTH = 200;
     public static final float GRAVITY = 6.2f;
     public static final Duration SIMULATION_STEP = Duration.ofMillis(100);
+    public static final float BALL_DRAG = .1f;
+    public static final float BALL_RADIUS = 1.8555f;
 
     private DynamicsWorld world;
     private RigidBody ball;
@@ -40,6 +43,10 @@ public class ArenaModel {
         setupWalls();
         ball = initBallPhysics();
         world.addRigidBody(ball);
+    }
+
+    public static boolean isInBoundsBall(Vector2 location) {
+        return Math.abs(location.x) < SIDE_WALL - BALL_RADIUS && Math.abs(location.y) < BACK_WALL - BALL_RADIUS;
     }
 
     private void setupWalls() {
@@ -156,7 +163,7 @@ public class ArenaModel {
     }
 
     private RigidBody initBallPhysics() {
-        SphereShape collisionShape = new SphereShape(1.8555f);
+        SphereShape collisionShape = new SphereShape(BALL_RADIUS);
 
         // Create Dynamic Objects
         Transform startTransform = new Transform();
@@ -177,8 +184,9 @@ public class ArenaModel {
         RigidBodyConstructionInfo rbInfo = new RigidBodyConstructionInfo(
                 mass, myMotionState, collisionShape, localInertia);
         RigidBody body = new RigidBody(rbInfo);
-        body.setDamping(.07f, 0.5f);
+        body.setDamping(BALL_DRAG, 0.5f);
         body.setRestitution(1);
+        body.setFriction(0);
 
         return body;
     }

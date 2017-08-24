@@ -1,5 +1,7 @@
 package tarehart.rlbot;
 
+import tarehart.rlbot.physics.ArenaModel;
+import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.planning.SetPieces;
 import tarehart.rlbot.steps.GetBoostStep;
@@ -9,13 +11,15 @@ import tarehart.rlbot.tuning.Telemetry;
 import tarehart.rlbot.ui.Readout;
 
 import javax.swing.*;
+import java.time.LocalDateTime;
 
 public class Bot {
 
     private final Team team;
     Plan currentPlan = null;
     private Readout readout;
-    private PredictionWarehouse warehouse;
+
+    private ArenaModel arenaModel;
 
     public enum Team {
         BLUE,
@@ -25,12 +29,16 @@ public class Bot {
     public Bot(Team team) {
         this.team = team;
         readout = new Readout();
-        warehouse = new PredictionWarehouse();
         launchReadout();
+        arenaModel = new ArenaModel();
     }
 
 
     public AgentOutput processInput(AgentInput input) {
+
+        // Just for now, always calculate ballpath so we can learn some stuff.
+        BallPath ballPath = arenaModel.simulateBall(input.ballPosition, input.ballVelocity, LocalDateTime.now().plusSeconds(5));
+        Telemetry.forTeam(input.team).setBallPath(ballPath);
 
         AgentOutput output = getOutput(input);
         Plan.Posture posture = currentPlan != null ? currentPlan.getPosture() : Plan.Posture.NEUTRAL;

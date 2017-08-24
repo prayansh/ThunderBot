@@ -17,12 +17,19 @@ public class PredictionWarehouse {
             return Optional.empty();
         }
 
-        BallPrediction oldest = ballPredictions.getFirst();
-        if (!oldest.predictedMoment.isBefore(LocalDateTime.now())) {
-            ballPredictions.removeFirst();
-            return Optional.of(oldest);
+        LocalDateTime now = LocalDateTime.now();
+
+        if (now.isBefore(ballPredictions.getFirst().predictedMoment)) {
+            return Optional.empty();
         }
-        return Optional.empty();
+
+
+        BallPrediction oldest;
+        do {
+            oldest = ballPredictions.removeFirst();
+        } while (now.isAfter(oldest.predictedMoment));
+
+        return Optional.of(oldest);
     }
 
     public void addPrediction(BallPrediction prediction) {

@@ -23,7 +23,9 @@ public class ChaseBallStep implements Step {
 
     public AgentOutput getOutput(AgentInput input) {
 
-        if (flatten(input.getMyPosition()).distance(flatten(input.ballPosition)) < 1) {
+        double flatDistance = flatten(input.getMyPosition()).distance(flatten(input.ballPosition));
+
+        if (flatDistance < 1) {
             isComplete = true;
         }
 
@@ -54,7 +56,9 @@ public class ChaseBallStep implements Step {
             }
         }
 
-        if (millisTillIntercept > 3000 && input.getMyBoost() < 1 &&
+
+
+        if (flatDistance > 30 && input.getMyBoost() < 1 &&
                 Math.abs(correctionAngleRad) < Math.PI / 12) {
             System.out.println("Front flipping after ball!");
             plan = SetPieces.frontFlip();
