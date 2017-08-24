@@ -8,6 +8,8 @@ import tarehart.rlbot.CarRotation;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.SplineHandle;
 import tarehart.rlbot.physics.ArenaModel;
+import tarehart.rlbot.physics.BallPath;
+import tarehart.rlbot.tuning.Telemetry;
 
 import javax.vecmath.Vector3f;
 import java.time.Duration;
@@ -34,7 +36,7 @@ public class SteerUtil {
         if (!aimSpot.isPresent() || !isInBounds(aimSpot.get())) {
 
             System.out.println("Simulating wall bounce!");
-            Vector3 position = predictBall(input, 3);
+            Vector3 position = predictBall(input, LocalDateTime.now().plusSeconds(3));
             aimSpot = Optional.of(new Vector2(position.x, position.y));
         }
 
@@ -44,31 +46,37 @@ public class SteerUtil {
         return new SpaceTime(new Vector3(aimSpot.get().x, aimSpot.get().y, 0), LocalDateTime.now().plus(Duration.ofMillis(etaMillis)));
     }
 
-    private static Vector3f toV3f(Vector3 v) {
-        return new Vector3f((float) v.x, (float) v.y, (float) v.z);
-    }
-
     private static boolean isInBounds(Vector2 location) {
         return Math.abs(location.x) < 74 && Math.abs(location.y) < 100;
     }
 
     public static SpaceTime predictBallIntercept(AgentInput input, SpaceTime flatIntercept) {
 
-        long etaMillis = Duration.between(LocalDateTime.now(), flatIntercept.time).toMillis();
-
-        double predictedBallHeight = predictBallHeight(input, etaMillis / 1000.0);
+        double predictedBallHeight = predictBallHeight(input, flatIntercept.time);
 
         return new SpaceTime(new Vector3(flatIntercept.space.x, flatIntercept.space.y, predictedBallHeight), flatIntercept.time);
     }
 
-    private static double predictBallHeight(AgentInput input, double etaSeconds) {
+    private static double predictBallHeight(AgentInput input, LocalDateTime moment) {
         System.out.println("Simulating height for potential aerial!");
-        return predictBall(input, (float) etaSeconds).z;
+        return predictBall(input, moment).z;
     }
 
-    private static Vector3 predictBall(AgentInput input, float seconds) {
-        Vector3f position = arenaModel.simulateBall(toV3f(input.ballPosition), toV3f(input.ballVelocity), seconds);
-        return new Vector3(position.x, position.y, position.z);
+    private static Vector3 predictBall(AgentInput input, LocalDateTime untilTime) {
+        Telemetry telemetry = Telemetry.forTeam(input.team);
+
+        if (telemetry.getBallPath() == null) {
+            telemetry.setBallPath(arenaModel.simulateBall(input.ballPosition, input.ballVelocity, untilTime));
+            return telemetry.getBallPath().getEndpoint().space;
+        }
+
+        Optional<Vector3> prediction = telemetry.getBallPath().getSpace(untilTime);
+        if (prediction.isPresent()) {
+            return prediction.get();
+        } else {
+            arenaModel.extendSimulation(telemetry.getBallPath(), untilTime);
+            return telemetry.getBallPath().getEndpoint().space;
+        }
     }
 
     public static double getCorrectionAngleRad(AgentInput input, Vector3 position) {

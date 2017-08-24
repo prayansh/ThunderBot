@@ -4,11 +4,18 @@ import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.planning.SetPieces;
 import tarehart.rlbot.steps.GetBoostStep;
 import tarehart.rlbot.steps.GetOnDefenseStep;
+import tarehart.rlbot.tuning.PredictionWarehouse;
+import tarehart.rlbot.tuning.Telemetry;
+import tarehart.rlbot.ui.Readout;
+
+import javax.swing.*;
 
 public class Bot {
 
     private final Team team;
     Plan currentPlan = null;
+    private Readout readout;
+    private PredictionWarehouse warehouse;
 
     public enum Team {
         BLUE,
@@ -17,11 +24,22 @@ public class Bot {
 
     public Bot(Team team) {
         this.team = team;
+        readout = new Readout();
+        warehouse = new PredictionWarehouse();
+        launchReadout();
     }
 
 
-    public AgentOutput getOutput(AgentInput input) {
+    public AgentOutput processInput(AgentInput input) {
 
+        AgentOutput output = getOutput(input);
+        Plan.Posture posture = currentPlan != null ? currentPlan.getPosture() : Plan.Posture.NEUTRAL;
+        readout.update(input, posture, Telemetry.forTeam(input.team).getBallPath());
+        Telemetry.forTeam(team).reset();
+        return output;
+    }
+
+    private AgentOutput getOutput(AgentInput input) {
         if (GetOnDefenseStep.needDefense(input) && (currentPlan == null || currentPlan.getPosture() != Plan.Posture.DEFENSIVE)) {
             currentPlan = new Plan(Plan.Posture.DEFENSIVE).withStep(new GetOnDefenseStep());
             currentPlan.begin();
@@ -46,5 +64,20 @@ public class Bot {
         }
 
         return new AgentOutput();
+    }
+
+
+    private void launchReadout() {
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        JFrame frame = new JFrame("Readout - " + team.name());
+        frame.setContentPane(readout.getRootPanel());
+        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        frame.pack();
+        frame.setVisible(true);
     }
 }

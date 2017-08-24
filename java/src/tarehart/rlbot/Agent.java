@@ -1,26 +1,28 @@
 package tarehart.rlbot;
 
+import tarehart.rlbot.ui.Readout;
+
+import javax.swing.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 public class Agent {
 
-    private Map<String, Bot> bots = new HashMap<>();
+    private Map<Bot.Team, Bot> bots = new HashMap<>();
 
-    public Agent() {
-        bots.put("blue", new Bot(Bot.Team.BLUE));
-        bots.put("orange", new Bot(Bot.Team.ORANGE));
-    }
+    public int[] getOutputVector(ArrayList<ArrayList<Double>> input, String teamString) {
 
+        Bot.Team team = Bot.Team.valueOf(teamString.toUpperCase());
 
-    public int[] getOutputVector(ArrayList<ArrayList<Double>> input, String team) {
+        AgentInput translatedInput = new AgentInput(input, team);
 
-        AgentInput translatedInput = new AgentInput(input, Bot.Team.valueOf(team.toUpperCase()));
+        if (!bots.containsKey(team)) {
+            bots.put(team, new Bot(team));
+        }
 
         Bot bot = bots.get(team);
-        AgentOutput output = bot.getOutput(translatedInput);
+        AgentOutput output = bot.processInput(translatedInput);
         int[] outputForPython = output.toPython();
         return outputForPython;
     }

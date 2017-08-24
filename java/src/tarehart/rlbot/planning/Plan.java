@@ -32,7 +32,7 @@ public class Plan {
         return this;
     }
 
-    public Plan withSubPlan(Plan plan) {
+    public Plan appendPlan(Plan plan) {
         steps.addAll(plan.steps);
         return this;
     }

@@ -2,6 +2,7 @@ package tarehart.rlbot.steps;
 
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.planning.PlanOutput;
 
 import java.time.Duration;
 import java.time.LocalDateTime;

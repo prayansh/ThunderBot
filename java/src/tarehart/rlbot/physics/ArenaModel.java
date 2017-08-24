@@ -12,8 +12,12 @@ import com.bulletphysics.dynamics.RigidBodyConstructionInfo;
 import com.bulletphysics.dynamics.constraintsolver.SequentialImpulseConstraintSolver;
 import com.bulletphysics.linearmath.DefaultMotionState;
 import com.bulletphysics.linearmath.Transform;
+import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.SpaceTime;
 
 import javax.vecmath.Vector3f;
+import java.time.Duration;
+import java.time.LocalDateTime;
 
 
 public class ArenaModel {
@@ -24,6 +28,8 @@ public class ArenaModel {
 
     private static final int WALL_THICKNESS = 10;
     private static final int WALL_LENGTH = 200;
+    public static final float GRAVITY = 6.2f;
+    public static final Duration SIMULATION_STEP = Duration.ofMillis(100);
 
     private DynamicsWorld world;
     private RigidBody ball;
@@ -72,28 +78,50 @@ public class ArenaModel {
         world.addRigidBody(wall);
     }
 
-    private Vector3f getBallPosition() {
+    private Vector3 getBallPosition() {
         Transform trans = new Transform();
         ball.getMotionState().getWorldTransform(trans);
-        return trans.origin;
+        return new Vector3(trans.origin.x, trans.origin.y, trans.origin.z);
     }
 
-    public Vector3f simulateBall(Vector3f position, Vector3f velocity, float seconds) {
+    public BallPath simulateBall(Vector3 position, Vector3 velocity, LocalDateTime untilTime) {
+        BallPath ballPath = new BallPath();
+        simulateBall(ballPath, position, velocity, untilTime);
+        return ballPath;
+    }
+
+    public void extendSimulation(BallPath ballPath, LocalDateTime untilTime) {
+        assert ballPath.canContinueSimulation();
+        simulateBall(ballPath, ballPath.getEndpoint().space, ballPath.getFinalVelocity(), untilTime);
+    }
+
+    private void simulateBall(BallPath ballPath, Vector3 position, Vector3 velocity, LocalDateTime untilTime) {
         ball.clearForces();
-        ball.setLinearVelocity(velocity);
+        ball.setLinearVelocity(toV3f(velocity));
         Transform ballTransform = new Transform();
         ballTransform.setIdentity();
-        ballTransform.origin.set(position);
+        ballTransform.origin.set(toV3f(position));
         ball.setWorldTransform(ballTransform);
         ball.getMotionState().setWorldTransform(ballTransform);
 
         int stepsPerSecond = 10;
 
+        LocalDateTime simulationTime = LocalDateTime.now();
+        ballPath.addSlice(new SpaceTime(position, simulationTime));
+
         // Do some simulation
-        for (int i = 0; i < seconds * stepsPerSecond; i++) {
+        while (simulationTime.isBefore(untilTime)) {
             world.stepSimulation(1.0f / stepsPerSecond, 10);
+            simulationTime = simulationTime.plus(SIMULATION_STEP);
+            ballPath.addSlice(new SpaceTime(getBallPosition(), simulationTime));
         }
-        return getBallPosition();
+        Vector3f ballVel = new Vector3f();
+        ball.getLinearVelocity(ballVel);
+        ballPath.setFinalVelocity(new Vector3(ballVel.x, ballVel.y, ballVel.z), simulationTime);
+    }
+
+    private static Vector3f toV3f(Vector3 v) {
+        return new Vector3f((float) v.x, (float) v.y, (float) v.z);
     }
 
     private DynamicsWorld initPhysics() {
@@ -122,7 +150,7 @@ public class ArenaModel {
                 dispatcher, overlappingPairCache, solver,
                 collisionConfiguration);
 
-        dynamicsWorld.setGravity(new Vector3f(0, 0, -10));
+        dynamicsWorld.setGravity(new Vector3f(0, 0, -GRAVITY));
 
         return dynamicsWorld;
     }
@@ -154,5 +182,4 @@ public class ArenaModel {
 
         return body;
     }
-
 }

@@ -44,7 +44,7 @@ public class SetPieces {
         return new Plan()
                 .withStep(new GetBoostStep())
                 .withStep(new TurnTowardInterceptStep())
-                .withSubPlan(performAerial());
+                .appendPlan(performAerial());
     }
 
     public static Plan performAerial() {

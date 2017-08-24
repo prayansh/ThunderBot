@@ -13,4 +13,12 @@ public class SpaceTime {
         this.space = space;
         this.time = time;
     }
+
+    @Override
+    public String toString() {
+        return "SpaceTime{" +
+                "space=" + space +
+                ", time=" + time +
+                '}';
+    }
 }

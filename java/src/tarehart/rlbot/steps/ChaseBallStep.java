@@ -6,6 +6,7 @@ import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.planning.Plan;
+import tarehart.rlbot.planning.PlanOutput;
 import tarehart.rlbot.planning.SetPieces;
 import tarehart.rlbot.planning.SteerUtil;
 
