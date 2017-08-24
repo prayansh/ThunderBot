@@ -6,7 +6,8 @@ import resetDevices
 
 p1 = pyvjoy.VJoyDevice(1)
 p2 = pyvjoy.VJoyDevice(2)
-waitTime = 0.3
+waitTime = 0.5
+tiltVerticalWait = 1
 
 def tapA(player):
     player.data.lButtons = 1
@@ -33,14 +34,18 @@ def tiltRight(player):
     time.sleep(waitTime)
 
 def tiltDown(player):
-    player.data.wAxisY = 20000
-    player.update()
     time.sleep(waitTime)
     player.data.wAxisY = 32767
     player.update()
     time.sleep(waitTime)
     player.data.wAxisY = 16383
     player.update()
+    time.sleep(waitTime)
+
+def povDown(player):
+    player.set_disc_pov(1, 0)
+    time.sleep(waitTime)
+    player.reset_povs()
     time.sleep(waitTime)
 
 # Give the user time to tab into the game
@@ -58,8 +63,7 @@ p1.update()
 time.sleep(waitTime)
 
 # Move down one in the menu options
-tiltDown(p1)
-tiltRight(p1)
+povDown(p1)
 tiltDown(p1)
 
 # Press and release the A button

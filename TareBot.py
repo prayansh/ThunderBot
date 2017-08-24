@@ -14,7 +14,7 @@ debug any runtime issues that occur with your bot.
 # Can this bot's code be shared publicly (Default: No):
 # Can non-tournment gameplay of this bot be displayed publicly (Default: No):
 
-gateway = JavaGateway(gateway_parameters=GatewayParameters(auto_convert=True))
+gateway = JavaGateway(gateway_parameters=GatewayParameters(auto_convert=True, port=25368))
 gAgent = gateway.entry_point.getAgent()
 
 class agent:

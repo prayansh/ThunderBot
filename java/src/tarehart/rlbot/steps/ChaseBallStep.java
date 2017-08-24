@@ -40,7 +40,7 @@ public class ChaseBallStep implements Step {
         }
 
         SpaceTime intercept = SteerUtil.predictBallInterceptFlat(input);
-        Duration timeTillIntercept = Duration.between(LocalDateTime.now(), intercept.time);
+        Duration timeTillIntercept = Duration.between(input.time, intercept.time);
         double correctionAngleRad = SteerUtil.getCorrectionAngleRad(input, intercept.space);
         long millisTillIntercept = timeTillIntercept.toMillis();
         if (Math.abs(correctionAngleRad) < Math.PI / 24 && millisTillIntercept < 5000 && input.getMyBoost() > 50) {

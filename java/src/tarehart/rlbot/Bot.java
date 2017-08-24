@@ -11,6 +11,7 @@ import tarehart.rlbot.tuning.Telemetry;
 import tarehart.rlbot.ui.Readout;
 
 import javax.swing.*;
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 public class Bot {
@@ -37,7 +38,7 @@ public class Bot {
     public AgentOutput processInput(AgentInput input) {
 
         // Just for now, always calculate ballpath so we can learn some stuff.
-        BallPath ballPath = arenaModel.simulateBall(input.ballPosition, input.ballVelocity, LocalDateTime.now().plusSeconds(5));
+        BallPath ballPath = arenaModel.simulateBall(input.ballPosition, input.ballVelocity, input.time, Duration.ofSeconds(5));
         Telemetry.forTeam(input.team).setBallPath(ballPath);
 
         AgentOutput output = getOutput(input);

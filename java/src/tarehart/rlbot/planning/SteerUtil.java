@@ -36,15 +36,13 @@ public class SteerUtil {
         if (!aimSpot.isPresent() || !ArenaModel.isInBoundsBall(aimSpot.get())) {
 
             System.out.println("Simulating wall bounce!");
-            int predictionSeconds = 3;
-            LocalDateTime predictionMoment = LocalDateTime.now().plusSeconds(predictionSeconds);
-            BallPath ballPath = predictBallPath(input, predictionMoment);
+            BallPath ballPath = predictBallPath(input, input.time, Duration.ofSeconds(3));
 
             Optional<SpaceTimeVelocity> stvOption = ballPath.getMotionAfterBounce(1);
             if (stvOption.isPresent()) {
                 SpaceTimeVelocity stv = stvOption.get();
                 Vector3 postBounceVelocity = stv.velocity;
-                Duration timeTillBounce = Duration.between(LocalDateTime.now(), stv.getTime());
+                Duration timeTillBounce = Duration.between(input.time, stv.getTime());
                 double timeTillBounceInSeconds = timeTillBounce.toMillis() * 1000.0;
 
                 // Now back it up 3 seconds
@@ -52,7 +50,7 @@ public class SteerUtil {
                 Vector3 imaginaryStartingPoint = stv.getSpace().addCopy(backwards); // This is probably out of bounds
                 aimSpot = leadTarget(input.getMyPosition(), imaginaryStartingPoint, postBounceVelocity, predictedAverageSpeed);
                 if (!aimSpot.isPresent() || !ArenaModel.isInBoundsBall(aimSpot.get())) {
-                    // Ugh. Our bounce calculation sorta failed, so just drive toward the point where the ball hits the wall.
+                    // Ugh. Our bounce calculat
                     return stv.spaceTime;
                 }
             } else {
@@ -65,7 +63,7 @@ public class SteerUtil {
         double etaSeconds = aimSpot.get().magnitude() / predictedAverageSpeed;
         long etaMillis = (long) (etaSeconds * 1000);
 
-        return new SpaceTime(new Vector3(aimSpot.get().x, aimSpot.get().y, 0), LocalDateTime.now().plus(Duration.ofMillis(etaMillis)));
+        return new SpaceTime(new Vector3(aimSpot.get().x, aimSpot.get().y, 0), input.time.plus(Duration.ofMillis(etaMillis)));
     }
 
     public static SpaceTime predictBallIntercept(AgentInput input, SpaceTime flatIntercept) {
@@ -80,22 +78,22 @@ public class SteerUtil {
         return predictBallPosition(input, moment).z;
     }
 
-    private static BallPath predictBallPath(AgentInput input, LocalDateTime untilTime) {
+    private static BallPath predictBallPath(AgentInput input, LocalDateTime startingAt, Duration duration) {
         Telemetry telemetry = Telemetry.forTeam(input.team);
 
         if (telemetry.getBallPath() == null) {
-            telemetry.setBallPath(arenaModel.simulateBall(input.ballPosition, input.ballVelocity, untilTime));
+            telemetry.setBallPath(arenaModel.simulateBall(input.ballPosition, input.ballVelocity, startingAt, duration));
             return telemetry.getBallPath();
         }
 
-        if (telemetry.getBallPath().getEndpoint().time.isBefore(untilTime)) {
-            arenaModel.extendSimulation(telemetry.getBallPath(), untilTime);
+        if (telemetry.getBallPath().getEndpoint().time.isBefore(startingAt.plus(duration))) {
+            arenaModel.extendSimulation(telemetry.getBallPath(), startingAt, duration);
         }
         return telemetry.getBallPath();
     }
 
     private static Vector3 predictBallPosition(AgentInput input, LocalDateTime targetTime) {
-        BallPath ballPath = predictBallPath(input, targetTime);
+        BallPath ballPath = predictBallPath(input, input.time, Duration.between(input.time, targetTime));
         return ballPath.getMotionAt(targetTime).get().getSpace();
     }
 

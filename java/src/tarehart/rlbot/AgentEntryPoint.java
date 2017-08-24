@@ -4,6 +4,7 @@ import py4j.GatewayServer;
 
 public class AgentEntryPoint {
 
+    public static final int PORT = 25368;
     private Agent agent;
 
     public AgentEntryPoint() {
@@ -15,7 +16,7 @@ public class AgentEntryPoint {
     }
 
     public static void main(String[] args) {
-        GatewayServer gatewayServer = new GatewayServer(new AgentEntryPoint());
+        GatewayServer gatewayServer = new GatewayServer(new AgentEntryPoint(), PORT);
         gatewayServer.start();
         System.out.println("Gateway Server Started");
     }

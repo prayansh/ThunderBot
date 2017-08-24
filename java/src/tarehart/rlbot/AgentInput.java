@@ -2,6 +2,7 @@ package tarehart.rlbot;
 
 import mikera.vectorz.Vector3;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 public class AgentInput {
@@ -20,6 +21,7 @@ public class AgentInput {
     public final Bot.Team team;
     public final Vector3 orangeVelocity;
     public final Vector3 blueVelocity;
+    public LocalDateTime time;
 
 
     /**
@@ -33,6 +35,7 @@ public class AgentInput {
     public AgentInput(ArrayList<ArrayList<Double>> input, Bot.Team team) {
 
         this.team = team;
+        time = LocalDateTime.now();
 
         ArrayList<Double> neuralInputs = input.get(0);
         ArrayList<Double> scoring = input.get(1);

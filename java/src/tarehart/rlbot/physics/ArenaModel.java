@@ -11,11 +11,13 @@ import com.bulletphysics.dynamics.RigidBody;
 import com.bulletphysics.dynamics.RigidBodyConstructionInfo;
 import com.bulletphysics.dynamics.constraintsolver.SequentialImpulseConstraintSolver;
 import com.bulletphysics.linearmath.DefaultMotionState;
+import com.bulletphysics.linearmath.QuaternionUtil;
 import com.bulletphysics.linearmath.Transform;
 import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.math.SpaceTime;
 
+import javax.vecmath.Quat4f;
 import javax.vecmath.Vector3f;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -23,8 +25,8 @@ import java.time.LocalDateTime;
 
 public class ArenaModel {
 
-    public static final float SIDE_WALL = 74;
-    public static final float BACK_WALL = 100;
+    public static final float SIDE_WALL = 81.92f;
+    public static final float BACK_WALL = 102.4f;
     public static final float CEILING = 40;
 
     private static final int WALL_THICKNESS = 10;
@@ -33,6 +35,10 @@ public class ArenaModel {
     public static final Duration SIMULATION_STEP = Duration.ofMillis(100);
     public static final float BALL_DRAG = .1f;
     public static final float BALL_RADIUS = 1.8555f;
+
+    // The diagonal surfaces that merge the floor and the wall--
+    // Higher = more diagonal showing.
+    public static final float RAIL_HEIGHT = 5;
 
     private DynamicsWorld world;
     private RigidBody ball;
@@ -50,31 +56,76 @@ public class ArenaModel {
     }
 
     private void setupWalls() {
-        addWallToWorld(new StaticPlaneShape(new Vector3f(0, 0, 1), 0));
-        addWallToWorld(new StaticPlaneShape(new Vector3f(0, 1, 0), -BACK_WALL));
-        addWallToWorld(new StaticPlaneShape(new Vector3f(0, -1, 0), BACK_WALL));
-        addWallToWorld(new StaticPlaneShape(new Vector3f(1, 0, 0), -SIDE_WALL));
-        addWallToWorld(new StaticPlaneShape(new Vector3f(-1, 0, 0), SIDE_WALL));
-        addWallToWorld(new StaticPlaneShape(new Vector3f(0, 0, -1), CEILING));
+        addWallToWorld(new Vector3f(0, 0, 1), 0);
+        addWallToWorld(new Vector3f(0, 1, 0), -BACK_WALL);
+        addWallToWorld(new Vector3f(0, -1, 0), BACK_WALL);
+        addWallToWorld(new Vector3f(1, 0, 0), -SIDE_WALL);
+        addWallToWorld(new Vector3f(-1, 0, 0), SIDE_WALL);
+        addWallToWorld(new Vector3f(0, 0, -1), CEILING);
+
+
+//        addWallToWorld(new Vector3f(0, 1, 1), new Vector3f(0, -BACK_WALL, RAIL_HEIGHT));
+//        addWallToWorld(new Vector3f(0, -1, 1), new Vector3f(0, BACK_WALL, RAIL_HEIGHT));
+//        addWallToWorld(new Vector3f(1, 0, 1), new Vector3f(0, -SIDE_WALL, RAIL_HEIGHT));
+//        addWallToWorld(new Vector3f(-1, 0, 1), new Vector3f(0, SIDE_WALL, RAIL_HEIGHT));
     }
 
-    private int convertNormal(float norm) {
+    private int normalToBoxDimension(float norm) {
         return norm == 0 ? WALL_LENGTH / 2 : WALL_THICKNESS / 2;
     }
 
-    private void addWallToWorld(StaticPlaneShape plane) {
+    private void addWallToWorld(Vector3f normal, Vector3f position) {
 
-        Vector3f normal = new Vector3f();
-        plane.getPlaneNormal(normal);
+        normal.normalize();
 
-        CollisionShape boxGround = new BoxShape(new Vector3f(convertNormal(normal.x), convertNormal(normal.y), convertNormal(normal.z)));
+        // A large, flattish box laying on the ground.
+        CollisionShape boxGround = new BoxShape(new Vector3f(WALL_LENGTH / 2, WALL_LENGTH / 2, WALL_THICKNESS /2));
 
+        Transform wallTransform = new Transform();
+        wallTransform.setIdentity();
+
+        Vector3f finalPosition = new Vector3f();
+        finalPosition.add(position);
+        finalPosition.scaleAdd(-WALL_THICKNESS / 2, normal);
+        wallTransform.origin.set(finalPosition);
+
+        DefaultMotionState myMotionState = new DefaultMotionState(wallTransform);
+        RigidBodyConstructionInfo rbInfo = new RigidBodyConstructionInfo(
+                0, myMotionState, boxGround, new Vector3f());
+        RigidBody wall = new RigidBody(rbInfo);
+        wall.setRestitution(1);
+
+        Transform rotation = new Transform();
+        rotation.setIdentity();
+
+        Vector3f straightUp = new Vector3f(0, 0, 1);
+
+        Quat4f quat = getRotationFrom(straightUp, normal);
+        rotation.setRotation(quat);
+        wall.setCenterOfMassTransform(rotation);
+
+        world.addRigidBody(wall);
+    }
+
+    // https://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another
+    private Quat4f getRotationFrom(Vector3f fromVec, Vector3f toVec) {
+        Vector3f cross = new Vector3f();
+        cross.cross(fromVec, toVec);
+        float magnitude = (float) (Math.sqrt(fromVec.lengthSquared() * toVec.lengthSquared()) + fromVec.dot(toVec));
+        Quat4f rot = new Quat4f();
+        rot.set(cross.x, cross.y, cross.z, magnitude);
+        return rot;
+    }
+
+    private void addWallToWorld(Vector3f normal, float planeConstant) {
+
+        CollisionShape boxGround = new BoxShape(new Vector3f(normalToBoxDimension(normal.x), normalToBoxDimension(normal.y), normalToBoxDimension(normal.z)));
 
         Transform wallTransform = new Transform();
         wallTransform.setIdentity();
 
         Vector3f origin = new Vector3f();
-        origin.scale(-(plane.getPlaneConstant() + WALL_THICKNESS / 2), normal);
+        origin.scale(-(planeConstant + WALL_THICKNESS / 2), normal);
         wallTransform.origin.set(origin);
 
         DefaultMotionState myMotionState = new DefaultMotionState(wallTransform);
@@ -91,18 +142,18 @@ public class ArenaModel {
         return new Vector3(trans.origin.x, trans.origin.y, trans.origin.z);
     }
 
-    public BallPath simulateBall(Vector3 position, Vector3 velocity, LocalDateTime untilTime) {
+    public BallPath simulateBall(Vector3 position, Vector3 velocity, LocalDateTime startingAt, Duration duration) {
         BallPath ballPath = new BallPath();
-        simulateBall(ballPath, position, velocity, untilTime);
+        simulateBall(ballPath, position, velocity, startingAt, duration);
         return ballPath;
     }
 
-    public void extendSimulation(BallPath ballPath, LocalDateTime untilTime) {
+    public void extendSimulation(BallPath ballPath, LocalDateTime startingAt, Duration duration) {
         assert ballPath.canContinueSimulation();
-        simulateBall(ballPath, ballPath.getEndpoint().space, ballPath.getFinalVelocity(), untilTime);
+        simulateBall(ballPath, ballPath.getEndpoint().space, ballPath.getFinalVelocity(), startingAt, duration);
     }
 
-    private void simulateBall(BallPath ballPath, Vector3 position, Vector3 velocity, LocalDateTime untilTime) {
+    private void simulateBall(BallPath ballPath, Vector3 position, Vector3 velocity, LocalDateTime startingAt, Duration duration) {
         ball.clearForces();
         ball.setLinearVelocity(toV3f(velocity));
         Transform ballTransform = new Transform();
@@ -113,11 +164,12 @@ public class ArenaModel {
 
         int stepsPerSecond = 10;
 
-        LocalDateTime simulationTime = LocalDateTime.now();
+        LocalDateTime simulationTime = LocalDateTime.from(startingAt);
+        LocalDateTime endTime = startingAt.plus(duration);
         ballPath.addSlice(new SpaceTime(position, simulationTime));
 
         // Do some simulation
-        while (simulationTime.isBefore(untilTime)) {
+        while (simulationTime.isBefore(endTime)) {
             world.stepSimulation(1.0f / stepsPerSecond, 10);
             simulationTime = simulationTime.plus(SIMULATION_STEP);
             ballPath.addSlice(new SpaceTime(getBallPosition(), simulationTime));
