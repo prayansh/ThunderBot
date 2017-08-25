@@ -14,8 +14,19 @@ debug any runtime issues that occur with your bot.
 # Can this bot's code be shared publicly (Default: No):
 # Can non-tournment gameplay of this bot be displayed publicly (Default: No):
 
-gateway = JavaGateway(gateway_parameters=GatewayParameters(auto_convert=True, port=25368))
-gAgent = gateway.entry_point.getAgent()
+myPort = 25368
+
+try:
+	with open("port.txt", "r") as portFile:
+		myPort = int(portFile.readline())
+except ValueError:
+	print("Failed to parse port file! Will proceed with hard-coded port number.")
+except:
+	pass
+
+print("Connecting to Java Gateway on port " + str(myPort))
+gateway = JavaGateway(gateway_parameters=GatewayParameters(auto_convert=True, port=myPort))
+javaAgent = gateway.entry_point.getAgent()
 
 class agent:
 
@@ -27,5 +38,7 @@ class agent:
 		return "TareBot"
 
 	def get_output_vector(self, input):
-		listOutput = gAgent.getOutputVector([list(input[0]), list(input[1])], self.team)
+		# Call the java process to get the output
+		listOutput = javaAgent.getOutputVector([list(input[0]), list(input[1])], self.team)
+		# Convert to a regular python list
 		return list(listOutput)
