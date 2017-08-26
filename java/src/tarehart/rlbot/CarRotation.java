@@ -1,18 +1,19 @@
 package tarehart.rlbot;
 
+import mikera.vectorz.Vector3;
+
 public class CarRotation {
 
-    public double noseX;
-    public double noseY;
-    public double noseZ;
-    public double roofZ;
-    public double rollRightDesire;
+    public Vector3 noseVector;
+    public Vector3 roofVector;
+    public Vector3 sideVector;
 
-    public CarRotation(double noseX, double noseY, double noseZ, double roofZ, double rollRightDesire) {
-        this.noseX = noseX;
-        this.noseY = noseY;
-        this.noseZ = noseZ;
-        this.roofZ = roofZ;
-        this.rollRightDesire = rollRightDesire;
+    public CarRotation(Vector3 noseVector, Vector3 roofVector) {
+
+        this.noseVector = noseVector;
+        this.roofVector = roofVector;
+
+        this.sideVector = noseVector.copy();
+        this.sideVector.crossProduct(roofVector);
     }
 }

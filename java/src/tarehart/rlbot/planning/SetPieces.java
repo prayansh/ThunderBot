@@ -20,19 +20,18 @@ public class SetPieces {
                                 .withPitch(-1)
                                 .withAcceleration(1)
                 ))
-                .withStep(new BlindStep(
+                .withStep(new TapStep(2,
                         new AgentOutput()
                                 .withJump(true)
                                 .withAcceleration(1)
-                                .withPitch(-1),
-                        Duration.ofMillis(50)))
+                                .withPitch(-1)))
                 .withStep(new BlindStep(
                         new AgentOutput()
                                 .withAcceleration(1)
                                 .withPitch(-1),
                         Duration.ofMillis(50)
                 ))
-                .withStep(new LandGracefullyStep());
+                .withStep(new LandMindlesslyStep());
     }
 
     public static Plan chaseBall() {

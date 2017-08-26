@@ -1,11 +1,7 @@
 package tarehart.rlbot.tuning;
 
-import tarehart.rlbot.Bot;
-
-import javax.swing.text.html.Option;
 import java.time.LocalDateTime;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Optional;
 
 public class PredictionWarehouse {
@@ -26,6 +22,10 @@ public class PredictionWarehouse {
 
         BallPrediction oldest;
         do {
+            if (ballPredictions.isEmpty()) {
+                return Optional.empty();
+            }
+
             oldest = ballPredictions.removeFirst();
         } while (now.isAfter(oldest.predictedMoment));
 

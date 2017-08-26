@@ -50,14 +50,14 @@ public class AgentInput {
 
         orangePosition = new Vector3(neuralInputs.get(18), neuralInputs.get(3), neuralInputs.get(17));
         orangeVelocity = new Vector3(neuralInputs.get(34), neuralInputs.get(36), neuralInputs.get(35));
-        orangeRotation = new CarRotation(neuralInputs.get(19), neuralInputs.get(22), neuralInputs.get(25),
-                neuralInputs.get(27), neuralInputs.get(26));
+        orangeRotation = new CarRotation(new Vector3(neuralInputs.get(19), neuralInputs.get(22), neuralInputs.get(25)),
+                new Vector3(neuralInputs.get(21), neuralInputs.get(24), neuralInputs.get(27)));
         orangeBoost = neuralInputs.get(37);
 
         bluePosition = new Vector3(neuralInputs.get(5), neuralInputs.get(1), neuralInputs.get(4));
         blueVelocity = new Vector3(neuralInputs.get(28), neuralInputs.get(30), neuralInputs.get(29));
-        blueRotation = new CarRotation(neuralInputs.get(8), neuralInputs.get(4), neuralInputs.get(7),
-                neuralInputs.get(16), neuralInputs.get(15));
+        blueRotation = new CarRotation(new Vector3(neuralInputs.get(8), neuralInputs.get(11), neuralInputs.get(14)),
+                new Vector3(neuralInputs.get(10), neuralInputs.get(13),  neuralInputs.get(16)));
         blueBoost = neuralInputs.get(0);
     }
 

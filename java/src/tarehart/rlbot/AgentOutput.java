@@ -54,6 +54,21 @@ public class AgentOutput {
         return this;
     }
 
+    public AgentOutput withJump() {
+        this.jumpDepressed = true;
+        return this;
+    }
+
+    public AgentOutput withBoost() {
+        this.boostDepressed = true;
+        return this;
+    }
+
+    public AgentOutput withSlide() {
+        this.slideDepressed = true;
+        return this;
+    }
+
 
     public int[] toPython() {
         return new int[] {

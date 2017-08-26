@@ -8,15 +8,14 @@ import tarehart.rlbot.planning.SteerUtil;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Vector;
 
 public class GetBoostStep implements Step {
     private boolean isComplete = false;
     private SplineHandle targetLocation = null;
 
-    private static final float MIDFIELD_BOOST_WIDTH = 72.5f;
-    private static final float CORNER_BOOST_WIDTH = 64;
-    private static final float CORNER_BOOST_DEPTH = 81;
+    private static final float MIDFIELD_BOOST_WIDTH = 71.5f;
+    private static final float CORNER_BOOST_WIDTH = 61.5f;
+    private static final float CORNER_BOOST_DEPTH = 82;
 
     private static final float S_HNDL = 40;
     private static final float C_HNDL = 20;

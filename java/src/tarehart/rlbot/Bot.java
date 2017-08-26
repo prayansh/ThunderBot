@@ -6,13 +6,11 @@ import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.planning.SetPieces;
 import tarehart.rlbot.steps.GetBoostStep;
 import tarehart.rlbot.steps.GetOnDefenseStep;
-import tarehart.rlbot.tuning.PredictionWarehouse;
 import tarehart.rlbot.tuning.Telemetry;
 import tarehart.rlbot.ui.Readout;
 
 import javax.swing.*;
 import java.time.Duration;
-import java.time.LocalDateTime;
 
 public class Bot {
 

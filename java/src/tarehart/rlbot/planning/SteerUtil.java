@@ -18,7 +18,8 @@ import java.util.Optional;
 
 public class SteerUtil {
 
-    public static final int MAX_SPEED = 42;
+    public static final int MAX_SPEED = 46;
+    public static final int MAX_SPEED_SANS_BOOST = 28;
     public static final double GOOD_ENOUGH_ANGLE = Math.PI / 40;
     private static final ArenaModel arenaModel = new ArenaModel();
 
@@ -101,7 +102,7 @@ public class SteerUtil {
         Vector3 myPosition = input.getMyPosition();
         CarRotation myRotation = input.getMyRotation();
 
-        float playerDirectionRad = (float) Math.atan2(myRotation.noseX, myRotation.noseY);
+        float playerDirectionRad = (float) Math.atan2(myRotation.noseVector.x, myRotation.noseVector.y);
 
         float relativeAngleToTargetRad = (float) Math.atan2(position.x - myPosition.x, position.y - myPosition.y);
 
