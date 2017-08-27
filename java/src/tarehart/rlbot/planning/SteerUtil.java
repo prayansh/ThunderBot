@@ -5,6 +5,7 @@ import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.CarRotation;
+import tarehart.rlbot.math.LeadTargetUtil;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.math.SplineHandle;
@@ -14,6 +15,7 @@ import tarehart.rlbot.tuning.Telemetry;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public class SteerUtil {
@@ -22,52 +24,91 @@ public class SteerUtil {
     public static final int MAX_SPEED_SANS_BOOST = 28;
     public static final double GOOD_ENOUGH_ANGLE = Math.PI / 40;
     private static final ArenaModel arenaModel = new ArenaModel();
+    private static final int BOOST_NEEDED_FOR_ZERO_TO_MAX = 60;
+    private static final double DISTANCE_NEEDED_FOR_ZERO_TO_MAX_WITH_BOOST = 60;
+    private static final double DISTANCE_NEEDED_FOR_ZERO_TO_MAX_SANS_BOOST = 60;
+    public static final int PREDICTION_SECONDS = 3;
 
+
+    private static double distanceNeededForMaxSpeed(double currentSpeed, double boostRemaining) {
+        // If we have 60 boost, we can use it to get from 0 to max speed in approx 60 meters.
+
+        double speedNeeded = MAX_SPEED - currentSpeed;
+
+        double proportionGrantedByBoost = (boostRemaining / BOOST_NEEDED_FOR_ZERO_TO_MAX) / (speedNeeded / MAX_SPEED);
+        proportionGrantedByBoost = Math.min(proportionGrantedByBoost, 1);
+
+        double distanceFactor = proportionGrantedByBoost * DISTANCE_NEEDED_FOR_ZERO_TO_MAX_WITH_BOOST +
+                (1 - proportionGrantedByBoost) * DISTANCE_NEEDED_FOR_ZERO_TO_MAX_SANS_BOOST;
+
+        return distanceFactor * speedNeeded / MAX_SPEED;
+    }
+
+    public static double predictAverageSpeed(AgentInput input, double targetDistance) {
+        double speed = input.getMyVelocity().magnitude();
+        double distanceTillMaxSpeed = distanceNeededForMaxSpeed(speed, input.getMyBoost());
+
+        if (distanceTillMaxSpeed < targetDistance) {
+            double averageSpeedFirstSegment = (speed + MAX_SPEED) / 2;
+            double accelerationPortion = distanceTillMaxSpeed / targetDistance;
+            return averageSpeedFirstSegment * accelerationPortion + MAX_SPEED * (1 - accelerationPortion);
+        } else {
+            double speedAtTargetDistance = speed + (MAX_SPEED - speed) * targetDistance / distanceTillMaxSpeed;
+            return (speed + speedAtTargetDistance) / 2;
+        }
+    }
 
     public static SpaceTime predictBallInterceptFlat(AgentInput input) {
 
         double ballDistance = input.ballPosition.distance(input.getMyPosition());
-        int maxSpeedWeight = (int) (ballDistance / 20);
-        double currentSpeed = input.getMyVelocity().magnitude();
+        double predictedAverageSpeed = predictAverageSpeed(input, ballDistance);
 
-        double predictedAverageSpeed = (maxSpeedWeight * MAX_SPEED + currentSpeed) / (maxSpeedWeight + 1);
+        List<Vector2> aimSpots = LeadTargetUtil.leadTarget(input.getMyPosition(), input.ballPosition, input.ballVelocity, predictedAverageSpeed);
+        final Vector2 aimSpot;
 
-        Optional<Vector2> aimSpot = leadTarget(input.getMyPosition(), input.ballPosition, input.ballVelocity, predictedAverageSpeed);
+        // TODO: invalidate aim spots if the ball is too high to be reached!
 
-        if (!aimSpot.isPresent() || !ArenaModel.isInBoundsBall(aimSpot.get())) {
+        if (aimSpots.isEmpty() || !ArenaModel.isInBoundsBall(aimSpots.get(0))) {
 
-            System.out.println("Simulating wall bounce!");
-            BallPath ballPath = predictBallPath(input, input.time, Duration.ofSeconds(3));
+            BallPath ballPath = predictBallPath(input, input.time, Duration.ofSeconds(PREDICTION_SECONDS));
 
-            Optional<SpaceTimeVelocity> stvOption = ballPath.getMotionAfterBounce(1);
+            Optional<SpaceTimeVelocity> stvOption = ballPath.getMotionAfterWallBounce(1);
             if (stvOption.isPresent()) {
                 SpaceTimeVelocity stv = stvOption.get();
                 Vector3 postBounceVelocity = stv.velocity;
                 Duration timeTillBounce = Duration.between(input.time, stv.getTime());
-                double timeTillBounceInSeconds = timeTillBounce.toMillis() * 1000.0;
+                double timeTillBounceInSeconds = timeTillBounce.toMillis() / 1000.0;
 
-                // Now back it up 3 seconds
+                // Now back it up
                 Vector3 backwards = (Vector3) postBounceVelocity.scaleCopy(-timeTillBounceInSeconds);
                 Vector3 imaginaryStartingPoint = stv.getSpace().addCopy(backwards); // This is probably out of bounds
-                aimSpot = leadTarget(input.getMyPosition(), imaginaryStartingPoint, postBounceVelocity, predictedAverageSpeed);
-                if (!aimSpot.isPresent() || !ArenaModel.isInBoundsBall(aimSpot.get())) {
-                    // Ugh. Our bounce calculat
-                    return stv.spaceTime;
+                aimSpots = LeadTargetUtil.leadTarget(input.getMyPosition(), imaginaryStartingPoint, postBounceVelocity, predictedAverageSpeed);
+                while (!aimSpots.isEmpty() && !ArenaModel.isInBoundsBall(aimSpots.get(0))) {
+                    aimSpots.remove(0);
+                }
+                if (aimSpots.isEmpty()) {
+                    // We're probably chasing the ball. Aim toward the end of our prediction.
+                    Vector3 pathEnd = ballPath.getMotionAt(input.time.plusSeconds(PREDICTION_SECONDS)).get().getSpace();
+                    aimSpot = new Vector2(pathEnd.x, pathEnd.y);
+                } else {
+                    System.out.println("Successful wall read!");
+                    aimSpot = aimSpots.get(0);
                 }
             } else {
-                // Double ugh. We have no clue, so just chase the ball for now.
-                aimSpot = Optional.of(new Vector2(input.ballPosition.x, input.ballPosition.y));
+                // This might happen if the ball is going faster than our expected speed. Just chase the ball.
+                aimSpot = new Vector2(input.ballPosition.x, input.ballPosition.y);
             }
-
+        } else {
+            aimSpot = aimSpots.get(0);
         }
 
-        double etaSeconds = aimSpot.get().magnitude() / predictedAverageSpeed;
+        double etaSeconds = aimSpot.magnitude() / predictedAverageSpeed;
         long etaMillis = (long) (etaSeconds * 1000);
 
-        return new SpaceTime(new Vector3(aimSpot.get().x, aimSpot.get().y, 0), input.time.plus(Duration.ofMillis(etaMillis)));
+        return new SpaceTime(new Vector3(aimSpot.x, aimSpot.y, 0), input.time.plus(Duration.ofMillis(etaMillis)));
     }
 
-    public static SpaceTime predictBallIntercept(AgentInput input, SpaceTime flatIntercept) {
+    public static SpaceTime predictBallIntercept3d(AgentInput input, SpaceTime flatIntercept) {
 
         double predictedBallHeight = predictBallHeight(input, flatIntercept.time);
 
@@ -75,7 +116,6 @@ public class SteerUtil {
     }
 
     private static double predictBallHeight(AgentInput input, LocalDateTime moment) {
-        System.out.println("Simulating height for potential aerial!");
         return predictBallPosition(input, moment).z;
     }
 
@@ -132,12 +172,19 @@ public class SteerUtil {
             }
         }
 
-        boolean shouldBoost = difference < Math.PI / 6 && input.getMyVelocity().magnitude() < MAX_SPEED * .98;
+        double distance = position.subCopy(input.getMyPosition()).magnitude();
+        double speed = input.getMyVelocity().magnitude();
+        boolean shouldSlide = difference > Math.PI / 2;
+        boolean shouldBrake = distance < 25 && difference > Math.PI / 6 && speed > MAX_SPEED * .6;
+        boolean isSupersonic = MAX_SPEED - speed < .01;
+
+        boolean shouldBoost = !shouldBrake && difference < Math.PI / 6 && !isSupersonic;
 
         return new AgentOutput()
-                .withAcceleration(1)
+                .withAcceleration(shouldBrake ? 0 : 1)
+                .withDeceleration(shouldBrake ? 1 : 0)
                 .withSteer((float) (-Math.signum(correctionAngle) * turnSharpness))
-                .withSlide(difference > Math.PI / 2)
+                .withSlide(shouldSlide)
                 .withBoost(shouldBoost);
     }
 
@@ -151,39 +198,6 @@ public class SteerUtil {
 
     public static double getDistanceFromMe(AgentInput input, Vector3 loc) {
         return loc.distance(input.getMyPosition());
-    }
-
-    private static Optional<Vector2> leadTarget(Vector3 playerPosition, Vector3 ballPosition, Vector3 ballVelocity, double carSpeed) {
-        Vector2 basePosition = new Vector2(playerPosition.x, playerPosition.y);
-        Vector2 targetPosition = new Vector2(ballPosition.x, ballPosition.y);
-        Vector2 targetVelocity = new Vector2(ballVelocity.x, ballVelocity.y);
-
-        Vector2 toTarget = (Vector2) targetPosition.subCopy(basePosition);
-
-        double a = targetVelocity.dotProduct(targetVelocity) - carSpeed * carSpeed;
-        double b = 2 * targetVelocity.dotProduct(toTarget);
-        double c = toTarget.dotProduct(toTarget);
-
-        double p = -b / (2 * a);
-        double q = Math.sqrt(b * b - 4 * a * c) / (2 * a);
-
-        double t1 = p - q;
-        double t2 = p + q;
-
-        double t;
-        if (t1 > t2 && t2 > 0) {
-            t = t2;
-        } else {
-            t = t1;
-        }
-
-        if (t < 0) {
-            return Optional.empty();
-        }
-
-        Vector2 aimSpot = (Vector2) targetPosition.addMultipleCopy(targetVelocity, t);
-
-        return Optional.of(aimSpot);
     }
 
 }

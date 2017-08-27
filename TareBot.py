@@ -25,8 +25,14 @@ except:
 	pass
 
 print("Connecting to Java Gateway on port " + str(myPort))
-gateway = JavaGateway(gateway_parameters=GatewayParameters(auto_convert=True, port=myPort))
-javaAgent = gateway.entry_point.getAgent()
+
+def initPy4jStuff():
+	global gateway
+	global javaAgent
+	gateway = JavaGateway(gateway_parameters=GatewayParameters(auto_convert=True, port=myPort))
+	javaAgent = gateway.entry_point.getAgent()
+
+initPy4jStuff()
 
 class agent:
 
@@ -38,7 +44,20 @@ class agent:
 		return "TareBot"
 
 	def get_output_vector(self, input):
-		# Call the java process to get the output
-		listOutput = javaAgent.getOutputVector([list(input[0]), list(input[1])], self.team)
-		# Convert to a regular python list
-		return list(listOutput)
+		try:
+			# Call the java process to get the output
+			listOutput = javaAgent.getOutputVector([list(input[0]), list(input[1])], self.team)
+			# Convert to a regular python list
+			return list(listOutput)
+		except:
+			print("Can't connect to java gateway!")
+			global gateway
+			global javaAgent
+			gateway.shutdown_callback_server()
+			try:
+				initPy4jStuff()
+			except:
+				print("Reinitialization failed")
+				pass
+
+			return [16383, 16383, 0, 0, 0, 0, 0] # No motion

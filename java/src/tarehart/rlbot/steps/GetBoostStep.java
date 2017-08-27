@@ -75,7 +75,7 @@ public class GetBoostStep implements Step {
     public static boolean seesOpportunisticBoost(AgentInput input) {
         SplineHandle location = getNearestBoost(input.getMyPosition());
         return location.getLocation().distance(input.getMyPosition()) < 20 &&
-                Math.abs(SteerUtil.getCorrectionAngleRad(input, location.getLocation())) < Math.PI / 12;
+                Math.abs(SteerUtil.getCorrectionAngleRad(input, location.getLocation())) < Math.PI / 6;
 
     }
 }

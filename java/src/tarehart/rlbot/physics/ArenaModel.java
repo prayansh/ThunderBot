@@ -18,6 +18,7 @@ import mikera.vectorz.Vector3;
 import tarehart.rlbot.math.SpaceTime;
 
 import javax.vecmath.Quat4f;
+import javax.vecmath.Vector2f;
 import javax.vecmath.Vector3f;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -27,7 +28,7 @@ public class ArenaModel {
 
     public static final float SIDE_WALL = 81.92f;
     public static final float BACK_WALL = 102.4f;
-    public static final float CEILING = 40;
+    public static final float CEILING = 40.88f;
 
     private static final int WALL_THICKNESS = 10;
     private static final int WALL_LENGTH = 200;
@@ -36,9 +37,11 @@ public class ArenaModel {
     public static final float BALL_DRAG = .1f;
     public static final float BALL_RADIUS = 1.8555f;
 
+    public static final Vector2f CORNER_ANGLE_CENTER = new Vector2f(70.2f, 90.2f);
+
     // The diagonal surfaces that merge the floor and the wall--
     // Higher = more diagonal showing.
-    public static final float RAIL_HEIGHT = 5;
+    public static final float RAIL_HEIGHT = 1.5f;
 
     private DynamicsWorld world;
     private RigidBody ball;
@@ -57,17 +60,23 @@ public class ArenaModel {
 
     private void setupWalls() {
         addWallToWorld(new Vector3f(0, 0, 1), 0);
-        addWallToWorld(new Vector3f(0, 1, 0), -BACK_WALL);
+        addWallToWorld(new Vector3f(0, 1, 0), BACK_WALL);
         addWallToWorld(new Vector3f(0, -1, 0), BACK_WALL);
-        addWallToWorld(new Vector3f(1, 0, 0), -SIDE_WALL);
+        addWallToWorld(new Vector3f(1, 0, 0), SIDE_WALL);
         addWallToWorld(new Vector3f(-1, 0, 0), SIDE_WALL);
         addWallToWorld(new Vector3f(0, 0, -1), CEILING);
 
+        // 45 angle corners
+        addWallToWorld(new Vector3f(1, 1, 0), new Vector3f(-CORNER_ANGLE_CENTER.x, -CORNER_ANGLE_CENTER.y, 0));
+        addWallToWorld(new Vector3f(-1, 1, 0), new Vector3f(CORNER_ANGLE_CENTER.x, -CORNER_ANGLE_CENTER.y, 0));
+        addWallToWorld(new Vector3f(1, -1, 0), new Vector3f(-CORNER_ANGLE_CENTER.x, CORNER_ANGLE_CENTER.y, 0));
+        addWallToWorld(new Vector3f(-1, -1, 0), new Vector3f(CORNER_ANGLE_CENTER.x, CORNER_ANGLE_CENTER.y, 0));
 
-//        addWallToWorld(new Vector3f(0, 1, 1), new Vector3f(0, -BACK_WALL, RAIL_HEIGHT));
-//        addWallToWorld(new Vector3f(0, -1, 1), new Vector3f(0, BACK_WALL, RAIL_HEIGHT));
-//        addWallToWorld(new Vector3f(1, 0, 1), new Vector3f(0, -SIDE_WALL, RAIL_HEIGHT));
-//        addWallToWorld(new Vector3f(-1, 0, 1), new Vector3f(0, SIDE_WALL, RAIL_HEIGHT));
+        // 45 degree angle rails at floor
+        addWallToWorld(new Vector3f(1, 0, 1), new Vector3f(-SIDE_WALL, 0, RAIL_HEIGHT));
+        addWallToWorld(new Vector3f(-1, 0, 1), new Vector3f(SIDE_WALL, 0, RAIL_HEIGHT));
+        addWallToWorld(new Vector3f(0, 1, 1), new Vector3f(0, -BACK_WALL, RAIL_HEIGHT));
+        addWallToWorld(new Vector3f(0, -1, 1), new Vector3f(0, BACK_WALL, RAIL_HEIGHT));
     }
 
     private int normalToBoxDimension(float norm) {
@@ -84,25 +93,23 @@ public class ArenaModel {
         Transform wallTransform = new Transform();
         wallTransform.setIdentity();
 
+        Vector3f thicknessTweak = new Vector3f(normal);
+        thicknessTweak.scale(-WALL_THICKNESS / 2);
+
         Vector3f finalPosition = new Vector3f();
         finalPosition.add(position);
-        finalPosition.scaleAdd(-WALL_THICKNESS / 2, normal);
+        finalPosition.add(thicknessTweak);
         wallTransform.origin.set(finalPosition);
+
+        Vector3f straightUp = new Vector3f(0, 0, 1);
+        Quat4f quat = getRotationFrom(straightUp, normal);
+        wallTransform.setRotation(quat);
 
         DefaultMotionState myMotionState = new DefaultMotionState(wallTransform);
         RigidBodyConstructionInfo rbInfo = new RigidBodyConstructionInfo(
                 0, myMotionState, boxGround, new Vector3f());
         RigidBody wall = new RigidBody(rbInfo);
         wall.setRestitution(1);
-
-        Transform rotation = new Transform();
-        rotation.setIdentity();
-
-        Vector3f straightUp = new Vector3f(0, 0, 1);
-
-        Quat4f quat = getRotationFrom(straightUp, normal);
-        rotation.setRotation(quat);
-        wall.setCenterOfMassTransform(rotation);
 
         world.addRigidBody(wall);
     }
@@ -114,18 +121,20 @@ public class ArenaModel {
         float magnitude = (float) (Math.sqrt(fromVec.lengthSquared() * toVec.lengthSquared()) + fromVec.dot(toVec));
         Quat4f rot = new Quat4f();
         rot.set(cross.x, cross.y, cross.z, magnitude);
+        rot.normalize();
         return rot;
     }
 
-    private void addWallToWorld(Vector3f normal, float planeConstant) {
+    private void addWallToWorld(Vector3f normal, float distanceFromCenter) {
 
         CollisionShape boxGround = new BoxShape(new Vector3f(normalToBoxDimension(normal.x), normalToBoxDimension(normal.y), normalToBoxDimension(normal.z)));
 
         Transform wallTransform = new Transform();
         wallTransform.setIdentity();
 
-        Vector3f origin = new Vector3f();
-        origin.scale(-(planeConstant + WALL_THICKNESS / 2), normal);
+        float backoff = distanceFromCenter + WALL_THICKNESS / 2;
+        Vector3f origin = new Vector3f(normal);
+        origin.scale(-backoff);
         wallTransform.origin.set(origin);
 
         DefaultMotionState myMotionState = new DefaultMotionState(wallTransform);
@@ -197,8 +206,8 @@ public class ArenaModel {
         // within these boundaries
         // Don't make the world AABB size too large, it will harm simulation
         // quality and performance
-        Vector3f worldAabbMin = new Vector3f(-200, -200, -200);
-        Vector3f worldAabbMax = new Vector3f(200, 200, 200);
+        Vector3f worldAabbMin = new Vector3f(-400, -400, -400);
+        Vector3f worldAabbMax = new Vector3f(400, 400, 400);
         int maxProxies = 1024;
         AxisSweep3 overlappingPairCache =
                 new AxisSweep3(worldAabbMin, worldAabbMax, maxProxies);

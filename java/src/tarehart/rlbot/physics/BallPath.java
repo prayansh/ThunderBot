@@ -1,5 +1,6 @@
 package tarehart.rlbot.physics;
 
+import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.SpaceTimeVelocity;
@@ -40,7 +41,15 @@ public class BallPath {
         return Optional.of(new SpaceTimeVelocity(getEndpoint(), getFinalVelocity()));
     }
 
-    public Optional<SpaceTimeVelocity> getMotionAfterBounce(int targetBounce) {
+    /**
+     * Bounce counting starts at 1.
+     *
+     * 0 is not a valid input.
+     */
+    public Optional<SpaceTimeVelocity> getMotionAfterWallBounce(int targetBounce) {
+
+        assert targetBounce > 0;
+
         Vector3 previousVelocity = null;
         int numBounces = 0;
 
@@ -54,21 +63,35 @@ public class BallPath {
                 continue;
             }
 
-            if (currentVelocity.dotProduct(previousVelocity) < 0) {
+            if (isWallBounce(previousVelocity, currentVelocity)) {
                 numBounces++;
             }
 
             if (numBounces == targetBounce) {
-                return Optional.of(new SpaceTimeVelocity(spt, currentVelocity));
+                if (path.size() == i + 1) {
+                    return Optional.empty();
+                }
+                SpaceTime next = path.get(i + 1);
+                return Optional.of(new SpaceTimeVelocity(next, getVelocity(spt, next)));
             }
         }
 
         return Optional.empty();
     }
 
+    private boolean isWallBounce(Vector3 previousVelocity, Vector3 currentVelocity) {
+        Vector2 prev = new Vector2(previousVelocity.x, previousVelocity.y);
+        Vector2 curr = new Vector2(currentVelocity.x, currentVelocity.y);
+
+        prev.normalise();
+        curr.normalise();
+
+        return prev.dotProduct(curr) < .95;
+    }
+
     private Vector3 getVelocity(SpaceTime before, SpaceTime after) {
         long millisBetween = Duration.between(before.time, after.time).toMillis();
-        double secondsBetween = millisBetween * 1000;
+        double secondsBetween = millisBetween / 1000.0;
         Vector3 prevToNext = (Vector3) after.space.subCopy(before.space);
         return (Vector3) prevToNext.scaleCopy(1 / secondsBetween);
     }

@@ -6,16 +6,14 @@ import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.planning.Plan;
-import tarehart.rlbot.planning.PlanOutput;
 import tarehart.rlbot.planning.SetPieces;
 import tarehart.rlbot.planning.SteerUtil;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
 
 public class ChaseBallStep implements Step {
 
-    private static final double AERIAL_RISE_RATE = 1;
+    private static final double AERIAL_RISE_RATE = 10;
 
     private boolean isComplete = false;
     private Plan plan;
@@ -42,24 +40,34 @@ public class ChaseBallStep implements Step {
         SpaceTime intercept = SteerUtil.predictBallInterceptFlat(input);
         Duration timeTillIntercept = Duration.between(input.time, intercept.time);
         double correctionAngleRad = SteerUtil.getCorrectionAngleRad(input, intercept.space);
-        long millisTillIntercept = timeTillIntercept.toMillis();
-        if (Math.abs(correctionAngleRad) < Math.PI / 24 && millisTillIntercept < 5000 && input.getMyBoost() > 50) {
+        SpaceTime intercept3d = SteerUtil.predictBallIntercept3d(input, intercept);
 
-            SpaceTime intercept3d = SteerUtil.predictBallIntercept(input, intercept);
+        if (intercept3d.space.z > 5 && Math.abs(correctionAngleRad) < Math.PI / 24) {
 
-            if (intercept3d.space.z > 3 && AERIAL_RISE_RATE * millisTillIntercept / 1000.0 < intercept3d.space.z) {
-                // Time to get up!
-                System.out.println("Performing Aerial!");
-                plan = SetPieces.performAerial();
-                plan.begin();
-                return plan.getOutput(input);
+
+            boolean hasAerialBoost = input.getMyBoost() > 30;
+            Duration expectedAerialTime = Duration.ofMillis((long) (1000 * intercept3d.space.z / AERIAL_RISE_RATE));
+            Duration tMinus = timeTillIntercept.minus(expectedAerialTime);
+            boolean tooLateToAerial = tMinus.toMillis() < -100;
+
+            if (hasAerialBoost && timeTillIntercept.toMillis() < 4000 &&
+                    tMinus.toMillis() < 10 && !tooLateToAerial) {
+
+                    // Time to get up!
+                    System.out.println("Performing Aerial!");
+                    plan = SetPieces.performAerial();
+                    plan.begin();
+                    return plan.getOutput(input);
+            } else {
+                if ((!hasAerialBoost || tooLateToAerial) && flatDistance < 25) {
+                    // Slow down and catch it
+                    return new AgentOutput();
+                }
             }
         }
 
-
-
-        if (flatDistance > 30 && input.getMyBoost() < 1 &&
-                Math.abs(correctionAngleRad) < Math.PI / 12) {
+        if (flatDistance > 60 && input.getMyBoost() < 1 &&
+                Math.abs(correctionAngleRad) < Math.PI / 12 && input.getMyVelocity().magnitude() > SteerUtil.MAX_SPEED / 4) {
             System.out.println("Front flipping after ball!");
             plan = SetPieces.frontFlip();
             plan.begin();
