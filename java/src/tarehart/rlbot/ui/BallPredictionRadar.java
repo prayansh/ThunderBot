@@ -42,14 +42,14 @@ public class BallPredictionRadar extends JPanel {
 
         drawCircle(centerX, centerY, new Color(123, 152, 179), graphics2D);
 
-
-        graphics2D.setStroke(new BasicStroke(3, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-        graphics2D.drawLine(centerX, centerY, (int) velocity.x + centerX, (int) velocity.y + centerY);
-
         drawCircle(
                 predictionRelative.x * PREDICTION_SCALE + centerX,
                 predictionRelative.y * PREDICTION_SCALE + centerY,
                 new Color(167, 224, 178), graphics2D);
+
+        graphics2D.setColor(new Color(250, 150, 129));
+        graphics2D.setStroke(new BasicStroke(3, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        graphics2D.drawLine(centerX, centerY, (int) velocity.x + centerX, (int) velocity.y + centerY);
     }
 
     private void drawCircle(double x, double y, Color color, Graphics2D g) {

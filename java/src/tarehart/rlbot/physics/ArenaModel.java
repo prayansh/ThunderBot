@@ -3,6 +3,7 @@ package tarehart.rlbot.physics;
 import com.bulletphysics.collision.broadphase.AxisSweep3;
 import com.bulletphysics.collision.dispatch.CollisionConfiguration;
 import com.bulletphysics.collision.dispatch.CollisionDispatcher;
+import com.bulletphysics.collision.dispatch.CollisionObject;
 import com.bulletphysics.collision.dispatch.DefaultCollisionConfiguration;
 import com.bulletphysics.collision.shapes.*;
 import com.bulletphysics.dynamics.DiscreteDynamicsWorld;
@@ -32,7 +33,7 @@ public class ArenaModel {
 
     private static final int WALL_THICKNESS = 10;
     private static final int WALL_LENGTH = 200;
-    public static final float GRAVITY = 6.2f;
+    public static final float GRAVITY = 13f;
     public static final Duration SIMULATION_STEP = Duration.ofMillis(100);
     public static final float BALL_DRAG = .1f;
     public static final float BALL_RADIUS = 1.8555f;
@@ -41,7 +42,9 @@ public class ArenaModel {
 
     // The diagonal surfaces that merge the floor and the wall--
     // Higher = more diagonal showing.
-    public static final float RAIL_HEIGHT = 1.5f;
+    public static final float RAIL_HEIGHT = 1.3f;
+    public static final float BALL_RESTITUTION = .6f;
+    public static final float WALL_RESTITUTION = 1;
 
     private DynamicsWorld world;
     private RigidBody ball;
@@ -109,7 +112,7 @@ public class ArenaModel {
         RigidBodyConstructionInfo rbInfo = new RigidBodyConstructionInfo(
                 0, myMotionState, boxGround, new Vector3f());
         RigidBody wall = new RigidBody(rbInfo);
-        wall.setRestitution(1);
+        wall.setRestitution(WALL_RESTITUTION);
 
         world.addRigidBody(wall);
     }
@@ -141,7 +144,7 @@ public class ArenaModel {
         RigidBodyConstructionInfo rbInfo = new RigidBodyConstructionInfo(
                 0, myMotionState, boxGround, new Vector3f());
         RigidBody wall = new RigidBody(rbInfo);
-        wall.setRestitution(1);
+        wall.setRestitution(WALL_RESTITUTION);
         world.addRigidBody(wall);
     }
 
@@ -245,9 +248,10 @@ public class ArenaModel {
         RigidBodyConstructionInfo rbInfo = new RigidBodyConstructionInfo(
                 mass, myMotionState, collisionShape, localInertia);
         RigidBody body = new RigidBody(rbInfo);
-        body.setDamping(BALL_DRAG, 0.5f);
-        body.setRestitution(1);
-        body.setFriction(0);
+        body.setDamping(BALL_DRAG, 1f);
+        body.setRestitution(BALL_RESTITUTION);
+        body.setFriction(.5f);
+        body.setActivationState(CollisionObject.DISABLE_DEACTIVATION);
 
         return body;
     }

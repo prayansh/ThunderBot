@@ -5,6 +5,7 @@ import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.Bot;
 import tarehart.rlbot.math.SplineHandle;
+import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.planning.SetPieces;
 import tarehart.rlbot.planning.SteerUtil;
@@ -71,8 +72,21 @@ public class GetOnDefenseStep implements Step {
 
         SplineHandle myGoal = input.team == Bot.Team.BLUE ? GetOnDefenseStep.BLUE_GOAL : GetOnDefenseStep.ORANGE_GOAL;
 
-        double relativeBallY = input.ballPosition.y - input.getMyPosition().y;
-        double relativeGoalY = myGoal.getLocation().y - input.getMyPosition().y;
-        return relativeBallY * relativeGoalY > 0 && Math.abs(relativeGoalY) > 10;
+        boolean alreadyOnDefense = Math.abs(myGoal.getLocation().y - input.getMyPosition().y) < 10;
+        if (alreadyOnDefense) {
+            return false;
+        }
+
+        double playerToBallY = input.ballPosition.y - input.getMyPosition().y;
+
+        Vector3 ballToGoal = (Vector3) myGoal.getLocation().subCopy(input.ballPosition);
+        Vector3 ballVelocityTowardGoal = VectorUtil.project(input.ballVelocity, ballToGoal);
+
+        double ballSpeedTowardGoal = ballVelocityTowardGoal.magnitude() * Math.signum(ballVelocityTowardGoal.dotProduct(ballToGoal));
+        double wrongSidedness = playerToBallY * Math.signum(myGoal.getLocation().y);
+
+        boolean needDefense = ballSpeedTowardGoal > 5 && wrongSidedness > 0 || wrongSidedness > 10;
+        return needDefense;
+
     }
 }

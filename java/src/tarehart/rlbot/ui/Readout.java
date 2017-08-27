@@ -1,6 +1,5 @@
 package tarehart.rlbot.ui;
 
-import mikera.vectorz.AVector;
 import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
@@ -24,23 +23,20 @@ public class Readout {
     private JProgressBar ballHeightPredicted;
     private JSlider predictionTime;
     private JPanel rootPanel;
-    private JLabel maxCarSpeed;
-    private JLabel maxBallHeight;
     private BallPredictionRadar ballPredictionReadout;
+    private JProgressBar ballHeightActualMax;
+    private JProgressBar ballHeightPredictedMax;
 
     private double maxCarSpeedVal;
-    private double maxBallHeightVal;
+
+    private LocalDateTime actualMaxTime;
+    private LocalDateTime predictedMaxTime;
 
     private PredictionWarehouse warehouse = new PredictionWarehouse();
 
     public void update(AgentInput input, Plan.Posture posture, BallPath ballPath) {
 
-        double carSpeed = input.getMyVelocity().magnitude();
-        maxCarSpeedVal = Math.max(carSpeed, maxCarSpeedVal);
-        maxCarSpeed.setText(Double.toString(maxCarSpeedVal));
 
-        maxBallHeightVal = Math.max(input.ballPosition.z, maxBallHeightVal);
-        maxBallHeight.setText(Double.toString(maxBallHeightVal));
 
         ballHeightPredicted.setValue(0);
         planPosture.setText(posture.name());
@@ -68,6 +64,20 @@ public class Readout {
             ballPredictionReadout.repaint();
         }
 
+
+        if (ballHeightActualMax.getValue() < ballHeightActual.getValue()) {
+            ballHeightActualMax.setValue(ballHeightActual.getValue());
+            actualMaxTime = input.time;
+        } else if(Duration.between(input.time, actualMaxTime).abs().getSeconds() > 3) {
+            ballHeightActualMax.setValue(0);
+        }
+
+        if (ballHeightPredictedMax.getValue() < ballHeightPredicted.getValue()) {
+            ballHeightPredictedMax.setValue(ballHeightPredicted.getValue());
+            predictedMaxTime = input.time;
+        } else if(Duration.between(input.time, predictedMaxTime).abs().getSeconds() > 3) {
+            ballHeightPredictedMax.setValue(0);
+        }
 
     }
 

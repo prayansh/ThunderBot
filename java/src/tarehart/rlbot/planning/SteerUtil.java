@@ -5,16 +5,14 @@ import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.CarRotation;
-import tarehart.rlbot.math.LeadTargetUtil;
-import tarehart.rlbot.math.SpaceTime;
-import tarehart.rlbot.math.SpaceTimeVelocity;
-import tarehart.rlbot.math.SplineHandle;
+import tarehart.rlbot.math.*;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.tuning.Telemetry;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,7 +25,9 @@ public class SteerUtil {
     private static final int BOOST_NEEDED_FOR_ZERO_TO_MAX = 60;
     private static final double DISTANCE_NEEDED_FOR_ZERO_TO_MAX_WITH_BOOST = 60;
     private static final double DISTANCE_NEEDED_FOR_ZERO_TO_MAX_SANS_BOOST = 60;
-    public static final int PREDICTION_SECONDS = 3;
+    private static final double AERIAL_RISE_RATE = 10;
+    public static final double NEEDS_AERIAL_THRESHOLD = 3;
+
 
 
     private static double distanceNeededForMaxSpeed(double currentSpeed, double boostRemaining) {
@@ -58,68 +58,96 @@ public class SteerUtil {
         }
     }
 
-    public static SpaceTime predictBallInterceptFlat(AgentInput input) {
+    public static Optional<SpaceTime> getCatchOpportunity(AgentInput input, BallPath ballPath) {
+
+        LocalDateTime searchStart = input.time;
+
+        double potentialEnergy = input.ballPosition.z - ArenaModel.BALL_RADIUS * ArenaModel.GRAVITY;
+        double verticalKineticEnergy = 0.5 * input.ballVelocity.z * input.ballVelocity.z;
+        double groundBounceEnergy = potentialEnergy + verticalKineticEnergy;
+
+        if (groundBounceEnergy < 20) {
+            return Optional.empty();
+        }
+
+        for (int i = 0; i < 3; i++) {
+            Optional<SpaceTimeVelocity> landingOption = ballPath.getLanding(searchStart);
+
+            if (landingOption.isPresent()) {
+                SpaceTime landing = landingOption.get().spaceTime;
+                if (canGetUnder(input, landing)) {
+                    return Optional.of(landing);
+                } else {
+                    searchStart = landing.time.plusSeconds(1);
+                }
+            } else {
+                return Optional.empty();
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private static boolean canGetUnder(AgentInput input, SpaceTime spaceTime) {
+        double distance = spaceTime.space.subCopy(input.getMyPosition()).magnitude();
+        double predictedAverageSpeed = predictAverageSpeed(input, distance);
+        double secondsAllotted = Duration.between(input.time, spaceTime.time).toMillis() / 1000.0;
+        return predictedAverageSpeed * secondsAllotted > distance;
+    }
+
+    public static List<SpaceTime> getInterceptOpportunities(AgentInput input, BallPath ballPath) {
+
+        List<SpaceTime> interceptOpportunities = new ArrayList<>();
 
         double ballDistance = input.ballPosition.distance(input.getMyPosition());
-        double predictedAverageSpeed = predictAverageSpeed(input, ballDistance);
+        double predictedAverageSpeed = predictAverageSpeed(input, ballDistance); // Using ballDistance here is an extremely rough estimate
 
         List<Vector2> aimSpots = LeadTargetUtil.leadTarget(input.getMyPosition(), input.ballPosition, input.ballVelocity, predictedAverageSpeed);
-        final Vector2 aimSpot;
-
-        // TODO: invalidate aim spots if the ball is too high to be reached!
 
         if (aimSpots.isEmpty() || !ArenaModel.isInBoundsBall(aimSpots.get(0))) {
-
-            BallPath ballPath = predictBallPath(input, input.time, Duration.ofSeconds(PREDICTION_SECONDS));
 
             Optional<SpaceTimeVelocity> stvOption = ballPath.getMotionAfterWallBounce(1);
             if (stvOption.isPresent()) {
                 SpaceTimeVelocity stv = stvOption.get();
-                Vector3 postBounceVelocity = stv.velocity;
-                Duration timeTillBounce = Duration.between(input.time, stv.getTime());
-                double timeTillBounceInSeconds = timeTillBounce.toMillis() / 1000.0;
-
-                // Now back it up
-                Vector3 backwards = (Vector3) postBounceVelocity.scaleCopy(-timeTillBounceInSeconds);
-                Vector3 imaginaryStartingPoint = stv.getSpace().addCopy(backwards); // This is probably out of bounds
-                aimSpots = LeadTargetUtil.leadTarget(input.getMyPosition(), imaginaryStartingPoint, postBounceVelocity, predictedAverageSpeed);
-                while (!aimSpots.isEmpty() && !ArenaModel.isInBoundsBall(aimSpots.get(0))) {
-                    aimSpots.remove(0);
-                }
-                if (aimSpots.isEmpty()) {
-                    // We're probably chasing the ball. Aim toward the end of our prediction.
-                    Vector3 pathEnd = ballPath.getMotionAt(input.time.plusSeconds(PREDICTION_SECONDS)).get().getSpace();
-                    aimSpot = new Vector2(pathEnd.x, pathEnd.y);
-                } else {
-                    System.out.println("Successful wall read!");
-                    aimSpot = aimSpots.get(0);
-                }
-            } else {
-                // This might happen if the ball is going faster than our expected speed. Just chase the ball.
-                aimSpot = new Vector2(input.ballPosition.x, input.ballPosition.y);
+                aimSpots = interceptWallBounce(input, predictedAverageSpeed, stv);
             }
-        } else {
-            aimSpot = aimSpots.get(0);
         }
 
-        double etaSeconds = aimSpot.magnitude() / predictedAverageSpeed;
-        long etaMillis = (long) (etaSeconds * 1000);
+        for (Vector2 spot: aimSpots) {
+            if (ArenaModel.isInBoundsBall(spot)) {
+                SpaceTime arrival = getArrival(input, spot, predictedAverageSpeed, ballPath);
+                interceptOpportunities.add(arrival);
+            }
+        }
 
-        return new SpaceTime(new Vector3(aimSpot.x, aimSpot.y, 0), input.time.plus(Duration.ofMillis(etaMillis)));
+        return interceptOpportunities;
     }
 
-    public static SpaceTime predictBallIntercept3d(AgentInput input, SpaceTime flatIntercept) {
-
-        double predictedBallHeight = predictBallHeight(input, flatIntercept.time);
-
-        return new SpaceTime(new Vector3(flatIntercept.space.x, flatIntercept.space.y, predictedBallHeight), flatIntercept.time);
+    private static SpaceTime getArrival(AgentInput input, Vector2 target, double predictedAverageSpeed, BallPath ballPath) {
+        Vector3 position = input.getMyPosition();
+        double distance = target.subCopy(new Vector2(position.x, position.y)).magnitude();
+        Duration travelTime = Duration.ofMillis((long) (1000 * distance / predictedAverageSpeed));
+        LocalDateTime interceptTime = input.time.plus(travelTime);
+        Optional<SpaceTimeVelocity> motion = ballPath.getMotionAt(interceptTime);
+        if (motion.isPresent()) {
+            return motion.get().spaceTime;
+        } else {
+            return new SpaceTime(new Vector3(target.x, target.y, ArenaModel.BALL_RADIUS), interceptTime);
+        }
     }
 
-    private static double predictBallHeight(AgentInput input, LocalDateTime moment) {
-        return predictBallPosition(input, moment).z;
+    private static List<Vector2> interceptWallBounce(AgentInput input, double predictedAverageSpeed, SpaceTimeVelocity rightAfterBounce) {
+        Vector3 postBounceVelocity = rightAfterBounce.velocity;
+        Duration timeTillBounce = Duration.between(input.time, rightAfterBounce.getTime());
+        double timeTillBounceInSeconds = timeTillBounce.toMillis() / 1000.0;
+
+        // Now back it up
+        Vector3 backwards = (Vector3) postBounceVelocity.scaleCopy(-timeTillBounceInSeconds);
+        Vector3 imaginaryStartingPoint = rightAfterBounce.getSpace().addCopy(backwards); // This is probably out of bounds
+        return LeadTargetUtil.leadTarget(input.getMyPosition(), imaginaryStartingPoint, postBounceVelocity, predictedAverageSpeed);
     }
 
-    private static BallPath predictBallPath(AgentInput input, LocalDateTime startingAt, Duration duration) {
+    public static BallPath predictBallPath(AgentInput input, LocalDateTime startingAt, Duration duration) {
         Telemetry telemetry = Telemetry.forTeam(input.team);
 
         if (telemetry.getBallPath() == null) {
@@ -131,11 +159,6 @@ public class SteerUtil {
             arenaModel.extendSimulation(telemetry.getBallPath(), startingAt, duration);
         }
         return telemetry.getBallPath();
-    }
-
-    private static Vector3 predictBallPosition(AgentInput input, LocalDateTime targetTime) {
-        BallPath ballPath = predictBallPath(input, input.time, Duration.between(input.time, targetTime));
-        return ballPath.getMotionAt(targetTime).get().getSpace();
     }
 
     public static double getCorrectionAngleRad(AgentInput input, Vector3 position) {
@@ -198,6 +221,30 @@ public class SteerUtil {
 
     public static double getDistanceFromMe(AgentInput input, Vector3 loc) {
         return loc.distance(input.getMyPosition());
+    }
+
+    private static boolean isVerticallyAccessible(AgentInput input, SpaceTime intercept) {
+        Duration timeTillIntercept = Duration.between(input.time, intercept.time);
+
+        if (intercept.space.z < NEEDS_AERIAL_THRESHOLD) {
+            // We can probably just get it by jumping
+            return true;
+        }
+
+        if (input.getMyBoost() > 30) {
+            Duration tMinus = getAerialLaunchCountdown(intercept, timeTillIntercept);
+            return tMinus.toMillis() >= -100;
+        }
+        return false;
+    }
+
+    public static Duration getAerialLaunchCountdown(SpaceTime intercept, Duration timeTillIntercept) {
+        Duration expectedAerialTime = Duration.ofMillis((long) (1000 * intercept.space.z / AERIAL_RISE_RATE));
+        return timeTillIntercept.minus(expectedAerialTime);
+    }
+
+    public static Optional<SpaceTime> getPreferredIntercept(AgentInput input, List<SpaceTime> interceptOpportunities) {
+        return interceptOpportunities.stream().filter(intercept -> isVerticallyAccessible(input, intercept)).findFirst();
     }
 
 }

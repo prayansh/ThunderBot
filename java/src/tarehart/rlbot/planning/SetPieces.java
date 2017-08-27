@@ -42,7 +42,7 @@ public class SetPieces {
     public static Plan getBoostAndAerial() {
         return new Plan()
                 .withStep(new GetBoostStep())
-                .withStep(new TurnTowardInterceptStep())
+                .withStep(new TurnTowardCenterStep())
                 .appendPlan(performAerial());
     }
 

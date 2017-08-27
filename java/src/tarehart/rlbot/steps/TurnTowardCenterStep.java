@@ -6,22 +6,21 @@ import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.planning.SteerUtil;
 
-public class TurnTowardInterceptStep implements Step {
+public class TurnTowardCenterStep implements Step {
 
     private boolean isComplete = false;
 
 
     public AgentOutput getOutput(AgentInput input) {
 
-        SpaceTime flatIntercept = SteerUtil.predictBallInterceptFlat(input);
-
-        double correctionAngle = SteerUtil.getCorrectionAngleRad(input, new Vector3(flatIntercept.space.x, flatIntercept.space.y, 0));
+        Vector3 center = new Vector3(0, 0, 0);
+        double correctionAngle = SteerUtil.getCorrectionAngleRad(input, center);
 
         if (correctionAngle < SteerUtil.GOOD_ENOUGH_ANGLE) {
             isComplete = true;
         }
 
-        return SteerUtil.steerTowardPosition(input, flatIntercept.space);
+        return SteerUtil.steerTowardPosition(input, center);
     }
 
 
