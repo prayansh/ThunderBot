@@ -52,37 +52,16 @@ public class SetPieces {
                         new AgentOutput()
                             .withJump(true)
                             .withPitch(1),
-                        Duration.ofMillis(350)
+                        Duration.ofMillis(360)
                 ))
                 .withStep(new BlindStep(
                         new AgentOutput()
                             .withJump(true)
                             .withPitch(-1)
                             .withBoost(true),
-                        Duration.ofMillis(350)
+                        Duration.ofMillis(360)
                 ))
-                .withStep(new BlindStep(
-                        new AgentOutput()
-                            .withJump(true)
-                            .withBoost(true),
-                        Duration.ofMillis(500)
-                ))
-                .withStep(new BlindStep(
-                        new AgentOutput()
-                            .withJump(false)
-                            .withBoost(true),
-                        Duration.ofMillis(50)
-                ))
-                .withStep(new BlindStep(
-                        new AgentOutput()
-                            .withJump(true)
-                            .withPitch(-1),
-                        Duration.ofMillis(50)
-                ))
-                .withStep(new BlindStep(
-                        new AgentOutput(),
-                        Duration.ofMillis(400)
-                ))
+                .withStep(new MidairStrikeStep())
                 .withStep(new LandGracefullyStep());
     }
 

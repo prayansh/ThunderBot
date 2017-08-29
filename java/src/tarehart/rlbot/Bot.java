@@ -6,6 +6,7 @@ import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.planning.SetPieces;
 import tarehart.rlbot.steps.GetBoostStep;
 import tarehart.rlbot.steps.GetOnDefenseStep;
+import tarehart.rlbot.tuning.BotLog;
 import tarehart.rlbot.tuning.Telemetry;
 import tarehart.rlbot.ui.Readout;
 
@@ -41,18 +42,21 @@ public class Bot {
 
         AgentOutput output = getOutput(input);
         Plan.Posture posture = currentPlan != null ? currentPlan.getPosture() : Plan.Posture.NEUTRAL;
-        readout.update(input, posture, Telemetry.forTeam(input.team).getBallPath());
+        String situation = currentPlan != null ? currentPlan.getSituation() : "";
+        readout.update(input, posture, situation, BotLog.collect(input.team), Telemetry.forTeam(input.team).getBallPath());
         Telemetry.forTeam(team).reset();
         return output;
     }
 
     private AgentOutput getOutput(AgentInput input) {
         if (GetOnDefenseStep.needDefense(input) && (currentPlan == null || currentPlan.getPosture() != Plan.Posture.DEFENSIVE)) {
+            BotLog.println("Going on defense", input.team);
             currentPlan = new Plan(Plan.Posture.DEFENSIVE).withStep(new GetOnDefenseStep());
             currentPlan.begin();
         }
 
         if (currentPlan == null || currentPlan.isComplete()) {
+            BotLog.println("Making fresh plans", input.team);
             if (input.getMyBoost() < 30 && input.getMyPosition().distance(input.ballPosition) > 80) {
                 currentPlan = new Plan().withStep(new GetBoostStep());
                 currentPlan.begin();

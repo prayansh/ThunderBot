@@ -10,6 +10,7 @@ import tarehart.rlbot.tuning.BallPrediction;
 import tarehart.rlbot.tuning.PredictionWarehouse;
 
 import javax.swing.*;
+import javax.swing.text.DefaultCaret;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -26,6 +27,9 @@ public class Readout {
     private BallPredictionRadar ballPredictionReadout;
     private JProgressBar ballHeightActualMax;
     private JProgressBar ballHeightPredictedMax;
+    private JTextPane situationText;
+    private JLabel predictionTimeSeconds;
+    private JTextArea logViewer;
 
     private double maxCarSpeedVal;
 
@@ -34,11 +38,19 @@ public class Readout {
 
     private PredictionWarehouse warehouse = new PredictionWarehouse();
 
-    public void update(AgentInput input, Plan.Posture posture, BallPath ballPath) {
 
+    public Readout() {
+        DefaultCaret caret = (DefaultCaret)logViewer.getCaret();
+        caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+    }
 
+    public void update(AgentInput input, Plan.Posture posture, String situation, String log, BallPath ballPath) {
 
-        ballHeightPredicted.setValue(0);
+        situationText.setText(situation);
+        predictionTimeSeconds.setText(String.format("%.2f", predictionTime.getValue() / 1000.0));
+        logViewer.append(log);
+
+        // ballHeightPredicted.setValue(0); // Commented out to avoid flicker. Should always be fresh anyway.
         planPosture.setText(posture.name());
         ballHeightActual.setValue((int) (input.ballPosition.z * HEIGHT_BAR_MULTIPLIER));
 
@@ -83,10 +95,5 @@ public class Readout {
 
     public JPanel getRootPanel() {
         return rootPanel;
-    }
-
-    private static Readout readout = new Readout();
-    public static Readout get() {
-        return readout;
     }
 }

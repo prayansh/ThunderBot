@@ -14,7 +14,7 @@ public class TurnTowardCenterStep implements Step {
     public AgentOutput getOutput(AgentInput input) {
 
         Vector3 center = new Vector3(0, 0, 0);
-        double correctionAngle = SteerUtil.getCorrectionAngleRad(input, center);
+        double correctionAngle = Math.abs(SteerUtil.getCorrectionAngleRad(input, center));
 
         if (correctionAngle < SteerUtil.GOOD_ENOUGH_ANGLE) {
             isComplete = true;
@@ -31,5 +31,10 @@ public class TurnTowardCenterStep implements Step {
 
     @Override
     public void begin() {
+    }
+
+    @Override
+    public String getSituation() {
+        return "Turning toward center field";
     }
 }

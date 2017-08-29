@@ -4,11 +4,13 @@ import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.Bot;
 import tarehart.rlbot.CarRotation;
 import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.steps.rotation.PitchToPlaneStep;
 import tarehart.rlbot.steps.rotation.RollToPlaneStep;
 import tarehart.rlbot.steps.rotation.YawToPlaneStep;
+import tarehart.rlbot.tuning.BotLog;
 
 import java.util.Comparator;
 import java.util.stream.Stream;
@@ -41,7 +43,7 @@ public class LandGracefullyStep implements Step {
         }
 
         if (plan == null) {
-            plan = planRotation(input.getMyRotation(), desiredFacing);
+            plan = planRotation(input.getMyRotation(), desiredFacing, input.team);
             plan.begin();
         }
 
@@ -52,20 +54,20 @@ public class LandGracefullyStep implements Step {
         return plan.getOutput(input);
     }
 
-    private static Plan planRotation(CarRotation current, Vector2 desiredFacing) {
+    private static Plan planRotation(CarRotation current, Vector2 desiredFacing, Bot.Team team) {
 
         // Step 1: get a clean axis
         // If front has no Z, we can roll flat
         // If roof has no Z, we can pitch nose toward desired direction, then roll
         // If side has no Z, we can pitch flat, in direction closest to desired, then roll
 
-        System.out.println("Nose: " + current.noseVector + " Roof: " + current.roofVector + " Side: " + current.sideVector);
+        BotLog.println("Nose: " + current.noseVector + " Roof: " + current.roofVector + " Side: " + current.sideVector, team);
 
         // What's closest to being true?
         Vector3 minZ = Stream.of(current.noseVector, current.roofVector, current.sideVector).min(Comparator.comparingDouble(a -> Math.abs(a.z))).get();
 
         if (minZ == current.noseVector) {
-            System.out.println("Nose points to horizon");
+            BotLog.println("Nose points to horizon", team);
             // Pitch or yaw nose vector to zero
             return new Plan()
                     .withStep(Math.abs(current.roofVector.z) > SIN_45 ? new PitchToPlaneStep(UP_VECTOR, true) : new YawToPlaneStep(UP_VECTOR, true))
@@ -73,7 +75,7 @@ public class LandGracefullyStep implements Step {
                     .withStep(new YawToPlaneStep(getFacingPlane(desiredFacing)));
 
         } else if (minZ == current.roofVector) {
-            System.out.println("Roof points to horizon");
+            BotLog.println("Roof points to horizon", team);
             // Roll or pitch roof vector to zero
             return new Plan()
                     .withStep(new RollToPlaneStep(UP_VECTOR, true))
@@ -81,7 +83,7 @@ public class LandGracefullyStep implements Step {
                     .withStep(new RollToPlaneStep(UP_VECTOR));
 
         } else {
-            System.out.println("Side points to horizon");
+            BotLog.println("Side points to horizon", team);
             // Roll or yaw side vector to zero
             return new Plan()
                     .withStep(new RollToPlaneStep(UP_VECTOR, true))
@@ -102,5 +104,10 @@ public class LandGracefullyStep implements Step {
 
     @Override
     public void begin() {
+    }
+
+    @Override
+    public String getSituation() {
+        return "Landing gracefully " + (plan != null ? "(" + plan.getSituation() + ")" : "");
     }
 }

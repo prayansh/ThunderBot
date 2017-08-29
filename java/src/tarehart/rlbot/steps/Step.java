@@ -12,4 +12,7 @@ public interface Step {
     AgentOutput getOutput(AgentInput input);
     boolean isComplete();
     void begin();
+
+    // Describes very briefly what's going on, for UI display
+    String getSituation();
 }

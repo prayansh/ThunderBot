@@ -30,4 +30,9 @@ public class BlindStep implements Step {
     public void begin() {
         scheduledEndTime = LocalDateTime.now().plus(duration);
     }
+
+    @Override
+    public String getSituation() {
+        return "Muscle memory";
+    }
 }

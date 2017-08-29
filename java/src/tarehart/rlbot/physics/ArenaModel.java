@@ -30,6 +30,7 @@ public class ArenaModel {
     public static final float SIDE_WALL = 81.92f;
     public static final float BACK_WALL = 102.4f;
     public static final float CEILING = 40.88f;
+    public static final float BALL_ANGULAR_DAMPING = 1f;
 
     private static final int WALL_THICKNESS = 10;
     private static final int WALL_LENGTH = 200;
@@ -45,6 +46,7 @@ public class ArenaModel {
     public static final float RAIL_HEIGHT = 1.3f;
     public static final float BALL_RESTITUTION = .6f;
     public static final float WALL_RESTITUTION = 1;
+    public static final float BALL_FRICTION = .6f;
 
     private DynamicsWorld world;
     private RigidBody ball;
@@ -185,10 +187,22 @@ public class ArenaModel {
             world.stepSimulation(1.0f / stepsPerSecond, 10);
             simulationTime = simulationTime.plus(SIMULATION_STEP);
             ballPath.addSlice(new SpaceTime(getBallPosition(), simulationTime));
+            if (getBallVelocity().length() < 10) {
+                ball.setFriction(0);
+                ball.setDamping(0, BALL_ANGULAR_DAMPING);
+            } else {
+                ball.setFriction(BALL_FRICTION);
+                ball.setDamping(BALL_DRAG, BALL_ANGULAR_DAMPING);
+            }
         }
+        Vector3f ballVel = getBallVelocity();
+        ballPath.setFinalVelocity(new Vector3(ballVel.x, ballVel.y, ballVel.z), simulationTime);
+    }
+
+    private Vector3f getBallVelocity() {
         Vector3f ballVel = new Vector3f();
         ball.getLinearVelocity(ballVel);
-        ballPath.setFinalVelocity(new Vector3(ballVel.x, ballVel.y, ballVel.z), simulationTime);
+        return ballVel;
     }
 
     private static Vector3f toV3f(Vector3 v) {
@@ -248,9 +262,9 @@ public class ArenaModel {
         RigidBodyConstructionInfo rbInfo = new RigidBodyConstructionInfo(
                 mass, myMotionState, collisionShape, localInertia);
         RigidBody body = new RigidBody(rbInfo);
-        body.setDamping(BALL_DRAG, 1f);
+        body.setDamping(BALL_DRAG, BALL_ANGULAR_DAMPING);
         body.setRestitution(BALL_RESTITUTION);
-        body.setFriction(.5f);
+        body.setFriction(BALL_FRICTION);
         body.setActivationState(CollisionObject.DISABLE_DEACTIVATION);
 
         return body;

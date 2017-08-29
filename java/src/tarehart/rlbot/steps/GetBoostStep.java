@@ -78,4 +78,9 @@ public class GetBoostStep implements Step {
                 Math.abs(SteerUtil.getCorrectionAngleRad(input, location.getLocation())) < Math.PI / 6;
 
     }
+
+    @Override
+    public String getSituation() {
+        return "Going for boost";
+    }
 }

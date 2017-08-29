@@ -62,6 +62,10 @@ public class Plan {
         return currentStep.getOutput(input);
     }
 
+    public String getSituation() {
+        return (currentStepIndex + 1) + ". " + steps.get(currentStepIndex).getSituation();
+    }
+
     public boolean isComplete() {
         if (isComplete) {
             return true;

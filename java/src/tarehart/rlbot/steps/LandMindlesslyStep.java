@@ -23,4 +23,9 @@ public class LandMindlesslyStep implements Step {
     @Override
     public void begin() {
     }
+
+    @Override
+    public String getSituation() {
+        return "Waiting to land";
+    }
 }

@@ -25,8 +25,8 @@ public class SteerUtil {
     private static final int BOOST_NEEDED_FOR_ZERO_TO_MAX = 60;
     private static final double DISTANCE_NEEDED_FOR_ZERO_TO_MAX_WITH_BOOST = 60;
     private static final double DISTANCE_NEEDED_FOR_ZERO_TO_MAX_SANS_BOOST = 60;
-    private static final double AERIAL_RISE_RATE = 10;
-    public static final double NEEDS_AERIAL_THRESHOLD = 3;
+    private static final double AERIAL_RISE_RATE = 9;
+    public static final double NEEDS_AERIAL_THRESHOLD = 4;
 
 
 
@@ -62,11 +62,11 @@ public class SteerUtil {
 
         LocalDateTime searchStart = input.time;
 
-        double potentialEnergy = input.ballPosition.z - ArenaModel.BALL_RADIUS * ArenaModel.GRAVITY;
+        double potentialEnergy = (input.ballPosition.z - ArenaModel.BALL_RADIUS) * ArenaModel.GRAVITY;
         double verticalKineticEnergy = 0.5 * input.ballVelocity.z * input.ballVelocity.z;
         double groundBounceEnergy = potentialEnergy + verticalKineticEnergy;
 
-        if (groundBounceEnergy < 20) {
+        if (groundBounceEnergy < 30) {
             return Optional.empty();
         }
 
@@ -197,8 +197,8 @@ public class SteerUtil {
 
         double distance = position.subCopy(input.getMyPosition()).magnitude();
         double speed = input.getMyVelocity().magnitude();
-        boolean shouldSlide = difference > Math.PI / 2;
         boolean shouldBrake = distance < 25 && difference > Math.PI / 6 && speed > MAX_SPEED * .6;
+        boolean shouldSlide = shouldBrake || difference > Math.PI / 2;
         boolean isSupersonic = MAX_SPEED - speed < .01;
 
         boolean shouldBoost = !shouldBrake && difference < Math.PI / 6 && !isSupersonic;
