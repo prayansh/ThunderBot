@@ -15,8 +15,9 @@ public class Plan {
     private boolean isComplete = false;
 
     public enum Posture {
+        NEUTRAL,
         DEFENSIVE,
-        NEUTRAL
+        OFFENSIVE
     }
 
     public Plan() {

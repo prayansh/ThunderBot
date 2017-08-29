@@ -59,6 +59,7 @@ public class CatchBallStep implements Step {
         Vector3 awayFromEnemyGoal = (Vector3) catchLocation.space.subCopy(enemyGoal);
         awayFromEnemyGoal.z = 0;
         awayFromEnemyGoal.normalise();
+        awayFromEnemyGoal.scale(.85);
         Vector3 target = catchLocation.space.addCopy(awayFromEnemyGoal);
 
         return getThereOnTime(input, new SpaceTime(target, catchLocation.time));
@@ -69,7 +70,6 @@ public class CatchBallStep implements Step {
 
         double secondsTillAppointment = Duration.between(input.time, groundPositionAndTime.time).toMillis() / 1000.0;
         double speed = input.getMyVelocity().magnitude();
-        //double secondsTillArrival = flatDistance / speed;
 
         double pace = speed * secondsTillAppointment / flatDistance; // Ideally this should be 1
 
@@ -82,7 +82,7 @@ public class CatchBallStep implements Step {
         } else {
             // We're going too fast!
             AgentOutput agentOutput = SteerUtil.steerTowardPosition(input, groundPositionAndTime.space);
-            agentOutput.withAcceleration(0).withBoost(false).withDeceleration(pace - 1); // Hit the brakes, but keep steering!
+            agentOutput.withAcceleration(0).withBoost(false).withDeceleration(Math.max(0, pace - 1.3)); // Hit the brakes, but keep steering!
             return agentOutput;
         }
     }

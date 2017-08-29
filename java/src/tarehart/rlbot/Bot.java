@@ -4,8 +4,10 @@ import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.planning.SetPieces;
+import tarehart.rlbot.steps.ChaseBallStep;
 import tarehart.rlbot.steps.GetBoostStep;
 import tarehart.rlbot.steps.GetOnDefenseStep;
+import tarehart.rlbot.steps.GetOnOffenseStep;
 import tarehart.rlbot.tuning.BotLog;
 import tarehart.rlbot.tuning.Telemetry;
 import tarehart.rlbot.ui.Readout;
@@ -61,7 +63,7 @@ public class Bot {
                 currentPlan = new Plan().withStep(new GetBoostStep());
                 currentPlan.begin();
             } else {
-                currentPlan = SetPieces.chaseBall();
+                currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new GetOnOffenseStep()).withStep(new ChaseBallStep());
                 currentPlan.begin();
             }
         }
