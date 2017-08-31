@@ -12,11 +12,11 @@ import com.bulletphysics.dynamics.RigidBody;
 import com.bulletphysics.dynamics.RigidBodyConstructionInfo;
 import com.bulletphysics.dynamics.constraintsolver.SequentialImpulseConstraintSolver;
 import com.bulletphysics.linearmath.DefaultMotionState;
-import com.bulletphysics.linearmath.QuaternionUtil;
 import com.bulletphysics.linearmath.Transform;
 import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.math.SpaceTime;
+import tarehart.rlbot.math.SpaceTimeVelocity;
 
 import javax.vecmath.Quat4f;
 import javax.vecmath.Vector2f;
@@ -43,10 +43,11 @@ public class ArenaModel {
 
     // The diagonal surfaces that merge the floor and the wall--
     // Higher = more diagonal showing.
-    public static final float RAIL_HEIGHT = 1.3f;
+    public static final float RAIL_HEIGHT = 1.4f;
     public static final float BALL_RESTITUTION = .6f;
     public static final float WALL_RESTITUTION = 1;
     public static final float BALL_FRICTION = .6f;
+    public static final int STEPS_PER_SECOND = 10;
 
     private DynamicsWorld world;
     private RigidBody ball;
@@ -110,11 +111,11 @@ public class ArenaModel {
         Quat4f quat = getRotationFrom(straightUp, normal);
         wallTransform.setRotation(quat);
 
-        DefaultMotionState myMotionState = new DefaultMotionState(wallTransform);
         RigidBodyConstructionInfo rbInfo = new RigidBodyConstructionInfo(
-                0, myMotionState, boxGround, new Vector3f());
+                0, null, boxGround, new Vector3f());
         RigidBody wall = new RigidBody(rbInfo);
         wall.setRestitution(WALL_RESTITUTION);
+        wall.setWorldTransform(wallTransform);
 
         world.addRigidBody(wall);
     }
@@ -142,52 +143,59 @@ public class ArenaModel {
         origin.scale(-backoff);
         wallTransform.origin.set(origin);
 
-        DefaultMotionState myMotionState = new DefaultMotionState(wallTransform);
         RigidBodyConstructionInfo rbInfo = new RigidBodyConstructionInfo(
-                0, myMotionState, boxGround, new Vector3f());
+                0, null, boxGround, new Vector3f());
         RigidBody wall = new RigidBody(rbInfo);
         wall.setRestitution(WALL_RESTITUTION);
+        wall.setWorldTransform(wallTransform);
         world.addRigidBody(wall);
     }
 
     private Vector3 getBallPosition() {
         Transform trans = new Transform();
-        ball.getMotionState().getWorldTransform(trans);
+        ball.getWorldTransform(trans);
         return new Vector3(trans.origin.x, trans.origin.y, trans.origin.z);
     }
 
-    public BallPath simulateBall(Vector3 position, Vector3 velocity, LocalDateTime startingAt, Duration duration) {
-        BallPath ballPath = new BallPath();
-        simulateBall(ballPath, position, velocity, startingAt, duration);
+    public BallPath simulateBall(SpaceTimeVelocity start, Duration duration) {
+        BallPath ballPath = new BallPath(start);
+        simulateBall(ballPath, start.getTime().plus(duration));
         return ballPath;
     }
 
-    public void extendSimulation(BallPath ballPath, LocalDateTime startingAt, Duration duration) {
-        assert ballPath.canContinueSimulation();
-        simulateBall(ballPath, ballPath.getEndpoint().space, ballPath.getFinalVelocity(), startingAt, duration);
+    public BallPath simulateBall(SpaceTimeVelocity start, LocalDateTime endTime) {
+        BallPath ballPath = new BallPath(start);
+        simulateBall(ballPath, endTime);
+        return ballPath;
     }
 
-    private void simulateBall(BallPath ballPath, Vector3 position, Vector3 velocity, LocalDateTime startingAt, Duration duration) {
+    public void extendSimulation(BallPath ballPath, LocalDateTime endTime) {
+        simulateBall(ballPath, endTime);
+    }
+
+    private void simulateBall(BallPath ballPath, LocalDateTime endTime) {
+        SpaceTimeVelocity start = ballPath.getEndpoint();
+        LocalDateTime simulationTime = LocalDateTime.from(start.getTime());
+        if (simulationTime.isAfter(endTime)) {
+            return;
+        }
+
         ball.clearForces();
-        ball.setLinearVelocity(toV3f(velocity));
+        ball.setLinearVelocity(toV3f(start.getVelocity()));
         Transform ballTransform = new Transform();
         ballTransform.setIdentity();
-        ballTransform.origin.set(toV3f(position));
+        ballTransform.origin.set(toV3f(start.getSpace()));
         ball.setWorldTransform(ballTransform);
-        ball.getMotionState().setWorldTransform(ballTransform);
 
-        int stepsPerSecond = 10;
-
-        LocalDateTime simulationTime = LocalDateTime.from(startingAt);
-        LocalDateTime endTime = startingAt.plus(duration);
-        ballPath.addSlice(new SpaceTime(position, simulationTime));
 
         // Do some simulation
         while (simulationTime.isBefore(endTime)) {
-            world.stepSimulation(1.0f / stepsPerSecond, 10);
+            world.stepSimulation(1.0f / STEPS_PER_SECOND, 2, 0.5f / STEPS_PER_SECOND);
             simulationTime = simulationTime.plus(SIMULATION_STEP);
-            ballPath.addSlice(new SpaceTime(getBallPosition(), simulationTime));
-            if (getBallVelocity().length() < 10) {
+            Vector3 ballVelocity = getBallVelocity();
+            ballPath.addSlice(new SpaceTimeVelocity(getBallPosition(), simulationTime, ballVelocity));
+            double speed = ballVelocity.magnitude();
+            if (speed < 10) {
                 ball.setFriction(0);
                 ball.setDamping(0, BALL_ANGULAR_DAMPING);
             } else {
@@ -195,18 +203,20 @@ public class ArenaModel {
                 ball.setDamping(BALL_DRAG, BALL_ANGULAR_DAMPING);
             }
         }
-        Vector3f ballVel = getBallVelocity();
-        ballPath.setFinalVelocity(new Vector3(ballVel.x, ballVel.y, ballVel.z), simulationTime);
     }
 
-    private Vector3f getBallVelocity() {
+    private Vector3 getBallVelocity() {
         Vector3f ballVel = new Vector3f();
         ball.getLinearVelocity(ballVel);
-        return ballVel;
+        return toV3(ballVel);
     }
 
     private static Vector3f toV3f(Vector3 v) {
         return new Vector3f((float) v.x, (float) v.y, (float) v.z);
+    }
+
+    private static Vector3 toV3(Vector3f v) {
+        return new Vector3(v.x, v.y, v.z);
     }
 
     private DynamicsWorld initPhysics() {
@@ -254,13 +264,8 @@ public class ArenaModel {
 
         startTransform.origin.set(new Vector3f(0, 0, 0));
 
-        // using motionstate is recommended, it provides
-        // interpolation capabilities, and only synchronizes
-        // 'active' objects
-        DefaultMotionState myMotionState = new DefaultMotionState(startTransform);
-
         RigidBodyConstructionInfo rbInfo = new RigidBodyConstructionInfo(
-                mass, myMotionState, collisionShape, localInertia);
+                mass, null, collisionShape, localInertia);
         RigidBody body = new RigidBody(rbInfo);
         body.setDamping(BALL_DRAG, BALL_ANGULAR_DAMPING);
         body.setRestitution(BALL_RESTITUTION);

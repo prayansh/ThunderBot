@@ -1,5 +1,7 @@
 package tarehart.rlbot;
 
+import tarehart.rlbot.math.SpaceTime;
+import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.Plan;
@@ -8,12 +10,14 @@ import tarehart.rlbot.steps.ChaseBallStep;
 import tarehart.rlbot.steps.GetBoostStep;
 import tarehart.rlbot.steps.GetOnDefenseStep;
 import tarehart.rlbot.steps.GetOnOffenseStep;
+import tarehart.rlbot.tuning.BallRecorder;
 import tarehart.rlbot.tuning.BotLog;
 import tarehart.rlbot.tuning.Telemetry;
 import tarehart.rlbot.ui.Readout;
 
 import javax.swing.*;
 import java.time.Duration;
+import java.util.Optional;
 
 public class Bot {
 
@@ -39,10 +43,17 @@ public class Bot {
     public AgentOutput processInput(AgentInput input) {
 
         // Just for now, always calculate ballpath so we can learn some stuff.
-        BallPath ballPath = arenaModel.simulateBall(input.ballPosition, input.ballVelocity, input.time, Duration.ofSeconds(5));
+        BallPath ballPath = arenaModel.simulateBall(new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity), Duration.ofSeconds(5));
         Telemetry.forTeam(input.team).setBallPath(ballPath);
+        BallRecorder.recordPosition(new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity));
+
+        Optional<SpaceTimeVelocity> afterBounce = ballPath.getMotionAfterWallBounce(1);
+        // Just for data gathering / debugging.
+        afterBounce.ifPresent(stv -> BallRecorder.startRecording(new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity), stv.getTime().plusSeconds(1)));
+
 
         AgentOutput output = getOutput(input);
+        output = new AgentOutput();
         Plan.Posture posture = currentPlan != null ? currentPlan.getPosture() : Plan.Posture.NEUTRAL;
         String situation = currentPlan != null ? currentPlan.getSituation() : "";
         readout.update(input, posture, situation, BotLog.collect(input.team), Telemetry.forTeam(input.team).getBallPath());

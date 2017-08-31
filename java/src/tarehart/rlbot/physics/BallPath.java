@@ -11,34 +11,51 @@ import java.util.*;
 
 public class BallPath {
 
-    ArrayList<SpaceTime> path = new ArrayList<>();
+    ArrayList<SpaceTimeVelocity> path = new ArrayList<>();
+    private final Vector3 initialVelocity;
     private Vector3 finalVelocity;
     private LocalDateTime finalVelocityTime;
 
-    public void addSlice(SpaceTime spaceTime) {
+    public BallPath(SpaceTimeVelocity start) {
+        this.initialVelocity = start.getVelocity();
+        path.add(start);
+    }
+
+    public void addSlice(SpaceTimeVelocity spaceTime) {
         path.add(spaceTime);
     }
 
+    public List<SpaceTimeVelocity> getSlices() {
+        return path;
+    }
+
     public Optional<SpaceTimeVelocity> getMotionAt(LocalDateTime time) {
-        if (time.isBefore(path.get(0).time) || time.isAfter(path.get(path.size() - 1).time)) {
+        if (time.isBefore(path.get(0).getTime()) || time.isAfter(path.get(path.size() - 1).getTime())) {
             return Optional.empty();
         }
 
-        for (int i = 1; i < path.size(); i++) {
-            SpaceTime spt = path.get(i);
-            if (spt.time.isAfter(time)) {
-                SpaceTime previous = path.get(i - 1);
-                long simulationStepMillis = Duration.between(previous.time, spt.time).toMillis();
-                double tweenPoint = Duration.between(previous.time, time).toMillis() * 1.0 / simulationStepMillis;
-                Vector3 prevToNext = (Vector3) spt.space.subCopy(previous.space);
-                Vector3 toTween = (Vector3) prevToNext.scaleCopy(tweenPoint);
-                Vector3 space = previous.space.addCopy(toTween);
-                Vector3 velocity = getVelocity(previous, spt);
+        for (int i = 0; i < path.size() - 1; i++) {
+            SpaceTimeVelocity current = path.get(i);
+            SpaceTimeVelocity next = path.get(i + 1);
+            if (next.getTime().isAfter(time)) {
+
+                long simulationStepMillis = Duration.between(current.getTime(), next.getTime()).toMillis();
+                double tweenPoint = Duration.between(current.getTime(), time).toMillis() * 1.0 / simulationStepMillis;
+                Vector3 toNext = (Vector3) next.getSpace().subCopy(current.getSpace());
+                Vector3 toTween = (Vector3) toNext.scaleCopy(tweenPoint);
+                Vector3 space = current.getSpace().addCopy(toTween);
+                Vector3 velocity = averageVectors(current.getVelocity(), next.getVelocity(), tweenPoint);
                 return Optional.of(new SpaceTimeVelocity(new SpaceTime(space, time), velocity));
             }
         }
 
-        return Optional.of(new SpaceTimeVelocity(getEndpoint(), getFinalVelocity()));
+        return Optional.of(getEndpoint());
+    }
+
+    private Vector3 averageVectors(Vector3 a, Vector3 b, double weightOfA) {
+        Vector3 average = (Vector3) a.scaleCopy(weightOfA);
+        average.addCopy(b.scaleCopy((1-weightOfA)));
+        return average;
     }
 
     /**
@@ -54,33 +71,34 @@ public class BallPath {
         int numBounces = 0;
 
         for (int i = 1; i < path.size(); i++) {
-            SpaceTime spt = path.get(i);
-            SpaceTime previous = path.get(i - 1);
+            SpaceTimeVelocity spt = path.get(i);
+            SpaceTimeVelocity previous = path.get(i - 1);
 
-            Vector3 currentVelocity = getVelocity(previous, spt);
-            if (previousVelocity != null) {
-                if (isWallBounce(previousVelocity, currentVelocity)) {
-                    numBounces++;
-                }
-
-                if (numBounces == targetBounce) {
-                    if (path.size() == i + 1) {
-                        return Optional.empty();
-                    }
-                    SpaceTime next = path.get(i + 1);
-                    return Optional.of(new SpaceTimeVelocity(next, getVelocity(spt, next)));
-                }
+            if (isWallBounce(previous.getVelocity(), spt.getVelocity())) {
+                numBounces++;
             }
 
-            previousVelocity = currentVelocity;
+            if (numBounces == targetBounce) {
+                if (path.size() == i + 1) {
+                    return Optional.empty();
+                }
+                return Optional.of(spt.copy());
+            }
         }
 
         return Optional.empty();
     }
 
     private boolean isWallBounce(Vector3 previousVelocity, Vector3 currentVelocity) {
+        if (currentVelocity.magnitudeSquared() < .01) {
+            return false;
+        }
         Vector2 prev = new Vector2(previousVelocity.x, previousVelocity.y);
         Vector2 curr = new Vector2(currentVelocity.x, currentVelocity.y);
+
+        if (curr.magnitude() / prev.magnitude() < 0.5) {
+            return true; //
+        }
 
         prev.normalise();
         curr.normalise();
@@ -99,60 +117,45 @@ public class BallPath {
         return (Vector3) prevToNext.scaleCopy(1 / secondsBetween);
     }
 
-    public SpaceTime getEndpoint() {
-        return path.get(path.size() - 1);
+    public SpaceTimeVelocity getStartPoint() {
+        return path.get(0).copy();
     }
 
-    public void setFinalVelocity(Vector3 velocity, LocalDateTime time) {
-        finalVelocity = velocity;
-        finalVelocityTime = time;
+    public SpaceTimeVelocity getEndpoint() {
+        return path.get(path.size() - 1).copy();
     }
-
-    public boolean canContinueSimulation() {
-        return finalVelocityTime != null && !path.isEmpty() && path.get(path.size() - 1).time.isEqual(finalVelocityTime);
-    }
-
-    public Vector3 getFinalVelocity() {
-        return finalVelocity;
-    }
-
 
     public Optional<SpaceTimeVelocity> getLanding(LocalDateTime startOfSearch) {
-        Vector3 previousVelocity = null;
 
         for (int i = 1; i < path.size(); i++) {
-            SpaceTime spt = path.get(i);
+            SpaceTimeVelocity spt = path.get(i);
 
-            if (spt.time.isBefore(startOfSearch)) {
+            if (spt.getTime().isBefore(startOfSearch)) {
                 continue;
             }
 
-            SpaceTime previous = path.get(i - 1);
+            SpaceTimeVelocity previous = path.get(i - 1);
 
-            Vector3 currentVelocity = getVelocity(previous, spt);
-            if (previousVelocity != null) {
-                if (isFloorBounce(previousVelocity, currentVelocity)) {
-                    if (path.size() == i + 1) {
-                        return Optional.empty();
-                    }
 
-                    double floorGapOfPrev = previous.space.z - ArenaModel.BALL_RADIUS;
-                    double floorGapOfCurrent = spt.space.z - ArenaModel.BALL_RADIUS;
-
-                    SpaceTime bouncePosition = new SpaceTime(new Vector3(spt.space.x, spt.space.y, ArenaModel.BALL_RADIUS), spt.time);
-                    if (floorGapOfPrev < floorGapOfCurrent) {
-                        // TODO: consider interpolating instead of just picking the more accurate.
-                        bouncePosition.space.x = previous.space.x;
-                        bouncePosition.space.y = previous.space.y;
-                        bouncePosition.time = previous.time;
-                    }
-
-                    SpaceTime next = path.get(i + 1);
-                    return Optional.of(new SpaceTimeVelocity(bouncePosition, getVelocity(spt, next)));
+            if (isFloorBounce(previous.getVelocity(), spt.getVelocity())) {
+                if (path.size() == i + 1) {
+                    return Optional.empty();
                 }
-            }
-            previousVelocity = currentVelocity;
 
+                double floorGapOfPrev = previous.getSpace().z - ArenaModel.BALL_RADIUS;
+                double floorGapOfCurrent = spt.getSpace().z - ArenaModel.BALL_RADIUS;
+
+                SpaceTimeVelocity bouncePosition = new SpaceTimeVelocity(new Vector3(spt.getSpace().x, spt.getSpace().y, ArenaModel.BALL_RADIUS), spt.getTime(), spt.getVelocity());
+                if (floorGapOfPrev < floorGapOfCurrent) {
+                    // TODO: consider interpolating instead of just picking the more accurate.
+                    bouncePosition = new SpaceTimeVelocity(
+                            new Vector3(previous.getSpace().x, previous.getSpace().y, ArenaModel.BALL_RADIUS),
+                            previous.getTime(),
+                            spt.getVelocity());
+                }
+
+                return Optional.of(bouncePosition);
+            }
         }
 
         return Optional.empty();

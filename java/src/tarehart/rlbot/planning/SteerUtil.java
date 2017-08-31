@@ -8,6 +8,7 @@ import tarehart.rlbot.CarRotation;
 import tarehart.rlbot.math.*;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
+import tarehart.rlbot.tuning.BallRecorder;
 import tarehart.rlbot.tuning.Telemetry;
 
 import java.time.Duration;
@@ -74,7 +75,7 @@ public class SteerUtil {
             Optional<SpaceTimeVelocity> landingOption = ballPath.getLanding(searchStart);
 
             if (landingOption.isPresent()) {
-                SpaceTime landing = landingOption.get().spaceTime;
+                SpaceTime landing = landingOption.get().toSpaceTime();
                 if (canGetUnder(input, landing)) {
                     return Optional.of(landing);
                 } else {
@@ -130,7 +131,7 @@ public class SteerUtil {
         LocalDateTime interceptTime = input.time.plus(travelTime);
         Optional<SpaceTimeVelocity> motion = ballPath.getMotionAt(interceptTime);
         if (motion.isPresent()) {
-            return motion.get().spaceTime;
+            return motion.get().toSpaceTime();
         } else {
             return new SpaceTime(new Vector3(target.x, target.y, ArenaModel.BALL_RADIUS), interceptTime);
         }
@@ -151,12 +152,12 @@ public class SteerUtil {
         Telemetry telemetry = Telemetry.forTeam(input.team);
 
         if (telemetry.getBallPath() == null) {
-            telemetry.setBallPath(arenaModel.simulateBall(input.ballPosition, input.ballVelocity, startingAt, duration));
+            telemetry.setBallPath(arenaModel.simulateBall(new SpaceTimeVelocity(input.ballPosition, startingAt, input.ballVelocity), duration));
             return telemetry.getBallPath();
         }
 
-        if (telemetry.getBallPath().getEndpoint().time.isBefore(startingAt.plus(duration))) {
-            arenaModel.extendSimulation(telemetry.getBallPath(), startingAt, duration);
+        if (telemetry.getBallPath().getEndpoint().getTime().isBefore(startingAt.plus(duration))) {
+            arenaModel.extendSimulation(telemetry.getBallPath(), startingAt.plus(duration));
         }
         return telemetry.getBallPath();
     }

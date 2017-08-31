@@ -60,7 +60,7 @@ public class Readout {
         if (ballPath != null) {
             Optional<SpaceTimeVelocity> predictionSpace = ballPath.getMotionAt(predictionTime);
             if (predictionSpace.isPresent()) {
-                BallPrediction prediction = new BallPrediction(predictionSpace.get().spaceTime.space, predictionTime);
+                BallPrediction prediction = new BallPrediction(predictionSpace.get().getSpace(), predictionTime);
                 warehouse.addPrediction(prediction);
             }
         }
