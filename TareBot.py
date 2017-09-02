@@ -14,48 +14,46 @@ debug any runtime issues that occur with your bot.
 # Can this bot's code be shared publicly (Default: No):
 # Can non-tournment gameplay of this bot be displayed publicly (Default: No):
 
-myPort = 25368
-
-try:
-	with open("port.txt", "r") as portFile:
-		myPort = int(portFile.readline())
-except ValueError:
-	print("Failed to parse port file! Will proceed with hard-coded port number.")
-except:
-	pass
-
-print("Connecting to Java Gateway on port " + str(myPort))
-
-def initPy4jStuff():
-	global gateway
-	global javaAgent
-	gateway = JavaGateway(gateway_parameters=GatewayParameters(auto_convert=True, port=myPort))
-	javaAgent = gateway.entry_point.getAgent()
-
-initPy4jStuff()
+# This is the name that will be displayed on screen in the real time display!
+BOT_NAME = "TareBot"
 
 class agent:
 
 	def __init__(self, team):
 		self.team = team # use self.team to determine what team you are. I will set to "blue" or "orange"
 
-	def get_bot_name(self):
-		# This is the name that will be displayed on screen in the real time display!
-		return "TareBot"
+		self.myPort = 25368
+		try:
+			with open("port.txt", "r") as portFile:
+				self.myPort = int(portFile.readline())
+		except ValueError:
+			print("Failed to parse port file! Will proceed with hard-coded port number.")
+		except:
+			pass
+
+		try:
+			self.init_py4j_stuff()
+		except:
+			print("Exception when trying to connect to java! Make sure the java program is running!")
+			pass
+
+	def init_py4j_stuff(self):
+		print("Connecting to Java Gateway on port " + str(self.myPort))
+		self.gateway = JavaGateway(gateway_parameters=GatewayParameters(auto_convert=True, port=self.myPort))
+		self.javaAgent = self.gateway.entry_point.getAgent()
+		print("Connection to Java successful!")
 
 	def get_output_vector(self, input):
 		try:
 			# Call the java process to get the output
-			listOutput = javaAgent.getOutputVector([list(input[0]), list(input[1])], self.team)
+			listOutput = self.javaAgent.getOutputVector([list(input[0]), list(input[1])], self.team)
 			# Convert to a regular python list
 			return list(listOutput)
 		except:
-			print("Can't connect to java gateway!")
-			global gateway
-			global javaAgent
-			gateway.shutdown_callback_server()
+			print("Exception when calling java! Will recreate gateway...")
+			self.gateway.shutdown_callback_server()
 			try:
-				initPy4jStuff()
+				self.init_py4j_stuff()
 			except:
 				print("Reinitialization failed")
 				pass
