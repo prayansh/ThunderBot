@@ -3,13 +3,13 @@ from ctypes.wintypes import *
 from multiprocessing import Process, Array, Queue
 
 import time
+import atexit
 import realTimeDisplay
 import ReadWriteMem
 import PlayHelper
 import array
-import AlwaysTowardsBallAgent
-import DummyBot
-import TareBot
+import DummyBot as agent1
+import TareBot as agent2
 
 OpenProcess = windll.kernel32.OpenProcess
 CloseHandle = windll.kernel32.CloseHandle
@@ -80,24 +80,31 @@ def updateInputs(inputs, scoring, ph):
 			scoring[i] = values[1][i]
 		time.sleep(0.01)
 
-def runAgent(inputs, scoring, agent, q):
+def resetInputs():
+	exec(open("resetDevices.py").read())
+
+def runAgent(inputs, scoring, team, q):
 	# Deep copy inputs?
+	if team == "blue":
+		agent = agent1.agent("blue")
+	else:
+		agent = agent2.agent("orange")
 	while(True):
-		output1 = agent.get_output_vector((inputs,scoring))
+		output = agent.get_output_vector((inputs,scoring))
 		try:
-			q.put(output1)
+			q.put(output)
 		except Queue.Full:
 			pass
 		time.sleep(0.01)
 
 if __name__ == '__main__':
+	# Make sure input devices are reset to neutral whenever the script terminates
+	atexit.register(resetInputs)
 
 	time.sleep(3) # Sleep 3 second before starting to give me time to set things up
 
 	inputs = Array('f', [0.0 for x in range(38)])
 	scoring = Array('f', [0.0 for x in range(12)])
-	agent1 = DummyBot.agent("blue")
-	agent2 = TareBot.agent("orange")
 	q1 = Queue(1)
 	q2 = Queue(1)
 
@@ -105,15 +112,14 @@ if __name__ == '__main__':
 	output2 = [16383, 16383, 32767, 0, 0, 0, 0]
 
 	rtd = realTimeDisplay.real_time_display()
-	rtd.build_initial_window(agent1.get_bot_name(), agent2.get_bot_name())
-
+	rtd.build_initial_window(agent1.BOT_NAME, agent2.BOT_NAME)
 	ph = PlayHelper.play_helper()
 
 	p1 = Process(target=updateInputs, args=(inputs, scoring, ph))
 	p1.start()
-	p2 = Process(target=runAgent, args=(inputs, scoring, agent1, q1))
+	p2 = Process(target=runAgent, args=(inputs, scoring, "blue", q1))
 	p2.start()
-	p3 = Process(target=runAgent, args=(inputs, scoring, agent2, q2))
+	p3 = Process(target=runAgent, args=(inputs, scoring, "orange", q2))
 	p3.start()
 
 	while (True):
