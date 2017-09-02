@@ -33,8 +33,8 @@ public class Readout {
 
     private double maxCarSpeedVal;
 
-    private LocalDateTime actualMaxTime;
-    private LocalDateTime predictedMaxTime;
+    private LocalDateTime actualMaxTime = LocalDateTime.now();
+    private LocalDateTime predictedMaxTime = LocalDateTime.now();
 
     private PredictionWarehouse warehouse = new PredictionWarehouse();
 

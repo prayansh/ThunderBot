@@ -22,7 +22,13 @@ public class Agent {
         }
 
         Bot bot = bots.get(team);
-        AgentOutput output = bot.processInput(translatedInput);
+        AgentOutput output;
+        try {
+            output = bot.processInput(translatedInput);
+        } catch (Exception e) {
+            e.printStackTrace();
+            output = new AgentOutput();
+        }
         int[] outputForPython = output.toPython();
         return outputForPython;
     }

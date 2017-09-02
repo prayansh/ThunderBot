@@ -7,17 +7,15 @@ import tarehart.rlbot.math.SpaceTimeVelocity;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 public class BallPath {
 
     ArrayList<SpaceTimeVelocity> path = new ArrayList<>();
-    private final Vector3 initialVelocity;
-    private Vector3 finalVelocity;
-    private LocalDateTime finalVelocityTime;
 
     public BallPath(SpaceTimeVelocity start) {
-        this.initialVelocity = start.getVelocity();
         path.add(start);
     }
 
@@ -44,7 +42,7 @@ public class BallPath {
                 Vector3 toNext = (Vector3) next.getSpace().subCopy(current.getSpace());
                 Vector3 toTween = (Vector3) toNext.scaleCopy(tweenPoint);
                 Vector3 space = current.getSpace().addCopy(toTween);
-                Vector3 velocity = averageVectors(current.getVelocity(), next.getVelocity(), tweenPoint);
+                Vector3 velocity = averageVectors(current.getVelocity(), next.getVelocity(), 1 - tweenPoint);
                 return Optional.of(new SpaceTimeVelocity(new SpaceTime(space, time), velocity));
             }
         }
@@ -54,7 +52,7 @@ public class BallPath {
 
     private Vector3 averageVectors(Vector3 a, Vector3 b, double weightOfA) {
         Vector3 average = (Vector3) a.scaleCopy(weightOfA);
-        average.addCopy(b.scaleCopy((1-weightOfA)));
+        average.add(b.scaleCopy((1-weightOfA)));
         return average;
     }
 

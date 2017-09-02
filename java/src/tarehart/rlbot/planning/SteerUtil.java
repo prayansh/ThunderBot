@@ -8,7 +8,7 @@ import tarehart.rlbot.CarRotation;
 import tarehart.rlbot.math.*;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
-import tarehart.rlbot.tuning.BallRecorder;
+import tarehart.rlbot.tuning.BotLog;
 import tarehart.rlbot.tuning.Telemetry;
 
 import java.time.Duration;
@@ -19,45 +19,14 @@ import java.util.Optional;
 
 public class SteerUtil {
 
-    public static final int MAX_SPEED = 46;
-    public static final int MAX_SPEED_SANS_BOOST = 28;
+    public static final int SUPERSONIC_SPEED = 46;
+    public static final int MEDIUM_SPEED = 28;
     public static final double GOOD_ENOUGH_ANGLE = Math.PI / 40;
     private static final ArenaModel arenaModel = new ArenaModel();
     private static final int BOOST_NEEDED_FOR_ZERO_TO_MAX = 60;
     private static final double DISTANCE_NEEDED_FOR_ZERO_TO_MAX_WITH_BOOST = 60;
-    private static final double DISTANCE_NEEDED_FOR_ZERO_TO_MAX_SANS_BOOST = 60;
-    private static final double AERIAL_RISE_RATE = 9;
-    public static final double NEEDS_AERIAL_THRESHOLD = 4;
-
-
-
-    private static double distanceNeededForMaxSpeed(double currentSpeed, double boostRemaining) {
-        // If we have 60 boost, we can use it to get from 0 to max speed in approx 60 meters.
-
-        double speedNeeded = MAX_SPEED - currentSpeed;
-
-        double proportionGrantedByBoost = (boostRemaining / BOOST_NEEDED_FOR_ZERO_TO_MAX) / (speedNeeded / MAX_SPEED);
-        proportionGrantedByBoost = Math.min(proportionGrantedByBoost, 1);
-
-        double distanceFactor = proportionGrantedByBoost * DISTANCE_NEEDED_FOR_ZERO_TO_MAX_WITH_BOOST +
-                (1 - proportionGrantedByBoost) * DISTANCE_NEEDED_FOR_ZERO_TO_MAX_SANS_BOOST;
-
-        return distanceFactor * speedNeeded / MAX_SPEED;
-    }
-
-    public static double predictAverageSpeed(AgentInput input, double targetDistance) {
-        double speed = input.getMyVelocity().magnitude();
-        double distanceTillMaxSpeed = distanceNeededForMaxSpeed(speed, input.getMyBoost());
-
-        if (distanceTillMaxSpeed < targetDistance) {
-            double averageSpeedFirstSegment = (speed + MAX_SPEED) / 2;
-            double accelerationPortion = distanceTillMaxSpeed / targetDistance;
-            return averageSpeedFirstSegment * accelerationPortion + MAX_SPEED * (1 - accelerationPortion);
-        } else {
-            double speedAtTargetDistance = speed + (MAX_SPEED - speed) * targetDistance / distanceTillMaxSpeed;
-            return (speed + speedAtTargetDistance) / 2;
-        }
-    }
+    private static final double DISTANCE_NEEDED_FOR_ZERO_TO_MAX_WITH_FLIPS = 150;
+    private static final double FRONT_FLIP_SECONDS = 1.5;
 
     public static Optional<SpaceTime> getCatchOpportunity(AgentInput input, BallPath ballPath) {
 
@@ -90,54 +59,56 @@ public class SteerUtil {
     }
 
     private static boolean canGetUnder(AgentInput input, SpaceTime spaceTime) {
-        double distance = spaceTime.space.subCopy(input.getMyPosition()).magnitude();
-        double predictedAverageSpeed = predictAverageSpeed(input, distance);
+        double travelSeconds = AccelerationModel.simulateTravelTime(input, spaceTime.space, input.getMyBoost());
         double secondsAllotted = Duration.between(input.time, spaceTime.time).toMillis() / 1000.0;
-        return predictedAverageSpeed * secondsAllotted > distance;
+        return travelSeconds < secondsAllotted;
     }
 
-    public static List<SpaceTime> getInterceptOpportunities(AgentInput input, BallPath ballPath) {
+    public static List<SpaceTime> getInterceptOpportunitiesAssumingMaxAccel(AgentInput input, BallPath ballPath, double boostBudget) {
+
+        Optional<SpaceTime> ballPark = getInterceptOpportunities(input, ballPath, Math.max(input.getMyVelocity().magnitude(), MEDIUM_SPEED)).stream().findFirst();
+
+        Vector3 target = input.ballPosition;
+        if (ballPark.isPresent()) {
+            target = ballPark.get().space;
+        }
+
+        double travelSeconds = AccelerationModel.simulateTravelTime(input, target, boostBudget);
+        double flatDistance = VectorUtil.flatten(input.getMyPosition()).distance(VectorUtil.flatten(target));
+
+        double predictedAverageSpeed = flatDistance / travelSeconds;
+        return getInterceptOpportunities(input, ballPath, predictedAverageSpeed);
+    }
+
+    public static List<SpaceTime> getInterceptOpportunities(AgentInput input, BallPath ballPath, double predictedAverageSpeed) {
 
         List<SpaceTime> interceptOpportunities = new ArrayList<>();
 
-        double ballDistance = input.ballPosition.distance(input.getMyPosition());
-        double predictedAverageSpeed = predictAverageSpeed(input, ballDistance); // Using ballDistance here is an extremely rough estimate
-
-        List<Vector2> aimSpots = LeadTargetUtil.leadTarget(input.getMyPosition(), input.ballPosition, input.ballVelocity, predictedAverageSpeed);
-
-        if (aimSpots.isEmpty() || !ArenaModel.isInBoundsBall(aimSpots.get(0))) {
-
-            Optional<SpaceTimeVelocity> stvOption = ballPath.getMotionAfterWallBounce(1);
-            if (stvOption.isPresent()) {
-                SpaceTimeVelocity stv = stvOption.get();
-                aimSpots = interceptWallBounce(input, predictedAverageSpeed, stv);
+        Vector3 myPosition = input.getMyPosition();
+        double previousSpeedDiff = 0;
+        for (SpaceTimeVelocity ballMoment: ballPath.getSlices()) {
+            double speedNeeded = VectorUtil.flatDistance(myPosition, ballMoment.space) / TimeUtil.secondsBetween(input.time, ballMoment.time);
+            double speedDiff = predictedAverageSpeed - speedNeeded;
+            if (speedDiff == 0 || speedDiff * previousSpeedDiff < 0) {
+                interceptOpportunities.add(ballMoment.toSpaceTime());
             }
-        }
-
-        for (Vector2 spot: aimSpots) {
-            if (ArenaModel.isInBoundsBall(spot)) {
-                SpaceTime arrival = getArrival(input, spot, predictedAverageSpeed, ballPath);
-                interceptOpportunities.add(arrival);
-            }
+            previousSpeedDiff = speedDiff;
         }
 
         return interceptOpportunities;
     }
 
-    private static SpaceTime getArrival(AgentInput input, Vector2 target, double predictedAverageSpeed, BallPath ballPath) {
-        Vector3 position = input.getMyPosition();
-        double distance = target.subCopy(new Vector2(position.x, position.y)).magnitude();
-        Duration travelTime = Duration.ofMillis((long) (1000 * distance / predictedAverageSpeed));
-        LocalDateTime interceptTime = input.time.plus(travelTime);
+    private static SpaceTime get3dIntercept(SpaceTime shadowTarget, BallPath ballPath) {
+        LocalDateTime interceptTime = shadowTarget.time;
         Optional<SpaceTimeVelocity> motion = ballPath.getMotionAt(interceptTime);
         if (motion.isPresent()) {
             return motion.get().toSpaceTime();
         } else {
-            return new SpaceTime(new Vector3(target.x, target.y, ArenaModel.BALL_RADIUS), interceptTime);
+            return new SpaceTime(new Vector3(shadowTarget.space.x, shadowTarget.space.y, ArenaModel.BALL_RADIUS), interceptTime);
         }
     }
 
-    private static List<Vector2> interceptWallBounce(AgentInput input, double predictedAverageSpeed, SpaceTimeVelocity rightAfterBounce) {
+    private static List<SpaceTime> interceptWallBounce(AgentInput input, double predictedAverageSpeed, SpaceTimeVelocity rightAfterBounce) {
         Vector3 postBounceVelocity = rightAfterBounce.velocity;
         Duration timeTillBounce = Duration.between(input.time, rightAfterBounce.getTime());
         double timeTillBounceInSeconds = timeTillBounce.toMillis() / 1000.0;
@@ -145,7 +116,7 @@ public class SteerUtil {
         // Now back it up
         Vector3 backwards = (Vector3) postBounceVelocity.scaleCopy(-timeTillBounceInSeconds);
         Vector3 imaginaryStartingPoint = rightAfterBounce.getSpace().addCopy(backwards); // This is probably out of bounds
-        return LeadTargetUtil.leadTarget(input.getMyPosition(), imaginaryStartingPoint, postBounceVelocity, predictedAverageSpeed);
+        return LeadTargetUtil.leadTarget(input.getMyPosition(), imaginaryStartingPoint, postBounceVelocity, predictedAverageSpeed, rightAfterBounce.getTime());
     }
 
     public static BallPath predictBallPath(AgentInput input, LocalDateTime startingAt, Duration duration) {
@@ -198,9 +169,9 @@ public class SteerUtil {
 
         double distance = position.subCopy(input.getMyPosition()).magnitude();
         double speed = input.getMyVelocity().magnitude();
-        boolean shouldBrake = distance < 25 && difference > Math.PI / 6 && speed > MAX_SPEED * .6;
+        boolean shouldBrake = distance < 25 && difference > Math.PI / 6 && speed > SUPERSONIC_SPEED * .6;
         boolean shouldSlide = shouldBrake || difference > Math.PI / 2;
-        boolean isSupersonic = MAX_SPEED - speed < .01;
+        boolean isSupersonic = SUPERSONIC_SPEED - speed < .01;
 
         boolean shouldBoost = !shouldBrake && difference < Math.PI / 6 && !isSupersonic;
 
@@ -224,28 +195,23 @@ public class SteerUtil {
         return loc.distance(input.getMyPosition());
     }
 
-    private static boolean isVerticallyAccessible(AgentInput input, SpaceTime intercept) {
-        Duration timeTillIntercept = Duration.between(input.time, intercept.time);
+    public static Optional<Plan> getSensibleFlip(AgentInput input, SpaceTime target) {
 
-        if (intercept.space.z < NEEDS_AERIAL_THRESHOLD) {
-            // We can probably just get it by jumping
-            return true;
+        Duration timeTillIntercept = Duration.between(input.time, target.time);
+        double distanceToIntercept = VectorUtil.flatDistance(target.space, input.getMyPosition());
+        if (timeTillIntercept.toMillis() > AccelerationModel.FRONT_FLIP_SECONDS * 1000 && distanceToIntercept > 30) {
+
+            double correctionAngleRad = SteerUtil.getCorrectionAngleRad(input, target.space);
+
+            if (Math.abs(correctionAngleRad) < Math.PI / 12
+                    && input.getMyVelocity().magnitude() > SteerUtil.SUPERSONIC_SPEED / 4) {
+
+                BotLog.println("Front flipping after ball!", input.team);
+                return Optional.of(SetPieces.frontFlip());
+            }
         }
 
-        if (input.getMyBoost() > 30) {
-            Duration tMinus = getAerialLaunchCountdown(intercept, timeTillIntercept);
-            return tMinus.toMillis() >= -100;
-        }
-        return false;
-    }
-
-    public static Duration getAerialLaunchCountdown(SpaceTime intercept, Duration timeTillIntercept) {
-        Duration expectedAerialTime = Duration.ofMillis((long) (1000 * intercept.space.z / AERIAL_RISE_RATE));
-        return timeTillIntercept.minus(expectedAerialTime);
-    }
-
-    public static Optional<SpaceTime> getPreferredIntercept(AgentInput input, List<SpaceTime> interceptOpportunities) {
-        return interceptOpportunities.stream().filter(intercept -> isVerticallyAccessible(input, intercept)).findFirst();
+        return Optional.empty();
     }
 
 }

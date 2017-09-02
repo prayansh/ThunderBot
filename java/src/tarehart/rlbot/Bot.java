@@ -45,15 +45,14 @@ public class Bot {
         // Just for now, always calculate ballpath so we can learn some stuff.
         BallPath ballPath = arenaModel.simulateBall(new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity), Duration.ofSeconds(5));
         Telemetry.forTeam(input.team).setBallPath(ballPath);
-        BallRecorder.recordPosition(new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity));
 
-        Optional<SpaceTimeVelocity> afterBounce = ballPath.getMotionAfterWallBounce(1);
+        //BallRecorder.recordPosition(new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity));
+        //Optional<SpaceTimeVelocity> afterBounce = ballPath.getMotionAfterWallBounce(1);
         // Just for data gathering / debugging.
-        afterBounce.ifPresent(stv -> BallRecorder.startRecording(new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity), stv.getTime().plusSeconds(1)));
+        //afterBounce.ifPresent(stv -> BallRecorder.startRecording(new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity), stv.getTime().plusSeconds(1)));
 
 
         AgentOutput output = getOutput(input);
-        output = new AgentOutput();
         Plan.Posture posture = currentPlan != null ? currentPlan.getPosture() : Plan.Posture.NEUTRAL;
         String situation = currentPlan != null ? currentPlan.getSituation() : "";
         readout.update(input, posture, situation, BotLog.collect(input.team), Telemetry.forTeam(input.team).getBallPath());
@@ -73,8 +72,12 @@ public class Bot {
             if (input.getMyBoost() < 30 && input.getMyPosition().distance(input.ballPosition) > 80) {
                 currentPlan = new Plan().withStep(new GetBoostStep());
                 currentPlan.begin();
-            } else {
+            } else if (GetOnDefenseStep.getWrongSidedness(input) > 0) {
+                BotLog.println("Getting behind the ball", input.team);
                 currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new GetOnOffenseStep()).withStep(new ChaseBallStep());
+                currentPlan.begin();
+            } else {
+                currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new ChaseBallStep());
                 currentPlan.begin();
             }
         }

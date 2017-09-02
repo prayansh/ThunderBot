@@ -1,6 +1,7 @@
 package tarehart.rlbot.tuning;
 
 import com.google.gson.Gson;
+import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import org.junit.Assert;
 import org.junit.Test;
@@ -33,8 +34,18 @@ public class PredictedVsActualTest {
     }
 
     @Test
-    public void testCornerAngle() throws UnsupportedEncodingException {
-        testFile("corner-angle.json");
+    public void testCornerDiagonal() throws UnsupportedEncodingException {
+        testFile("corner-diagonal.json");
+    }
+
+    @Test
+    public void testSideWall() throws UnsupportedEncodingException {
+        testFile("side-wall.json");
+    }
+
+    @Test
+    public void testCornerClear() throws UnsupportedEncodingException {
+        testFile("corner-clear.json");
     }
 
 
@@ -56,7 +67,7 @@ public class PredictedVsActualTest {
 
                 double drag = speedNext / speedNow;
                 double dragPerSpeed = drag / speedNow;
-                System.out.println(String.format("Velocity: %s Speed: %s Drag: %s DragPerSpeed: %s", velocity, speedNow, drag, dragPerSpeed));
+                //System.out.println(String.format("Velocity: %s Speed: %s Drag: %s DragPerSpeed: %s", velocity, speedNow, drag, dragPerSpeed));
             }
         }
 
@@ -67,29 +78,16 @@ public class PredictedVsActualTest {
         for (int i = 0; i < predicted.size() - 1; i++) {
             SpaceTimeVelocity spaceTimeVelocity = actualPath.getMotionAt(predicted.get(i).getTime()).get();
             actualTrimmed.add(spaceTimeVelocity);
+            System.out.println(String.format("Actual: %.4f Predicted: %.4f", spaceTimeVelocity.getVelocity().x, predicted.get(i).getVelocity().x));
 
         }
         actualTrimmed.add(actualPath.getEndpoint());
-
-
-        System.out.println("Starting velocity: " + actualPath.getStartPoint().getVelocity());
-        double secondsElapsedActual = Duration.between(actualTrimmed.get(0).getTime(), actualTrimmed.get(1).getTime()).toMillis() / 1000.0;
-        double secondsElapsedPredicted = Duration.between(actualTrimmed.get(0).getTime(), actualTrimmed.get(1).getTime()).toMillis() / 1000.0;
-        Vector3 actualVelApparent = (Vector3) actualTrimmed.get(1).getSpace().subCopy(actualTrimmed.get(0).getSpace()).scaleCopy(1 / secondsElapsedActual);
-        Vector3 predictedVelApparent = (Vector3) predicted.get(1).getSpace().subCopy(predicted.get(0).getSpace()).scaleCopy(1 / secondsElapsedPredicted);
-        System.out.println("Apparent from actual: " + actualVelApparent);
-        System.out.println("Apparent from predicted: " + predictedVelApparent);
-
-        // 0.89623108669 of original velocity after .1 seconds?? (x)
-        // 0.89619423608 (y)
-        // 0.86549176933 (z)
-
 
         for (int i = 0; i < predicted.size(); i++) {
 
             Vector3 actualSlice = actualTrimmed.get(i).getSpace();
             Vector3 actualToPredicted = (Vector3) predicted.get(i).getSpace().subCopy(actualSlice);
-            double error = actualToPredicted.magnitude();
+            double error = new Vector2(actualToPredicted.x, actualToPredicted.y).magnitude();
             if (error > THRESHOLD) {
                 Duration duration = Duration.between(actualTrimmed.get(0).getTime(), actualTrimmed.get(i).getTime());
                 double seconds = duration.toMillis() / 1000.0;

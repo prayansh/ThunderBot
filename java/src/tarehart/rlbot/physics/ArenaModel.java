@@ -36,16 +36,16 @@ public class ArenaModel {
     private static final int WALL_LENGTH = 200;
     public static final float GRAVITY = 13f;
     public static final Duration SIMULATION_STEP = Duration.ofMillis(100);
-    public static final float BALL_DRAG = .1f;
+    public static final float BALL_DRAG = .0305f;
     public static final float BALL_RADIUS = 1.8555f;
 
-    public static final Vector2f CORNER_ANGLE_CENTER = new Vector2f(70.2f, 90.2f);
+    public static final Vector2f CORNER_ANGLE_CENTER = new Vector2f(70.5f, 90.2f);
 
     // The diagonal surfaces that merge the floor and the wall--
     // Higher = more diagonal showing.
     public static final float RAIL_HEIGHT = 1.4f;
     public static final float BALL_RESTITUTION = .6f;
-    public static final float WALL_RESTITUTION = 1;
+    public static final float WALL_RESTITUTION = 1f;
     public static final float BALL_FRICTION = .6f;
     public static final int STEPS_PER_SECOND = 10;
 
@@ -60,7 +60,7 @@ public class ArenaModel {
         world.addRigidBody(ball);
     }
 
-    public static boolean isInBoundsBall(Vector2 location) {
+    public static boolean isInBoundsBall(Vector3 location) {
         return Math.abs(location.x) < SIDE_WALL - BALL_RADIUS && Math.abs(location.y) < BACK_WALL - BALL_RADIUS;
     }
 

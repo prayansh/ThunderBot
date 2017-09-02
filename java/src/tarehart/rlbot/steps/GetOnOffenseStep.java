@@ -3,9 +3,7 @@ package tarehart.rlbot.steps;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
-import tarehart.rlbot.math.SpaceTimeVelocity;
-import tarehart.rlbot.math.SplineHandle;
-import tarehart.rlbot.math.VectorUtil;
+import tarehart.rlbot.math.*;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.GoalUtil;
@@ -35,25 +33,31 @@ public class GetOnOffenseStep implements Step {
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(2));
         SpaceTimeVelocity futureMotion = ballPath.getMotionAt(input.time.plusSeconds(2)).get();
 
-        Vector3 goalToBall = (Vector3) futureMotion.getSpace().subCopy(enemyGoal.getLocation());
+
         Vector3 target = futureMotion.getSpace().clone();
-        Vector3 goalToBallNormal = (Vector3) goalToBall.normaliseCopy();
-        target.add(goalToBallNormal.scaleCopy(30));
+
+        if (Math.abs(futureMotion.space.x) < 20) {
+            Vector3 goalToBall = (Vector3) futureMotion.getSpace().subCopy(enemyGoal.getLocation());
+            Vector3 goalToBallNormal = (Vector3) goalToBall.normaliseCopy();
+            target.add(goalToBallNormal.scaleCopy(30));
+        }
 
         target.x = clamp(target.x, -ArenaModel.SIDE_WALL + SIDE_WALL_BUFFER, ArenaModel.SIDE_WALL - SIDE_WALL_BUFFER);
         target.y = clamp(target.y, -ArenaModel.BACK_WALL + BACK_WALL_BUFFER, ArenaModel.BACK_WALL - BACK_WALL_BUFFER);
 
         Vector3 carToTarget = (Vector3) target.subCopy(input.getMyPosition());
+        double flatDistance = VectorUtil.flatDistance(target, input.getMyPosition());
         Vector3 carToTargetNormal = (Vector3) carToTarget.normaliseCopy();
-        if (carToTarget.magnitude() < 20 || carToTarget.magnitude() < 50 && input.getMyVelocity().dotProduct(carToTargetNormal) > 30) {
+        if (flatDistance < 20 || flatDistance < 50 && input.getMyVelocity().dotProduct(carToTargetNormal) > 30) {
             isComplete = true;
         }
 
-        if (target.distance(input.getMyPosition()) > 40 && Math.abs(SteerUtil.getCorrectionAngleRad(input, target)) < Math.PI / 20
-                && input.getMyVelocity().magnitude() > SteerUtil.MAX_SPEED / 4) {
+        double secondsRemaining = flatDistance / input.getMyVelocity().magnitude();
 
+        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, new SpaceTime(target, input.time.plus(TimeUtil.toDuration(secondsRemaining))));
+        if (sensibleFlip.isPresent()) {
             BotLog.println("Front flipping into offense!", input.team);
-            plan = SetPieces.frontFlip();
+            plan = sensibleFlip.get();
             plan.begin();
             return plan.getOutput(input);
         } else {
