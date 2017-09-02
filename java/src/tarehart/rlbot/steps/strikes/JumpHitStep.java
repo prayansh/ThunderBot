@@ -1,46 +1,57 @@
-package tarehart.rlbot.steps;
+package tarehart.rlbot.steps.strikes;
 
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.*;
+import tarehart.rlbot.steps.Step;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
-public class AsapAerialStep implements Step {
+public class JumpHitStep implements Step {
 
     private Plan plan;
     private boolean isComplete;
-
-    public AsapAerialStep() {
-
-    }
+    private boolean startedStrike;
 
     public AgentOutput getOutput(AgentInput input) {
 
-        if (plan != null && !plan.isComplete()) {
-            return plan.getOutput(input);
+        if (input.getMyPosition().z > 1) {
+            isComplete = true;
+        }
+
+        if (plan != null) {
+            if (plan.isComplete()) {
+                if (startedStrike) {
+                    isComplete = true;
+                }
+                plan = null;
+            } else {
+                return plan.getOutput(input);
+            }
         }
 
         double currentSpeed = input.getMyVelocity().magnitude();
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(3));
 
-        List<SpaceTime> currentIntercepts = SteerUtil.getInterceptOpportunitiesAssumingMaxAccel(input, ballPath, input.getMyBoost() - AirTouchPlanner.BOOST_NEEDED_FOR_AERIAL - 5);
+        List<SpaceTime> currentIntercepts = SteerUtil.getInterceptOpportunitiesAssumingMaxAccel(input, ballPath, input.getMyBoost());
         if (currentIntercepts.size() > 0) {
 
-            if (currentIntercepts.get(0).space.z < AirTouchPlanner.NEEDS_AERIAL_THRESHOLD) {
-                BotLog.println("AsapAerial failing because ball will be too low.", input.team);
+            SpaceTime intercept = currentIntercepts.get(0);
+
+            if (intercept.space.z > AirTouchPlanner.NEEDS_AERIAL_THRESHOLD) {
+                BotLog.println("JumpHitStep failing because ball will be too high!.", input.team);
                 isComplete = true;
                 return new AgentOutput();
             }
 
-            AerialChecklist checklist = AirTouchPlanner.checkAerialReadiness(input, currentIntercepts.get(0));
+            LaunchChecklist checklist = AirTouchPlanner.checkJumpHitReadiness(input, currentIntercepts.get(0));
             if (checklist.readyToLaunch()) {
-                plan = SetPieces.performAerial();
+                plan = SetPieces.performJumpHit(intercept.space.z);
                 plan.begin();
                 return plan.getOutput(input);
             } else if (!checklist.notTooClose) {
@@ -48,20 +59,18 @@ public class AsapAerialStep implements Step {
 
                 List<SpaceTime> slowerIntercepts = SteerUtil.getInterceptOpportunities(input, ballPath, nextSpeed);
                 if (slowerIntercepts.size() > 0) {
-                    return SteerUtil.steerTowardPosition(input, slowerIntercepts.get(0).space)
-                            .withAcceleration(0)
-                            .withDeceleration(.3)
-                            .withBoost(false);
+
+                    return SteerUtil.getThereOnTime(input, slowerIntercepts.get(0));
                 }
             } else if (!checklist.closeEnough) {
-                BotLog.println("AsapAerial failing because we are not close enough", input.team);
+                BotLog.println("JumpHit failing because we are not close enough", input.team);
                 isComplete = true;
             }
             else {
                 return getThereAsap(input, currentIntercepts.get(0));
             }
         } else {
-            BotLog.println("AsapAerial failing because there are no max speed intercepts", input.team);
+            BotLog.println("JumpHitStep failing because there are no max speed intercepts", input.team);
             isComplete = true;
         }
 
@@ -72,17 +81,13 @@ public class AsapAerialStep implements Step {
 
         Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, groundPosition);
         if (sensibleFlip.isPresent()) {
-            BotLog.println("Front flip for AsapAerial", input.team);
+            BotLog.println("Front flip for JumpHit", input.team);
             this.plan = sensibleFlip.get();
             this.plan.begin();
             return this.plan.getOutput(input);
         }
 
-        AgentOutput output = SteerUtil.steerTowardPosition(input, groundPosition.space);
-        if (input.getMyBoost() <= AirTouchPlanner.BOOST_NEEDED_FOR_AERIAL + 5) {
-            output.withBoost(false);
-        }
-        return output;
+        return SteerUtil.steerTowardPosition(input, groundPosition.space);
     }
 
     @Override
@@ -97,6 +102,6 @@ public class AsapAerialStep implements Step {
 
     @Override
     public String getSituation() {
-        return "Preparing for aerial";
+        return "Preparing for JumpHit";
     }
 }

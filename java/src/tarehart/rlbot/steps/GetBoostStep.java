@@ -4,10 +4,16 @@ import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.math.SplineHandle;
+import tarehart.rlbot.physics.BallPath;
+import tarehart.rlbot.planning.AccelerationModel;
+import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.planning.SteerUtil;
+import tarehart.rlbot.tuning.BotLog;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 public class GetBoostStep implements Step {
     private boolean isComplete = false;
@@ -29,6 +35,8 @@ public class GetBoostStep implements Step {
             new SplineHandle(new Vector3(CORNER_BOOST_WIDTH, CORNER_BOOST_DEPTH, 0), new Vector3(C_HNDL, -C_HNDL, 0), new Vector3(-C_HNDL, -C_HNDL, 0))
     );
 
+    private Plan plan;
+
     public AgentOutput getOutput(AgentInput input) {
 
         if (targetLocation == null) {
@@ -37,16 +45,50 @@ public class GetBoostStep implements Step {
 
         double distance = SteerUtil.getDistanceFromMe(input, targetLocation.getLocation());
 
-        if (distance < 3 || input.getMyPosition().z > 1) {
+        if (plan != null && !plan.isComplete()) {
+            return plan.getOutput(input);
+        }
+
+        if (distance < 3 || !canRun(input)) {
             isComplete = true;
             return new AgentOutput().withAcceleration(1);
         } else {
+
+            Vector3 myPosition = input.getMyPosition();
+            Vector3 target = targetLocation.isWithinHandleRange(myPosition) ? targetLocation.getLocation() : targetLocation.getNearestHandle(myPosition);
+
+            Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, target);
+            if (sensibleFlip.isPresent()) {
+                BotLog.println("Flipping toward boost", input.team);
+                plan = sensibleFlip.get();
+                plan.begin();
+                return plan.getOutput(input);
+            }
+
             return SteerUtil.arcTowardPosition(input, targetLocation);
         }
     }
 
     private void init(AgentInput input) {
-        targetLocation = getNearestBoost(input.getMyPosition());
+        targetLocation = getTacticalBoostLocation(input);
+    }
+
+    private static SplineHandle getTacticalBoostLocation(AgentInput input) {
+        SplineHandle nearestLocation = null;
+        double minTime = Double.MAX_VALUE;
+        for (SplineHandle loc: boostLocations) {
+            double time = AccelerationModel.simulateTravelTime(input, loc.getLocation(), input.getMyBoost());
+            if (time < minTime) {
+                minTime = time;
+                nearestLocation = loc;
+            }
+        }
+        if (minTime < .5) {
+            return nearestLocation;
+        }
+
+        BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(3));
+        return getNearestBoost(ballPath.getEndpoint().space);
     }
 
     private static SplineHandle getNearestBoost(Vector3 position) {
@@ -70,6 +112,10 @@ public class GetBoostStep implements Step {
 
     @Override
     public void begin() {
+    }
+
+    public static boolean canRun(AgentInput input) {
+        return input.getMyPosition().z < 1;
     }
 
     public static boolean seesOpportunisticBoost(AgentInput input) {

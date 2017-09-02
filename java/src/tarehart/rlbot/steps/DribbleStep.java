@@ -50,11 +50,17 @@ public class DribbleStep implements Step {
 
         LocalDateTime hurryUp = input.time.plus(TimeUtil.toDuration(.2));
 
-        boolean hasLineOfSight = ballToGoal.dotProduct(carToPressurePoint) > 0 || input.ballPosition.z > 2;
+        boolean hasLineOfSight = pushDirection.normaliseCopy().dotProduct(carToPressurePoint.normaliseCopy()) > -.2 || input.ballPosition.z > 2;
         if (!hasLineOfSight) {
             // Steer toward a farther-back waypoint.
-            Vector2 fallbackPoint = (Vector2) futureBallPosition.subCopy(ballVelocityFlat.normaliseCopy().scaleCopy(5));
-            return SteerUtil.getThereOnTime(input, new SpaceTime(new Vector3(fallbackPoint.x, fallbackPoint.y, 0), hurryUp));
+            Vector2 fallBack = new Vector2(pushDirection.y, -pushDirection.x);
+            if (fallBack.dotProduct(ballToGoal) > 0) {
+                fallBack.scale(-1);
+            }
+            fallBack.normalise();
+            fallBack.scale(5);
+
+            return SteerUtil.getThereOnTime(input, new SpaceTime(new Vector3(fallBack.x, fallBack.y, 0), hurryUp));
         }
 
         AgentOutput dribble = SteerUtil.getThereOnTime(input, new SpaceTime(new Vector3(pressurePoint.x, pressurePoint.y, 0), hurryUp));
@@ -80,6 +86,10 @@ public class DribbleStep implements Step {
         }
 
         if (input.ballPosition.z > 5) {
+            return false;
+        }
+
+        if (input.getMyPosition().z > 3) {
             return false;
         }
 

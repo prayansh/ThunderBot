@@ -1,13 +1,12 @@
 package tarehart.rlbot.steps;
 
-import mikera.vectorz.Vector2;
-import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.math.SpaceTime;
-import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.*;
+import tarehart.rlbot.steps.strikes.FlipHitStep;
+import tarehart.rlbot.steps.strikes.JumpHitStep;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
@@ -39,7 +38,7 @@ public class ChaseBallStep implements Step {
         }
 
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(3));
-        List<SpaceTime> interceptOpportunities = SteerUtil.getInterceptOpportunitiesAssumingMaxAccel(input, ballPath, input.getMyBoost() - AerialPlanner.BOOST_NEEDED - 5);
+        List<SpaceTime> interceptOpportunities = SteerUtil.getInterceptOpportunitiesAssumingMaxAccel(input, ballPath, input.getMyBoost() - AirTouchPlanner.BOOST_NEEDED_FOR_AERIAL - 5);
         Optional<SpaceTime> catchOpportunity = SteerUtil.getCatchOpportunity(input, ballPath);
 
         // Weed out any intercepts after a catch opportunity. Should just catch it.
@@ -54,16 +53,18 @@ public class ChaseBallStep implements Step {
         Optional<SpaceTime> preferredIntercept = interceptOpportunities.stream().findFirst();
         if (preferredIntercept.isPresent()) {
 
-            if (preferredIntercept.get().space.z > AerialPlanner.NEEDS_AERIAL_THRESHOLD) {
+            SpaceTime intercept = preferredIntercept.get();
 
-                AerialPlanner.AerialChecklist checklist = AerialPlanner.checkAerialReadiness(input, preferredIntercept.get());
-                if (checklist.readyForAerial()) {
+            if (intercept.space.z > AirTouchPlanner.NEEDS_AERIAL_THRESHOLD) {
+
+                AerialChecklist checklist = AirTouchPlanner.checkAerialReadiness(input, intercept);
+                if (checklist.readyToLaunch()) {
                     this.plan = SetPieces.performAerial();
                     this.plan.begin();
                     return this.plan.getOutput(input);
                 } else if(checklist.notTooClose && checklist.closeEnough && checklist.hasBoost) {
                     // Hopefully this will line us up and we'll aerial in a future frame.
-                    return getThereAsap(input, preferredIntercept.get());
+                    return getThereAsap(input, intercept);
                 } else if (checklist.closeEnough && checklist.hasBoost) {
                     BotLog.println("Lining up for aerial as soon as possible...", input.team);
                     this.plan = new Plan().withStep(new AsapAerialStep());
@@ -78,8 +79,18 @@ public class ChaseBallStep implements Step {
                     this.plan.begin();
                     return this.plan.getOutput(input);
                 }
+            } else if (intercept.space.z > AirTouchPlanner.NEEDS_JUMP_HIT_THRESHOLD) {
+                BotLog.println("Lining up jump hit...", input.team);
+                this.plan = new Plan().withStep(new JumpHitStep());
+                this.plan.begin();
+                return this.plan.getOutput(input);
+            } else if (intercept.space.z > AirTouchPlanner.NEEDS_FRONT_FLIP_THRESHOLD) {
+                BotLog.println("Lining up flip hit...", input.team);
+                this.plan = new Plan().withStep(new FlipHitStep());
+                this.plan.begin();
+                return this.plan.getOutput(input);
             }
-            return getThereAsap(input, preferredIntercept.get());
+            return getThereAsap(input, intercept);
 
         } else if (catchOpportunity.isPresent()) {
             BotLog.println(String.format("Going for catch because there are no full speed intercepts. Distance: %s Time: %s",
@@ -103,7 +114,11 @@ public class ChaseBallStep implements Step {
             return this.plan.getOutput(input);
         }
 
-        return SteerUtil.steerTowardPosition(input, groundPosition.space).withBoost(input.getMyBoost() > AerialPlanner.BOOST_NEEDED + 5);
+        AgentOutput steer = SteerUtil.steerTowardPosition(input, groundPosition.space);
+        if (input.getMyBoost() < AirTouchPlanner.BOOST_NEEDED_FOR_AERIAL + 5) {
+            steer.withBoost(false);
+        }
+        return steer;
     }
 
     @Override

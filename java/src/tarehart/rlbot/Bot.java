@@ -80,7 +80,7 @@ public class Bot {
 
         if (currentPlan == null || currentPlan.isComplete()) {
             BotLog.println("Making fresh plans", input.team);
-            if (input.getMyBoost() < 30) {
+            if (input.getMyBoost() < 30 && GetBoostStep.canRun(input)) {
                 currentPlan = new Plan().withStep(new GetBoostStep());
                 currentPlan.begin();
             } else if (GetOnDefenseStep.getWrongSidedness(input) > 0) {

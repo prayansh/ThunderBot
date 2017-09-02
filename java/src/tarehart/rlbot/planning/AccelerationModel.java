@@ -26,7 +26,7 @@ public class AccelerationModel {
         double distanceSoFar = 0;
         double secondsSoFar = 0;
         double currentSpeed = input.getMyVelocity().magnitude();
-        double steerPenaltySeconds = Math.abs(SteerUtil.getCorrectionAngleRad(input, target)) / (currentSpeed + 1);
+        double steerPenaltySeconds = Math.abs(SteerUtil.getCorrectionAngleRad(input, target)) * currentSpeed * .1;
 
         while (distanceSoFar < distance) {
             double hypotheticalFrontFlipDistance = ((currentSpeed * 2 + FRONT_FLIP_SPEED_BOOST) / 2) * FRONT_FLIP_SECONDS;

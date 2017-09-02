@@ -159,7 +159,7 @@ public class SteerUtil {
 
         double speed = input.getMyVelocity().magnitude();
         double difference = Math.abs(correctionAngle);
-        double turnSharpness = difference * 6/Math.PI + speed * .007;
+        double turnSharpness = difference * 6/Math.PI + difference * speed * .01;
 
         double distance = position.subCopy(input.getMyPosition()).magnitude();
         boolean shouldBrake = distance < 25 && difference > Math.PI / 6 && speed > SUPERSONIC_SPEED * .6;
@@ -210,6 +210,15 @@ public class SteerUtil {
         }
 
         return Optional.empty();
+    }
+
+    public static Optional<Plan> getSensibleFlip(AgentInput input, Vector3 target) {
+
+        double distanceToIntercept = VectorUtil.flatDistance(target, input.getMyPosition());
+        double speed = input.getMyVelocity().magnitude();
+
+        double seconds = distanceToIntercept / speed; // This will underestimate; that's alright because it will cause us to flip less when we're oriented wrong.
+        return getSensibleFlip(input, new SpaceTime(target, input.time.plus(TimeUtil.toDuration(seconds))));
     }
 
     public static AgentOutput getThereOnTime(AgentInput input, SpaceTime groundPositionAndTime) {
