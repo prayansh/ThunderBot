@@ -39,11 +39,12 @@ public class DribbleStep implements Step {
         SpaceTimeVelocity ballFuture = ballPath.getMotionAt(input.time.plus(TimeUtil.toDuration(.2))).get();
         Vector2 futureBallPosition = VectorUtil.flatten(ballFuture.getSpace());
 
-        Vector2 ballToGoal = VectorUtil.flatten((Vector3) GoalUtil.getEnemyGoal(input.team).getLocation().subCopy(futureBallPosition));
+        Vector2 ballToGoal = VectorUtil.flatten((Vector3) GoalUtil.getEnemyGoal(input.team).getNearestEntrance(input.ballPosition, 3).subCopy(futureBallPosition));
 
         Vector2 pushDirection = (Vector2) ballToGoal.subCopy(ballVelocityFlat);
 
-        double approachDistance = VectorUtil.project(toBallFlat, new Vector2(pushDirection.y, -pushDirection.x)).magnitude() * 1.5 + .85;
+        double approachDistance = VectorUtil.project(toBallFlat, new Vector2(pushDirection.y, -pushDirection.x)).magnitude() * 1.2 + .85;
+        approachDistance = Math.min(approachDistance, 4);
         Vector2 pressurePoint = (Vector2) futureBallPosition.subCopy(pushDirection.normaliseCopy().scaleCopy(approachDistance));
         Vector2 carToPressurePoint = (Vector2) pressurePoint.subCopy(myPositonFlat);
 
@@ -69,7 +70,7 @@ public class DribbleStep implements Step {
             return false;
         }
 
-        if (input.ballPosition.subCopy(input.getMyPosition()).dotProduct(GoalUtil.getEnemyGoal(input.team).getLocation().subCopy(input.ballPosition)) < 0) {
+        if (input.ballPosition.subCopy(input.getMyPosition()).dotProduct(GoalUtil.getEnemyGoal(input.team).navigationSpline.getLocation().subCopy(input.ballPosition)) < 0) {
             // Wrong side of ball
             return false;
         }

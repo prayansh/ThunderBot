@@ -37,7 +37,7 @@ public class GetBoostStep implements Step {
 
         double distance = SteerUtil.getDistanceFromMe(input, targetLocation.getLocation());
 
-        if (distance < 3) {
+        if (distance < 3 || input.getMyPosition().z > 1) {
             isComplete = true;
             return new AgentOutput().withAcceleration(1);
         } else {

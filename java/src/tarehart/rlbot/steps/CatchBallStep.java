@@ -55,7 +55,7 @@ public class CatchBallStep implements Step {
     }
 
     private AgentOutput playCatch(AgentInput input, SpaceTime catchLocation) {
-        Vector3 enemyGoal = GoalUtil.getEnemyGoal(input.team).getLocation();
+        Vector3 enemyGoal = GoalUtil.getEnemyGoal(input.team).navigationSpline.getLocation();
         Vector3 awayFromEnemyGoal = (Vector3) catchLocation.space.subCopy(enemyGoal);
         awayFromEnemyGoal.z = 0;
         awayFromEnemyGoal.normalise();

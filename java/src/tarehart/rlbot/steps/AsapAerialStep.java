@@ -30,7 +30,7 @@ public class AsapAerialStep implements Step {
         double currentSpeed = input.getMyVelocity().magnitude();
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(3));
 
-        List<SpaceTime> currentIntercepts = SteerUtil.getInterceptOpportunitiesAssumingMaxAccel(input, ballPath, input.getMyBoost() - AerialPlanner.BOOST_NEEDED);
+        List<SpaceTime> currentIntercepts = SteerUtil.getInterceptOpportunitiesAssumingMaxAccel(input, ballPath, input.getMyBoost() - AerialPlanner.BOOST_NEEDED - 5);
         if (currentIntercepts.size() > 0) {
 
             if (currentIntercepts.get(0).space.z < AerialPlanner.NEEDS_AERIAL_THRESHOLD) {
@@ -80,7 +80,7 @@ public class AsapAerialStep implements Step {
         }
 
         AgentOutput output = SteerUtil.steerTowardPosition(input, groundPosition.space);
-        if (input.getMyBoost() <= AerialPlanner.BOOST_NEEDED) {
+        if (input.getMyBoost() <= AerialPlanner.BOOST_NEEDED + 5) {
             output.withBoost(false);
         }
         return output;

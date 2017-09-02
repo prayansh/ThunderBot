@@ -39,7 +39,7 @@ public class ChaseBallStep implements Step {
         }
 
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(3));
-        List<SpaceTime> interceptOpportunities = SteerUtil.getInterceptOpportunitiesAssumingMaxAccel(input, ballPath, input.getMyBoost());
+        List<SpaceTime> interceptOpportunities = SteerUtil.getInterceptOpportunitiesAssumingMaxAccel(input, ballPath, input.getMyBoost() - AerialPlanner.BOOST_NEEDED - 5);
         Optional<SpaceTime> catchOpportunity = SteerUtil.getCatchOpportunity(input, ballPath);
 
         // Weed out any intercepts after a catch opportunity. Should just catch it.
@@ -70,7 +70,8 @@ public class ChaseBallStep implements Step {
                     this.plan.begin();
                     return this.plan.getOutput(input);
                 } else if (catchOpportunity.isPresent()) {
-                    BotLog.println(String.format("Going for catch because aerial looks bad. Distance: %s Time: %s",
+                    BotLog.println(String.format("Going for catch because aerial looks bad. Boost: %s Close enough: %s Distance: %s Time: %s",
+                            checklist.hasBoost, checklist.closeEnough,
                             catchOpportunity.get().space.subCopy(input.getMyPosition()).magnitude(),
                             Duration.between(input.time, catchOpportunity.get().time)), input.team);
                     this.plan = new Plan().withStep(new CatchBallStep(catchOpportunity.get())).withStep(new DribbleStep());
@@ -102,7 +103,7 @@ public class ChaseBallStep implements Step {
             return this.plan.getOutput(input);
         }
 
-        return SteerUtil.steerTowardPosition(input, groundPosition.space);
+        return SteerUtil.steerTowardPosition(input, groundPosition.space).withBoost(input.getMyBoost() > AerialPlanner.BOOST_NEEDED + 5);
     }
 
     @Override

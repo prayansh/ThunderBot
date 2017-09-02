@@ -45,7 +45,7 @@ public class ArenaModel {
     // The diagonal surfaces that merge the floor and the wall--
     // Higher = more diagonal showing.
     public static final float RAIL_HEIGHT = 1.4f;
-    public static final float BALL_RESTITUTION = .6f;
+    public static final float BALL_RESTITUTION = .583f;
     public static final float WALL_RESTITUTION = 1f;
     public static final float BALL_FRICTION = .6f;
     public static final int STEPS_PER_SECOND = 10;
@@ -63,6 +63,10 @@ public class ArenaModel {
 
     public static boolean isInBoundsBall(Vector3 location) {
         return Math.abs(location.x) < SIDE_WALL - BALL_RADIUS && Math.abs(location.y) < BACK_WALL - BALL_RADIUS;
+    }
+
+    public static boolean isBehindGoalLine(Vector3 position) {
+        return Math.abs(position.y) > BACK_WALL;
     }
 
     private void setupWalls() {

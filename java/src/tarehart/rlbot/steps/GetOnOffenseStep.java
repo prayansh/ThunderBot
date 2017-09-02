@@ -28,7 +28,7 @@ public class GetOnOffenseStep implements Step {
             return plan.getOutput(input);
         }
 
-        SplineHandle enemyGoal = GoalUtil.getEnemyGoal(input.team);
+        SplineHandle enemyGoal = GoalUtil.getEnemyGoal(input.team).navigationSpline;
 
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(2));
         SpaceTimeVelocity futureMotion = ballPath.getMotionAt(input.time.plusSeconds(2)).get();

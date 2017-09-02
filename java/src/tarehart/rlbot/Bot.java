@@ -2,14 +2,12 @@ package tarehart.rlbot;
 
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.SpaceTimeVelocity;
+import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.planning.SetPieces;
-import tarehart.rlbot.steps.ChaseBallStep;
-import tarehart.rlbot.steps.GetBoostStep;
-import tarehart.rlbot.steps.GetOnDefenseStep;
-import tarehart.rlbot.steps.GetOnOffenseStep;
+import tarehart.rlbot.steps.*;
 import tarehart.rlbot.tuning.BallRecorder;
 import tarehart.rlbot.tuning.BotLog;
 import tarehart.rlbot.tuning.Telemetry;
@@ -61,10 +59,23 @@ public class Bot {
     }
 
     private AgentOutput getOutput(AgentInput input) {
-        if (GetOnDefenseStep.needDefense(input) && (currentPlan == null || currentPlan.getPosture() != Plan.Posture.DEFENSIVE)) {
-            BotLog.println("Going on defense", input.team);
-            currentPlan = new Plan(Plan.Posture.DEFENSIVE).withStep(new GetOnDefenseStep());
+
+        // Kickoffs can happen unpredictably because the bot doesn't know about goals at the moment.
+        if (VectorUtil.flatten(input.ballPosition).magnitudeSquared() == 0) {
+            currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new GoForKickoffStep());
             currentPlan.begin();
+            return currentPlan.getOutput(input);
+        }
+
+        if (currentPlan == null || currentPlan.getPosture() != Plan.Posture.DEFENSIVE) {
+            if (GetOnDefenseStep.needDefense(input)) {
+                BotLog.println("Going on defense", input.team);
+                currentPlan = new Plan(Plan.Posture.DEFENSIVE).withStep(new GetOnDefenseStep());
+                currentPlan.begin();
+            } else if (ArenaModel.isBehindGoalLine(input.getMyPosition())) {
+                currentPlan = new Plan(Plan.Posture.DEFENSIVE).withStep(new EscapeTheGoalStep());
+                currentPlan.begin();
+            }
         }
 
         if (currentPlan == null || currentPlan.isComplete()) {

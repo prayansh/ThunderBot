@@ -59,7 +59,7 @@ public class GetOnDefenseStep implements Step {
     }
 
     private void init(AgentInput input) {
-        targetLocation = GoalUtil.getOwnGoal(input.team);
+        targetLocation = GoalUtil.getOwnGoal(input.team).navigationSpline;
     }
 
     @Override
@@ -73,7 +73,7 @@ public class GetOnDefenseStep implements Step {
 
     public static boolean needDefense(AgentInput input) {
 
-        SplineHandle myGoal = GoalUtil.getOwnGoal(input.team);
+        SplineHandle myGoal = GoalUtil.getOwnGoal(input.team).navigationSpline;
 
         boolean alreadyOnDefense = Math.abs(myGoal.getLocation().y - input.getMyPosition().y) < 10;
         if (alreadyOnDefense) {
@@ -92,7 +92,7 @@ public class GetOnDefenseStep implements Step {
     }
 
     public static double getWrongSidedness(AgentInput input) {
-        SplineHandle myGoal = GoalUtil.getOwnGoal(input.team);
+        SplineHandle myGoal = GoalUtil.getOwnGoal(input.team).navigationSpline;
         double playerToBallY = input.ballPosition.y - input.getMyPosition().y;
         return playerToBallY * Math.signum(myGoal.getLocation().y);
     }
