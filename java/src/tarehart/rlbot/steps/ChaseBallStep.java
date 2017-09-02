@@ -26,10 +26,10 @@ public class ChaseBallStep implements Step {
             return plan.getOutput(input);
         }
 
-        double flatDistance = VectorUtil.flatten(input.getMyPosition()).distance(VectorUtil.flatten(input.ballPosition));
-
-        if (flatDistance < 1) {
-            isComplete = true;
+        if (DribbleStep.canDribble(input)) {
+            plan = new Plan().withStep(new DribbleStep());
+            plan.begin();
+            return plan.getOutput(input);
         }
 
         if (input.getMyBoost() < 10 && GetBoostStep.seesOpportunisticBoost(input)) {
@@ -73,7 +73,7 @@ public class ChaseBallStep implements Step {
                     BotLog.println(String.format("Going for catch because aerial looks bad. Distance: %s Time: %s",
                             catchOpportunity.get().space.subCopy(input.getMyPosition()).magnitude(),
                             Duration.between(input.time, catchOpportunity.get().time)), input.team);
-                    this.plan = new Plan().withStep(new CatchBallStep(catchOpportunity.get()));
+                    this.plan = new Plan().withStep(new CatchBallStep(catchOpportunity.get())).withStep(new DribbleStep());
                     this.plan.begin();
                     return this.plan.getOutput(input);
                 }
@@ -84,7 +84,7 @@ public class ChaseBallStep implements Step {
             BotLog.println(String.format("Going for catch because there are no full speed intercepts. Distance: %s Time: %s",
                     catchOpportunity.get().space.subCopy(input.getMyPosition()).magnitude(),
                     Duration.between(input.time, catchOpportunity.get().time)), input.team);
-            plan = new Plan().withStep(new CatchBallStep(catchOpportunity.get()));
+            plan = new Plan().withStep(new CatchBallStep(catchOpportunity.get())).withStep(new DribbleStep());
             plan.begin();
             return plan.getOutput(input);
         } else {
@@ -96,6 +96,7 @@ public class ChaseBallStep implements Step {
 
         Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, groundPosition);
         if (sensibleFlip.isPresent()) {
+            BotLog.println("Front flip to chase ball", input.team);
             this.plan = sensibleFlip.get();
             this.plan.begin();
             return this.plan.getOutput(input);
@@ -115,6 +116,6 @@ public class ChaseBallStep implements Step {
 
     @Override
     public String getSituation() {
-        return "Chasing ball " + (plan != null ? "(" + plan.getSituation() + ")" : "");
+        return "Chasing ball " + (plan != null && !plan.isComplete() ? "(" + plan.getSituation() + ")" : "");
     }
 }

@@ -8,7 +8,7 @@ import java.time.Duration;
 
 public class AerialPlanner {
 
-    private static final double AERIAL_RISE_RATE = 9;
+    private static final double AERIAL_RISE_RATE = 7;
     public static final double NEEDS_AERIAL_THRESHOLD = 4;
     public static final double BOOST_NEEDED = 20;
 

@@ -15,6 +15,7 @@ import com.bulletphysics.linearmath.DefaultMotionState;
 import com.bulletphysics.linearmath.Transform;
 import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
+import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 
@@ -273,5 +274,12 @@ public class ArenaModel {
         body.setActivationState(CollisionObject.DISABLE_DEACTIVATION);
 
         return body;
+    }
+
+    public static boolean isCarNearWall(AgentInput input) {
+        Vector3 position = input.getMyPosition();
+        return Math.abs(position.x) > SIDE_WALL - 2 ||
+                Math.abs(position.y) > BACK_WALL - 2 ||
+                Math.abs(position.x) + Math.abs(position.y) > CORNER_ANGLE_CENTER.x + CORNER_ANGLE_CENTER.y - 2;
     }
 }

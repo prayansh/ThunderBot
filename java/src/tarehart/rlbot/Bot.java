@@ -69,7 +69,7 @@ public class Bot {
 
         if (currentPlan == null || currentPlan.isComplete()) {
             BotLog.println("Making fresh plans", input.team);
-            if (input.getMyBoost() < 30 && input.getMyPosition().distance(input.ballPosition) > 80) {
+            if (input.getMyBoost() < 30) {
                 currentPlan = new Plan().withStep(new GetBoostStep());
                 currentPlan.begin();
             } else if (GetOnDefenseStep.getWrongSidedness(input) > 0) {

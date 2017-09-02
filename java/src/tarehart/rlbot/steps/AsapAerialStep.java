@@ -73,6 +73,7 @@ public class AsapAerialStep implements Step {
 
         Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, groundPosition);
         if (sensibleFlip.isPresent()) {
+            BotLog.println("Front flip for AsapAerial", input.team);
             this.plan = sensibleFlip.get();
             this.plan.begin();
             return this.plan.getOutput(input);

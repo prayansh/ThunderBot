@@ -10,6 +10,11 @@ public class VectorUtil {
         return (Vector3) onto.scaleCopy(scale);
     }
 
+    public static Vector2 project(Vector2 vector, Vector2 onto) {
+        double scale = vector.dotProduct(onto) / onto.magnitudeSquared();
+        return (Vector2) onto.scaleCopy(scale);
+    }
+
     public static Vector2 flatten(Vector3 vector3) {
         return new Vector2(vector3.x, vector3.y);
     }

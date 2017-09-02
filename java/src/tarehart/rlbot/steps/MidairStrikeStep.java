@@ -14,8 +14,8 @@ import java.util.List;
 public class MidairStrikeStep implements Step {
 
     private static final double SIDE_DODGE_THRESHOLD = Math.PI / 8;
-    public static final int DODGE_TIME = 250;
-    public static final double DODGE_DISTANCE = 4;
+    public static final int DODGE_TIME = 400;
+    public static final double DODGE_DISTANCE = 5;
     private boolean isComplete = false;
     private int confusionCount = 0;
 

@@ -20,22 +20,22 @@ public class AgentOutput {
     }
 
     public AgentOutput withSteer(double steeringTilt) {
-        this.steeringTilt = steeringTilt;
+        this.steeringTilt = Math.max(-1, Math.min(1, steeringTilt));
         return this;
     }
 
     public AgentOutput withPitch(double pitchTilt) {
-        this.pitchTilt = pitchTilt;
+        this.pitchTilt = Math.max(-1, Math.min(1, pitchTilt));
         return this;
     }
 
     public AgentOutput withAcceleration(double acceleration) {
-        this.acceleration = acceleration;
+        this.acceleration = Math.max(0, Math.min(1, acceleration));
         return this;
     }
 
     public AgentOutput withDeceleration(double deceleration) {
-        this.deceleration = deceleration;
+        this.deceleration = Math.max(0, Math.min(1, deceleration));
         return this;
     }
 

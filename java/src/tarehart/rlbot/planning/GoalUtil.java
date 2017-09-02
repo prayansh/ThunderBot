@@ -6,8 +6,8 @@ import tarehart.rlbot.math.SplineHandle;
 
 public class GoalUtil {
 
-    private static final float GOAL_DISTANCE = 97;
-    private static final float HANDLE_LENGTH = 30;
+    private static final float GOAL_DISTANCE = 102;
+    private static final float HANDLE_LENGTH = 40;
 
     public static final SplineHandle BLUE_GOAL = new SplineHandle(new Vector3(0, -GOAL_DISTANCE, 0), new Vector3(-HANDLE_LENGTH, 0, 0), new Vector3(HANDLE_LENGTH, 0, 0));
     public static final SplineHandle ORANGE_GOAL = new SplineHandle(new Vector3(0, GOAL_DISTANCE, 0), new Vector3(-HANDLE_LENGTH, 0, 0), new Vector3(HANDLE_LENGTH, 0, 0));

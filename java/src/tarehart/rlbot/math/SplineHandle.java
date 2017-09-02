@@ -6,7 +6,7 @@ public class SplineHandle {
 
     // Controls how close you get to a spline handle before you stop going for the handle and start going for
     // the target in the center.
-    private static final double RANGE_MULTIPLIER = 1.5;
+    private static final double RANGE_MULTIPLIER = 1.8;
 
     private Vector3 location;
     private Vector3 handle1;

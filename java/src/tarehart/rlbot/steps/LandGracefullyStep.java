@@ -6,6 +6,7 @@ import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.Bot;
 import tarehart.rlbot.CarRotation;
+import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.steps.rotation.PitchToPlaneStep;
 import tarehart.rlbot.steps.rotation.RollToPlaneStep;
@@ -37,7 +38,7 @@ public class LandGracefullyStep implements Step {
             desiredFacing.normalise();
         }
 
-        if (input.getMyPosition().z < .40f) {
+        if (input.getMyPosition().z < .40f || isOnWall(input)) {
             isComplete = true;
             return new AgentOutput().withAcceleration(1);
         }
@@ -52,6 +53,10 @@ public class LandGracefullyStep implements Step {
         }
 
         return plan.getOutput(input);
+    }
+
+    public static boolean isOnWall(AgentInput input) {
+        return ArenaModel.isCarNearWall(input) && Math.abs(input.getMyRotation().roofVector.z) < 0.02;
     }
 
     private static Plan planRotation(CarRotation current, Vector2 desiredFacing, Bot.Team team) {

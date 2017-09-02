@@ -36,7 +36,7 @@ public class SteerUtil {
         double verticalKineticEnergy = 0.5 * input.ballVelocity.z * input.ballVelocity.z;
         double groundBounceEnergy = potentialEnergy + verticalKineticEnergy;
 
-        if (groundBounceEnergy < 30) {
+        if (groundBounceEnergy < 50) {
             return Optional.empty();
         }
 
@@ -157,18 +157,11 @@ public class SteerUtil {
 
         double correctionAngle = getCorrectionAngleRad(input, position);
 
-        float turnSharpness = 1;
+        double speed = input.getMyVelocity().magnitude();
         double difference = Math.abs(correctionAngle);
-        if (difference < Math.PI / 6) {
-            turnSharpness = 0.5f;
-
-            if (difference < GOOD_ENOUGH_ANGLE) {
-                turnSharpness = 0;
-            }
-        }
+        double turnSharpness = difference * 6/Math.PI + speed * .007;
 
         double distance = position.subCopy(input.getMyPosition()).magnitude();
-        double speed = input.getMyVelocity().magnitude();
         boolean shouldBrake = distance < 25 && difference > Math.PI / 6 && speed > SUPERSONIC_SPEED * .6;
         boolean shouldSlide = shouldBrake || difference > Math.PI / 2;
         boolean isSupersonic = SUPERSONIC_SPEED - speed < .01;
@@ -185,7 +178,13 @@ public class SteerUtil {
 
     public static AgentOutput arcTowardPosition(AgentInput input, SplineHandle position) {
         if (position.isWithinHandleRange(input.getMyPosition())) {
-            return SteerUtil.steerTowardPosition(input, position.getLocation());
+            AgentOutput steer = SteerUtil.steerTowardPosition(input, position.getLocation());
+
+            double correction = Math.abs(SteerUtil.getCorrectionAngleRad(input, position.getLocation()));
+            if (correction > Math.PI / 4 && input.getMyVelocity().magnitude() > AccelerationModel.MEDIUM_SPEED) {
+                steer.withBoost(false).withAcceleration(0).withDeceleration(.2);
+            }
+            return steer;
         } else {
             return SteerUtil.steerTowardPosition(input, position.getNearestHandle(input.getMyPosition()));
         }
@@ -199,19 +198,43 @@ public class SteerUtil {
 
         Duration timeTillIntercept = Duration.between(input.time, target.time);
         double distanceToIntercept = VectorUtil.flatDistance(target.space, input.getMyPosition());
-        if (timeTillIntercept.toMillis() > AccelerationModel.FRONT_FLIP_SECONDS * 1000 && distanceToIntercept > 30) {
+        if (timeTillIntercept.toMillis() > AccelerationModel.FRONT_FLIP_SECONDS * 1000 * 1.5 && distanceToIntercept > 50) {
 
             double correctionAngleRad = SteerUtil.getCorrectionAngleRad(input, target.space);
 
-            if (Math.abs(correctionAngleRad) < Math.PI / 12
+            if (Math.abs(correctionAngleRad) < GOOD_ENOUGH_ANGLE
                     && input.getMyVelocity().magnitude() > SteerUtil.SUPERSONIC_SPEED / 4) {
 
-                BotLog.println("Front flipping after ball!", input.team);
                 return Optional.of(SetPieces.frontFlip());
             }
         }
 
         return Optional.empty();
+    }
+
+    public static AgentOutput getThereOnTime(AgentInput input, SpaceTime groundPositionAndTime) {
+        double flatDistance = VectorUtil.flatDistance(input.getMyPosition(), groundPositionAndTime.space);
+
+        double secondsTillAppointment = Duration.between(input.time, groundPositionAndTime.time).toMillis() / 1000.0;
+        double speed = input.getMyVelocity().magnitude();
+
+        double pace = speed * secondsTillAppointment / flatDistance; // Ideally this should be 1
+
+        if (flatDistance > 40) {
+            // Go fast
+            return SteerUtil.steerTowardPosition(input, groundPositionAndTime.space);
+        } else if (flatDistance > 10 && pace < 1) {
+            // Go fast
+            return SteerUtil.steerTowardPosition(input, groundPositionAndTime.space);
+        } else if (pace < 1) {
+            // Go moderate
+            return SteerUtil.steerTowardPosition(input, groundPositionAndTime.space).withBoost(false);
+        } else {
+            // We're going too fast!
+            AgentOutput agentOutput = SteerUtil.steerTowardPosition(input, groundPositionAndTime.space);
+            agentOutput.withAcceleration(0).withBoost(false).withDeceleration(Math.max(0, pace - 1.5)); // Hit the brakes, but keep steering!
+            return agentOutput;
+        }
     }
 
 }

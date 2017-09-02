@@ -35,7 +35,7 @@ public class GetOnDefenseStep implements Step {
         double distance = SteerUtil.getDistanceFromMe(input, targetLocation.getLocation());
         double secondsRemaining = distance / input.getMyVelocity().magnitude();
 
-        if (!needDefense(input) || secondsRemaining < 1) {
+        if (!needDefense(input) || secondsRemaining < 1.5) {
             isComplete = true;
             return new AgentOutput().withSlide(true).withDeceleration(1);
         }
@@ -49,6 +49,7 @@ public class GetOnDefenseStep implements Step {
 
         Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, new SpaceTime(target, input.time.plus(TimeUtil.toDuration(secondsRemaining))));
         if (sensibleFlip.isPresent()) {
+            BotLog.println("Front flip for defense", input.team);
             plan = sensibleFlip.get();
             plan.begin();
             return plan.getOutput(input);
@@ -85,7 +86,7 @@ public class GetOnDefenseStep implements Step {
         double ballSpeedTowardGoal = ballVelocityTowardGoal.magnitude() * Math.signum(ballVelocityTowardGoal.dotProduct(ballToGoal));
         double wrongSidedness = getWrongSidedness(input);
 
-        boolean needDefense = ballSpeedTowardGoal > 5 && wrongSidedness > 0 || ballSpeedTowardGoal > -10 && wrongSidedness > 10;
+        boolean needDefense = ballSpeedTowardGoal > 30 && wrongSidedness > 0 || ballSpeedTowardGoal > 10 && wrongSidedness > 10;
         return needDefense;
 
     }

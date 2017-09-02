@@ -62,29 +62,7 @@ public class CatchBallStep implements Step {
         awayFromEnemyGoal.scale(.85);
         Vector3 target = catchLocation.space.addCopy(awayFromEnemyGoal);
 
-        return getThereOnTime(input, new SpaceTime(target, catchLocation.time));
-    }
-
-    private AgentOutput getThereOnTime(AgentInput input, SpaceTime groundPositionAndTime) {
-        double flatDistance = flatten(input.getMyPosition()).distance(flatten(groundPositionAndTime.space));
-
-        double secondsTillAppointment = Duration.between(input.time, groundPositionAndTime.time).toMillis() / 1000.0;
-        double speed = input.getMyVelocity().magnitude();
-
-        double pace = speed * secondsTillAppointment / flatDistance; // Ideally this should be 1
-
-        if (flatDistance > 50) {
-            // Go fast
-            return SteerUtil.steerTowardPosition(input, groundPositionAndTime.space);
-        } else if (pace < 1) {
-            // Go moderate
-            return SteerUtil.steerTowardPosition(input, groundPositionAndTime.space).withBoost(false);
-        } else {
-            // We're going too fast!
-            AgentOutput agentOutput = SteerUtil.steerTowardPosition(input, groundPositionAndTime.space);
-            agentOutput.withAcceleration(0).withBoost(false).withDeceleration(Math.max(0, pace - 1.3)); // Hit the brakes, but keep steering!
-            return agentOutput;
-        }
+        return SteerUtil.getThereOnTime(input, new SpaceTime(target, catchLocation.time));
     }
 
     private Vector2 flatten(Vector3 vector3) {
