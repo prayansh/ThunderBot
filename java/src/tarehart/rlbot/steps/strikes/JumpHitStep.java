@@ -1,5 +1,6 @@
 package tarehart.rlbot.steps.strikes;
 
+import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.math.SpaceTime;
@@ -9,7 +10,6 @@ import tarehart.rlbot.steps.Step;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Optional;
 
 public class JumpHitStep implements Step {
@@ -17,6 +17,11 @@ public class JumpHitStep implements Step {
     private Plan plan;
     private boolean isComplete;
     private boolean startedStrike;
+    private Vector3 originalIntercept;
+
+    public JumpHitStep(Vector3 originalIntercept) {
+        this.originalIntercept = originalIntercept;
+    }
 
     public AgentOutput getOutput(AgentInput input) {
 
@@ -42,7 +47,13 @@ public class JumpHitStep implements Step {
 
             SpaceTime intercept = interceptOpportunity.get();
 
-            if (intercept.space.z > AirTouchPlanner.NEEDS_AERIAL_THRESHOLD) {
+            if (intercept.space.distance(originalIntercept) > 10 && Duration.between(input.time, intercept.time).toMillis() > 1000) {
+                BotLog.println("JumpHitStep failing because we lost sight of the original plan.", input.team);
+                isComplete = true;
+                return new AgentOutput();
+            }
+
+            if (intercept.space.z > AirTouchPlanner.NEEDS_AERIAL_THRESHOLD || intercept.space.z < AirTouchPlanner.NEEDS_JUMP_HIT_THRESHOLD) {
 
                 Optional<SpaceTime> volleyOpportunity = SteerUtil.getVolleyOpportunity(input, ballPath, input.getMyBoost(), AirTouchPlanner.NEEDS_AERIAL_THRESHOLD);
                 if (volleyOpportunity.isPresent()) {
@@ -57,6 +68,7 @@ public class JumpHitStep implements Step {
 
             LaunchChecklist checklist = AirTouchPlanner.checkJumpHitReadiness(input, intercept);
             if (checklist.readyToLaunch()) {
+                startedStrike = true;
                 plan = SetPieces.performJumpHit(intercept.space.z);
                 plan.begin();
                 return plan.getOutput(input);

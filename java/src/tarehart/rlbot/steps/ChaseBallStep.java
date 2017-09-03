@@ -3,6 +3,7 @@ package tarehart.rlbot.steps;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.math.SpaceTime;
+import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.*;
 import tarehart.rlbot.steps.strikes.FlipHitStep;
@@ -10,7 +11,6 @@ import tarehart.rlbot.steps.strikes.JumpHitStep;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Optional;
 
 public class ChaseBallStep implements Step {
@@ -25,7 +25,7 @@ public class ChaseBallStep implements Step {
             return plan.getOutput(input);
         }
 
-        if (DribbleStep.canDribble(input)) {
+        if (DribbleStep.canDribble(input) && VectorUtil.flatDistance(input.getMyVelocity(), input.ballVelocity) < 15) {
             plan = new Plan().withStep(new DribbleStep());
             plan.begin();
             return plan.getOutput(input);
@@ -66,18 +66,18 @@ public class ChaseBallStep implements Step {
                             checklist.hasBoost, checklist.closeEnough,
                             catchOpportunity.get().space.subCopy(input.getMyPosition()).magnitude(),
                             Duration.between(input.time, catchOpportunity.get().time)), input.team);
-                    this.plan = new Plan().withStep(new JumpHitStep());
+                    this.plan = new Plan().withStep(new JumpHitStep(intercept.space));
                     this.plan.begin();
                     return this.plan.getOutput(input);
                 }
             } else if (intercept.space.z > AirTouchPlanner.NEEDS_JUMP_HIT_THRESHOLD) {
                 BotLog.println("Lining up jump hit...", input.team);
-                this.plan = new Plan().withStep(new JumpHitStep());
+                this.plan = new Plan().withStep(new JumpHitStep(intercept.space));
                 this.plan.begin();
                 return this.plan.getOutput(input);
             } else if (intercept.space.z > AirTouchPlanner.NEEDS_FRONT_FLIP_THRESHOLD) {
                 BotLog.println("Lining up flip hit...", input.team);
-                this.plan = new Plan().withStep(new FlipHitStep());
+                this.plan = new Plan().withStep(new FlipHitStep(intercept.space));
                 this.plan.begin();
                 return this.plan.getOutput(input);
             }

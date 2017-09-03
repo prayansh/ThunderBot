@@ -154,7 +154,7 @@ public class BallPath {
         return Optional.empty();
     }
 
-    public Optional<SpaceTimeVelocity> getPlaneBreak(LocalDateTime searchStart, Vector3 planePosition, Vector3 planeNormal) {
+    public Optional<SpaceTimeVelocity> getPlaneBreak(LocalDateTime searchStart, Vector3 planePosition, Vector3 planeNormal, boolean directionSensitive) {
         for (int i = 1; i < path.size(); i++) {
             SpaceTimeVelocity spt = path.get(i);
 
@@ -163,6 +163,11 @@ public class BallPath {
             }
 
             SpaceTimeVelocity previous = path.get(i - 1);
+
+            if (directionSensitive && spt.getSpace().subCopy(previous.getSpace()).dotProduct(planeNormal) > 0) {
+                // Moving the same direction as the plane normal. If we're direction sensitive, then we don't care about plane breaks in this direction.
+                continue;
+            }
 
             Optional<Vector3> planeBreak = getPlaneBreak(previous.getSpace(), spt.getSpace(), planePosition, planeNormal);
 

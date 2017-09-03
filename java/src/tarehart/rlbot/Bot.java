@@ -15,6 +15,7 @@ import tarehart.rlbot.ui.Readout;
 
 import javax.swing.*;
 import java.time.Duration;
+import java.util.Objects;
 import java.util.Optional;
 
 public class Bot {
@@ -22,6 +23,7 @@ public class Bot {
     private final Team team;
     Plan currentPlan = null;
     private Readout readout;
+    private String previousSituation = null;
 
     private ArenaModel arenaModel;
 
@@ -53,6 +55,10 @@ public class Bot {
         AgentOutput output = getOutput(input);
         Plan.Posture posture = currentPlan != null ? currentPlan.getPosture() : Plan.Posture.NEUTRAL;
         String situation = currentPlan != null ? currentPlan.getSituation() : "";
+        if (!Objects.equals(situation, previousSituation)) {
+            BotLog.println("[Sitch] " + situation, input.team);
+        }
+        previousSituation = situation;
         readout.update(input, posture, situation, BotLog.collect(input.team), Telemetry.forTeam(input.team).getBallPath());
         Telemetry.forTeam(team).reset();
         return output;

@@ -43,12 +43,10 @@ public class DribbleStep implements Step {
 
         Vector2 ballToGoal = (Vector2) scoreLocation.subCopy(futureBallPosition);
 
-        Vector2 toGoalStraight = new Vector2(0, ballToGoal.y);
+        double velocityCorrectionAngle = SteerUtil.getCorrectionAngleRad(ballVelocityFlat, ballToGoal);
+        double angleTweak = Math.min(Math.PI / 6, Math.max(-Math.PI / 6, velocityCorrectionAngle));
 
-        double correctionAngleRad = SteerUtil.getCorrectionAngleRad(toGoalStraight, ballToGoal);
-        double pushAngleModifier = -Math.signum(correctionAngleRad) * Math.PI / 6;
-
-        Vector2 pushDirection = (Vector2) VectorUtil.rotateVector(ballToGoal, pushAngleModifier).normaliseCopy();
+        Vector2 pushDirection = (Vector2) VectorUtil.rotateVector(ballToGoal, angleTweak).normaliseCopy();
 
         double approachDistance = VectorUtil.project(toBallFlat, new Vector2(pushDirection.y, -pushDirection.x)).magnitude() * 1.2 + .85;
         approachDistance = Math.min(approachDistance, 4);
@@ -83,12 +81,12 @@ public class DribbleStep implements Step {
             return false;
         }
 
-        if (input.ballPosition.subCopy(input.getMyPosition()).dotProduct(GoalUtil.getEnemyGoal(input.team).navigationSpline.getLocation().subCopy(input.ballPosition)) < 0) {
+        if (input.ballPosition.subCopy(input.getMyPosition()).dotProduct(GoalUtil.getEnemyGoal(input.team).navigationSpline.getLocation().subCopy(input.ballPosition)) < -.6) {
             // Wrong side of ball
             return false;
         }
 
-        if (VectorUtil.flatDistance(input.getMyVelocity(), input.ballVelocity) > 20) {
+        if (VectorUtil.flatDistance(input.getMyVelocity(), input.ballVelocity) > 25) {
             return false;
         }
 
@@ -96,7 +94,7 @@ public class DribbleStep implements Step {
             return false;
         }
 
-        if (input.getMyPosition().z > 3) {
+        if (input.getMyPosition().z > 5) {
             return false;
         }
 

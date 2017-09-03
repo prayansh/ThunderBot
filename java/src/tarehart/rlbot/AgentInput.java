@@ -45,19 +45,19 @@ public class AgentInput {
         blueDemo = scoring.get(2).intValue();
         orangeDemo = scoring.get(3).intValue();
 
-        ballPosition = new Vector3(neuralInputs.get(7), neuralInputs.get(2), neuralInputs.get(6));
-        ballVelocity = new Vector3(neuralInputs.get(31), neuralInputs.get(33), neuralInputs.get(32));
+        ballPosition = new Vector3(-neuralInputs.get(7), neuralInputs.get(2), neuralInputs.get(6));
+        ballVelocity = new Vector3(-neuralInputs.get(31), neuralInputs.get(33), neuralInputs.get(32));
 
-        orangePosition = new Vector3(neuralInputs.get(18), neuralInputs.get(3), neuralInputs.get(17));
-        orangeVelocity = new Vector3(neuralInputs.get(34), neuralInputs.get(36), neuralInputs.get(35));
-        orangeRotation = new CarRotation(new Vector3(neuralInputs.get(19), neuralInputs.get(22), neuralInputs.get(25)),
-                new Vector3(neuralInputs.get(21), neuralInputs.get(24), neuralInputs.get(27)));
+        orangePosition = new Vector3(-neuralInputs.get(18), neuralInputs.get(3), neuralInputs.get(17));
+        orangeVelocity = new Vector3(-neuralInputs.get(34), neuralInputs.get(36), neuralInputs.get(35));
+        orangeRotation = new CarRotation(new Vector3(-neuralInputs.get(19), neuralInputs.get(22), neuralInputs.get(25)),
+                new Vector3(-neuralInputs.get(21), neuralInputs.get(24), neuralInputs.get(27)));
         orangeBoost = neuralInputs.get(37);
 
-        bluePosition = new Vector3(neuralInputs.get(5), neuralInputs.get(1), neuralInputs.get(4));
-        blueVelocity = new Vector3(neuralInputs.get(28), neuralInputs.get(30), neuralInputs.get(29));
-        blueRotation = new CarRotation(new Vector3(neuralInputs.get(8), neuralInputs.get(11), neuralInputs.get(14)),
-                new Vector3(neuralInputs.get(10), neuralInputs.get(13),  neuralInputs.get(16)));
+        bluePosition = new Vector3(-neuralInputs.get(5), neuralInputs.get(1), neuralInputs.get(4));
+        blueVelocity = new Vector3(-neuralInputs.get(28), neuralInputs.get(30), neuralInputs.get(29));
+        blueRotation = new CarRotation(new Vector3(-neuralInputs.get(8), neuralInputs.get(11), neuralInputs.get(14)),
+                new Vector3(-neuralInputs.get(10), neuralInputs.get(13),  neuralInputs.get(16)));
         blueBoost = neuralInputs.get(0);
     }
 

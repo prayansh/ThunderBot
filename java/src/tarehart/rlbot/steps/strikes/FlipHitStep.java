@@ -17,7 +17,12 @@ public class FlipHitStep implements Step {
 
     private Plan plan;
     private boolean isComplete;
-    private boolean startedStrike = true;
+    private boolean startedStrike;
+    private Vector3 originalIntercept;
+
+    public FlipHitStep(Vector3 originalIntercept) {
+        this.originalIntercept = originalIntercept;
+    }
 
     public AgentOutput getOutput(AgentInput input) {
 
@@ -32,7 +37,7 @@ public class FlipHitStep implements Step {
             }
         }
 
-        if (input.getMyPosition().z > 1) {
+        if (input.getMyPosition().z > 5) {
             isComplete = true;
         }
 
@@ -43,8 +48,14 @@ public class FlipHitStep implements Step {
 
             SpaceTime intercept = currentIntercepts.get();
 
+            if (intercept.space.distance(originalIntercept) > 10 && Duration.between(input.time, intercept.time).toMillis() > 1000) {
+                BotLog.println("FlipHitStep failing because we lost sight of the original plan.", input.team);
+                isComplete = true;
+                return new AgentOutput();
+            }
+
             if (intercept.space.z > AirTouchPlanner.NEEDS_JUMP_HIT_THRESHOLD) {
-                BotLog.println("FlipHitStep failing because ball will be too high!.", input.team);
+                BotLog.println("FlipHitStep failing because ball will be too high!", input.team);
                 isComplete = true;
                 return new AgentOutput();
             }
@@ -55,6 +66,7 @@ public class FlipHitStep implements Step {
             double distance = input.getMyPosition().distance(intercept.space);
 
             if (Duration.between(input.time, intercept.time).toMillis() < 500 || distance < 5) {
+                startedStrike = true;
                 plan = SetPieces.frontFlip();
                 plan.begin();
                 return plan.getOutput(input);
@@ -62,7 +74,7 @@ public class FlipHitStep implements Step {
                 return getThereAsap(input, intercept);
             }
         } else {
-            BotLog.println("JumpHitStep failing because there are no max speed intercepts", input.team);
+            BotLog.println("FlipHitStep failing because there are no max speed intercepts", input.team);
             isComplete = true;
         }
 

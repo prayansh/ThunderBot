@@ -64,7 +64,7 @@ public class SteerUtil {
 
         LocalDateTime searchStart = input.time;
 
-        Optional<SpaceTimeVelocity> landingOption = ballPath.getPlaneBreak(searchStart, new Vector3(0, 0, height), new Vector3(0, 0, 1));
+        Optional<SpaceTimeVelocity> landingOption = ballPath.getPlaneBreak(searchStart, new Vector3(0, 0, height), new Vector3(0, 0, 1), true);
 
         if (landingOption.isPresent()) {
             SpaceTime landing = landingOption.get().toSpaceTime();
@@ -142,8 +142,8 @@ public class SteerUtil {
 
     public static double getCorrectionAngleRad(Vector2 current, Vector2 ideal) {
 
-        float currentRad = (float) Math.atan2(current.x, current.y);
-        float idealRad = (float) Math.atan2(ideal.x, ideal.y);
+        float currentRad = (float) Math.atan2(current.y, current.x);
+        float idealRad = (float) Math.atan2(ideal.y, ideal.x);
 
         if (Math.abs(currentRad - idealRad) > Math.PI) {
             if (currentRad < 0) {
