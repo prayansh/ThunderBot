@@ -39,9 +39,16 @@ public class DribbleStep implements Step {
         SpaceTimeVelocity ballFuture = ballPath.getMotionAt(input.time.plus(TimeUtil.toDuration(.2))).get();
         Vector2 futureBallPosition = VectorUtil.flatten(ballFuture.getSpace());
 
-        Vector2 ballToGoal = VectorUtil.flatten((Vector3) GoalUtil.getEnemyGoal(input.team).getNearestEntrance(input.ballPosition, 3).subCopy(futureBallPosition));
+        Vector2 scoreLocation = VectorUtil.flatten(GoalUtil.getEnemyGoal(input.team).getNearestEntrance(input.ballPosition, 3));
 
-        Vector2 pushDirection = (Vector2) ballToGoal.subCopy(ballVelocityFlat);
+        Vector2 ballToGoal = (Vector2) scoreLocation.subCopy(futureBallPosition);
+
+        Vector2 toGoalStraight = new Vector2(0, ballToGoal.y);
+
+        double correctionAngleRad = SteerUtil.getCorrectionAngleRad(toGoalStraight, ballToGoal);
+        double pushAngleModifier = -Math.signum(correctionAngleRad) * Math.PI / 6;
+
+        Vector2 pushDirection = (Vector2) VectorUtil.rotateVector(ballToGoal, pushAngleModifier).normaliseCopy();
 
         double approachDistance = VectorUtil.project(toBallFlat, new Vector2(pushDirection.y, -pushDirection.x)).magnitude() * 1.2 + .85;
         approachDistance = Math.min(approachDistance, 4);
@@ -85,7 +92,7 @@ public class DribbleStep implements Step {
             return false;
         }
 
-        if (input.ballPosition.z > 5) {
+        if (input.ballPosition.z > 10) {
             return false;
         }
 

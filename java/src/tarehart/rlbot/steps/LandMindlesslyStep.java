@@ -9,7 +9,7 @@ public class LandMindlesslyStep implements Step {
 
     public AgentOutput getOutput(AgentInput input) {
 
-        if (input.getMyPosition().z < .40f) {
+        if (input.getMyPosition().z < .40f || LandGracefullyStep.isOnWall(input)) {
             isComplete = true;
         }
         return new AgentOutput().withAcceleration(1);

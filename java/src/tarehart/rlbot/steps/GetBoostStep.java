@@ -5,6 +5,7 @@ import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.math.SplineHandle;
 import tarehart.rlbot.physics.BallPath;
+import tarehart.rlbot.physics.DistancePlot;
 import tarehart.rlbot.planning.AccelerationModel;
 import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.planning.SteerUtil;
@@ -76,10 +77,11 @@ public class GetBoostStep implements Step {
     private static SplineHandle getTacticalBoostLocation(AgentInput input) {
         SplineHandle nearestLocation = null;
         double minTime = Double.MAX_VALUE;
+        DistancePlot distancePlot = AccelerationModel.simulateAcceleration(input, Duration.ofSeconds(4), input.getMyBoost());
         for (SplineHandle loc: boostLocations) {
-            double time = AccelerationModel.simulateTravelTime(input, loc.getLocation(), input.getMyBoost());
-            if (time < minTime) {
-                minTime = time;
+            Optional<Double> travelSeconds = AccelerationModel.getTravelSeconds(input, distancePlot, loc.getLocation());
+            if (travelSeconds.isPresent() && travelSeconds.get() < minTime) {
+                minTime = travelSeconds.get();
                 nearestLocation = loc;
             }
         }

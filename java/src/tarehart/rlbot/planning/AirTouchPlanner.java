@@ -67,4 +67,7 @@ public class AirTouchPlanner {
         return timeTillIntercept.minus(expectedAerialTime);
     }
 
+    public static double getBoostBudget(AgentInput input) {
+        return input.getMyBoost() - BOOST_NEEDED_FOR_AERIAL - 5;
+    }
 }

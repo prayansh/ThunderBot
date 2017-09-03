@@ -21,10 +21,6 @@ public class FlipHitStep implements Step {
 
     public AgentOutput getOutput(AgentInput input) {
 
-        if (input.getMyPosition().z > 1) {
-            isComplete = true;
-        }
-
         if (plan != null) {
             if (plan.isComplete()) {
                 if (startedStrike) {
@@ -36,13 +32,16 @@ public class FlipHitStep implements Step {
             }
         }
 
+        if (input.getMyPosition().z > 1) {
+            isComplete = true;
+        }
 
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(3));
 
-        List<SpaceTime> currentIntercepts = SteerUtil.getInterceptOpportunitiesAssumingMaxAccel(input, ballPath, input.getMyBoost());
-        if (currentIntercepts.size() > 0) {
+        Optional<SpaceTime> currentIntercepts = SteerUtil.getInterceptOpportunityAssumingMaxAccel(input, ballPath, input.getMyBoost());
+        if (currentIntercepts.isPresent()) {
 
-            SpaceTime intercept = currentIntercepts.get(0);
+            SpaceTime intercept = currentIntercepts.get();
 
             if (intercept.space.z > AirTouchPlanner.NEEDS_JUMP_HIT_THRESHOLD) {
                 BotLog.println("FlipHitStep failing because ball will be too high!.", input.team);

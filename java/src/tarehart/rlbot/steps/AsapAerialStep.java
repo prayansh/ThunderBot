@@ -29,16 +29,16 @@ public class AsapAerialStep implements Step {
         double currentSpeed = input.getMyVelocity().magnitude();
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(3));
 
-        List<SpaceTime> currentIntercepts = SteerUtil.getInterceptOpportunitiesAssumingMaxAccel(input, ballPath, input.getMyBoost() - AirTouchPlanner.BOOST_NEEDED_FOR_AERIAL - 5);
-        if (currentIntercepts.size() > 0) {
+        Optional<SpaceTime> interceptOpportunity = SteerUtil.getInterceptOpportunityAssumingMaxAccel(input, ballPath, AirTouchPlanner.getBoostBudget(input));
+        if (interceptOpportunity.isPresent()) {
 
-            if (currentIntercepts.get(0).space.z < AirTouchPlanner.NEEDS_AERIAL_THRESHOLD) {
+            if (interceptOpportunity.get().space.z < AirTouchPlanner.NEEDS_AERIAL_THRESHOLD) {
                 BotLog.println("AsapAerial failing because ball will be too low.", input.team);
                 isComplete = true;
                 return new AgentOutput();
             }
 
-            AerialChecklist checklist = AirTouchPlanner.checkAerialReadiness(input, currentIntercepts.get(0));
+            AerialChecklist checklist = AirTouchPlanner.checkAerialReadiness(input, interceptOpportunity.get());
             if (checklist.readyToLaunch()) {
                 plan = SetPieces.performAerial();
                 plan.begin();
@@ -46,9 +46,9 @@ public class AsapAerialStep implements Step {
             } else if (!checklist.notTooClose) {
                 double nextSpeed = currentSpeed * .9;
 
-                List<SpaceTime> slowerIntercepts = SteerUtil.getInterceptOpportunities(input, ballPath, nextSpeed);
-                if (slowerIntercepts.size() > 0) {
-                    return SteerUtil.steerTowardPosition(input, slowerIntercepts.get(0).space)
+                Optional<SpaceTime> slowerIntercept = SteerUtil.getInterceptOpportunity(input, ballPath, nextSpeed);
+                if (slowerIntercept.isPresent()) {
+                    return SteerUtil.steerTowardPosition(input, slowerIntercept.get().space)
                             .withAcceleration(0)
                             .withDeceleration(.3)
                             .withBoost(false);
@@ -58,7 +58,7 @@ public class AsapAerialStep implements Step {
                 isComplete = true;
             }
             else {
-                return getThereAsap(input, currentIntercepts.get(0));
+                return getThereAsap(input, interceptOpportunity.get());
             }
         } else {
             BotLog.println("AsapAerial failing because there are no max speed intercepts", input.team);

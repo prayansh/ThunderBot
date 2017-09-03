@@ -4,6 +4,8 @@ import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.SpaceTimeVelocity;
+import tarehart.rlbot.math.TimeUtil;
+import tarehart.rlbot.math.VectorUtil;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -108,13 +110,6 @@ public class BallPath {
         return previousVelocity.z < 0 && currentVelocity.z > 0;
     }
 
-    private Vector3 getVelocity(SpaceTime before, SpaceTime after) {
-        long millisBetween = Duration.between(before.time, after.time).toMillis();
-        double secondsBetween = millisBetween / 1000.0;
-        Vector3 prevToNext = (Vector3) after.space.subCopy(before.space);
-        return (Vector3) prevToNext.scaleCopy(1 / secondsBetween);
-    }
-
     public SpaceTimeVelocity getStartPoint() {
         return path.get(0).copy();
     }
@@ -157,5 +152,36 @@ public class BallPath {
         }
 
         return Optional.empty();
+    }
+
+    public Optional<SpaceTimeVelocity> getPlaneBreak(LocalDateTime searchStart, Vector3 planePosition, Vector3 planeNormal) {
+        for (int i = 1; i < path.size(); i++) {
+            SpaceTimeVelocity spt = path.get(i);
+
+            if (spt.getTime().isBefore(searchStart)) {
+                continue;
+            }
+
+            SpaceTimeVelocity previous = path.get(i - 1);
+
+            Optional<Vector3> planeBreak = getPlaneBreak(previous.getSpace(), spt.getSpace(), planePosition, planeNormal);
+
+            if (planeBreak.isPresent()) {
+
+                Vector3 breakPosition = planeBreak.get();
+
+                double stepSeconds = TimeUtil.secondsBetween(previous.getTime(), spt.getTime());
+                double tweenPoint = previous.getSpace().distance(breakPosition) / previous.getSpace().distance(spt.getSpace());
+                LocalDateTime moment = previous.getTime().plus(TimeUtil.toDuration(stepSeconds * tweenPoint));
+                Vector3 velocity = averageVectors(previous.getVelocity(), spt.getVelocity(), 1 - tweenPoint);
+                return Optional.of(new SpaceTimeVelocity(breakPosition, moment, velocity));
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private Optional<Vector3> getPlaneBreak(Vector3 start, Vector3 end, Vector3 planePosition, Vector3 planeNormal) {
+        return VectorUtil.getPlaneIntersection(planePosition, planeNormal, start, (Vector3) end.subCopy(start));
     }
 }

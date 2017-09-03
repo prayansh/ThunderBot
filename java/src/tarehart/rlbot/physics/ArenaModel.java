@@ -18,6 +18,8 @@ import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.SpaceTimeVelocity;
+import tarehart.rlbot.planning.Goal;
+import tarehart.rlbot.planning.GoalUtil;
 
 import javax.vecmath.Quat4f;
 import javax.vecmath.Vector2f;
@@ -34,7 +36,7 @@ public class ArenaModel {
     public static final float BALL_ANGULAR_DAMPING = 1f;
 
     private static final int WALL_THICKNESS = 10;
-    private static final int WALL_LENGTH = 200;
+    private static final int WALL_LENGTH = 400;
     public static final float GRAVITY = 13f;
     public static final Duration SIMULATION_STEP = Duration.ofMillis(100);
     public static final float BALL_DRAG = .0305f;
@@ -44,7 +46,7 @@ public class ArenaModel {
 
     // The diagonal surfaces that merge the floor and the wall--
     // Higher = more diagonal showing.
-    public static final float RAIL_HEIGHT = 1.4f;
+    public static final float RAIL_HEIGHT = 1.8f;
     public static final float BALL_RESTITUTION = .583f;
     public static final float WALL_RESTITUTION = 1f;
     public static final float BALL_FRICTION = .6f;
@@ -70,12 +72,30 @@ public class ArenaModel {
     }
 
     private void setupWalls() {
-        addWallToWorld(new Vector3f(0, 0, 1), 0);
-        addWallToWorld(new Vector3f(0, 1, 0), BACK_WALL);
-        addWallToWorld(new Vector3f(0, -1, 0), BACK_WALL);
-        addWallToWorld(new Vector3f(1, 0, 0), SIDE_WALL);
-        addWallToWorld(new Vector3f(-1, 0, 0), SIDE_WALL);
-        addWallToWorld(new Vector3f(0, 0, -1), CEILING);
+        // Floor
+        addWallToWorld(new Vector3f(0, 0, 1), new Vector3f(0, 0, 0));
+
+        // Side walls
+        addWallToWorld(new Vector3f(1, 0, 0), new Vector3f(-SIDE_WALL, 0, 0));
+        addWallToWorld(new Vector3f(-1, 0, 0), new Vector3f(SIDE_WALL, 0, 0));
+
+        // Ceiling
+        addWallToWorld(new Vector3f(0, 0, 1), new Vector3f(0, 0, CEILING + WALL_THICKNESS));
+
+
+        float sideOffest = (float) (WALL_LENGTH / 2 + Goal.EXTENT);
+        float heightOffset = (float) (WALL_LENGTH / 2 + Goal.GOAL_HEIGHT);
+
+        // Wall on the negative side
+        addWallToWorld(new Vector3f(0, 1, 0), new Vector3f(sideOffest, -BACK_WALL, 0));
+        addWallToWorld(new Vector3f(0, 1, 0), new Vector3f(-sideOffest, -BACK_WALL, 0));
+        addWallToWorld(new Vector3f(0, 1, 0), new Vector3f(0, -BACK_WALL, heightOffset));
+
+        // Wall on the positive side
+        addWallToWorld(new Vector3f(0, -1, 0), new Vector3f(sideOffest, BACK_WALL, 0));
+        addWallToWorld(new Vector3f(0, -1, 0), new Vector3f(-sideOffest, BACK_WALL, 0));
+        addWallToWorld(new Vector3f(0, -1, 0), new Vector3f(0, BACK_WALL, heightOffset));
+
 
         // 45 angle corners
         addWallToWorld(new Vector3f(1, 1, 0), new Vector3f(-CORNER_ANGLE_CENTER.x, -CORNER_ANGLE_CENTER.y, 0));
@@ -86,12 +106,11 @@ public class ArenaModel {
         // 45 degree angle rails at floor
         addWallToWorld(new Vector3f(1, 0, 1), new Vector3f(-SIDE_WALL, 0, RAIL_HEIGHT));
         addWallToWorld(new Vector3f(-1, 0, 1), new Vector3f(SIDE_WALL, 0, RAIL_HEIGHT));
-        addWallToWorld(new Vector3f(0, 1, 1), new Vector3f(0, -BACK_WALL, RAIL_HEIGHT));
-        addWallToWorld(new Vector3f(0, -1, 1), new Vector3f(0, BACK_WALL, RAIL_HEIGHT));
-    }
 
-    private int normalToBoxDimension(float norm) {
-        return norm == 0 ? WALL_LENGTH / 2 : WALL_THICKNESS / 2;
+        addWallToWorld(new Vector3f(0, 1, 1), new Vector3f(sideOffest, -BACK_WALL, RAIL_HEIGHT));
+        addWallToWorld(new Vector3f(0, 1, 1), new Vector3f(-sideOffest, -BACK_WALL, RAIL_HEIGHT));
+        addWallToWorld(new Vector3f(0, -1, 1), new Vector3f(sideOffest, BACK_WALL, RAIL_HEIGHT));
+        addWallToWorld(new Vector3f(0, -1, 1), new Vector3f(-sideOffest, BACK_WALL, RAIL_HEIGHT));
     }
 
     private void addWallToWorld(Vector3f normal, Vector3f position) {
@@ -127,6 +146,11 @@ public class ArenaModel {
 
     // https://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another
     private Quat4f getRotationFrom(Vector3f fromVec, Vector3f toVec) {
+
+        if (fromVec.dot(toVec) > .99999) {
+            return new Quat4f(0, 0, 0, 1);
+        }
+
         Vector3f cross = new Vector3f();
         cross.cross(fromVec, toVec);
         float magnitude = (float) (Math.sqrt(fromVec.lengthSquared() * toVec.lengthSquared()) + fromVec.dot(toVec));
@@ -134,26 +158,6 @@ public class ArenaModel {
         rot.set(cross.x, cross.y, cross.z, magnitude);
         rot.normalize();
         return rot;
-    }
-
-    private void addWallToWorld(Vector3f normal, float distanceFromCenter) {
-
-        CollisionShape boxGround = new BoxShape(new Vector3f(normalToBoxDimension(normal.x), normalToBoxDimension(normal.y), normalToBoxDimension(normal.z)));
-
-        Transform wallTransform = new Transform();
-        wallTransform.setIdentity();
-
-        float backoff = distanceFromCenter + WALL_THICKNESS / 2;
-        Vector3f origin = new Vector3f(normal);
-        origin.scale(-backoff);
-        wallTransform.origin.set(origin);
-
-        RigidBodyConstructionInfo rbInfo = new RigidBodyConstructionInfo(
-                0, null, boxGround, new Vector3f());
-        RigidBody wall = new RigidBody(rbInfo);
-        wall.setRestitution(WALL_RESTITUTION);
-        wall.setWorldTransform(wallTransform);
-        world.addRigidBody(wall);
     }
 
     private Vector3 getBallPosition() {
@@ -238,8 +242,8 @@ public class ArenaModel {
         // within these boundaries
         // Don't make the world AABB size too large, it will harm simulation
         // quality and performance
-        Vector3f worldAabbMin = new Vector3f(-400, -400, -400);
-        Vector3f worldAabbMax = new Vector3f(400, 400, 400);
+        Vector3f worldAabbMin = new Vector3f(-1000, -1000, -1000);
+        Vector3f worldAabbMax = new Vector3f(1000, 1000, 1000);
         int maxProxies = 1024;
         AxisSweep3 overlappingPairCache =
                 new AxisSweep3(worldAabbMin, worldAabbMax, maxProxies);

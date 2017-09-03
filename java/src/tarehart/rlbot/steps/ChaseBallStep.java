@@ -38,22 +38,12 @@ public class ChaseBallStep implements Step {
         }
 
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(3));
-        List<SpaceTime> interceptOpportunities = SteerUtil.getInterceptOpportunitiesAssumingMaxAccel(input, ballPath, input.getMyBoost() - AirTouchPlanner.BOOST_NEEDED_FOR_AERIAL - 5);
-        Optional<SpaceTime> catchOpportunity = SteerUtil.getCatchOpportunity(input, ballPath);
+        Optional<SpaceTime> interceptOpportunity = SteerUtil.getInterceptOpportunityAssumingMaxAccel(input, ballPath, AirTouchPlanner.getBoostBudget(input));
+        Optional<SpaceTime> catchOpportunity = SteerUtil.getCatchOpportunity(input, ballPath, AirTouchPlanner.getBoostBudget(input));
 
-        // Weed out any intercepts after a catch opportunity. Should just catch it.
-        if (catchOpportunity.isPresent()) {
-            for (int i = interceptOpportunities.size() - 1; i >= 0; i--) {
-                if (interceptOpportunities.get(i).time.isAfter(catchOpportunity.get().time)) {
-                    interceptOpportunities.remove(i);
-                }
-            }
-        }
+        if (interceptOpportunity.isPresent()) {
 
-        Optional<SpaceTime> preferredIntercept = interceptOpportunities.stream().findFirst();
-        if (preferredIntercept.isPresent()) {
-
-            SpaceTime intercept = preferredIntercept.get();
+            SpaceTime intercept = interceptOpportunity.get();
 
             if (intercept.space.z > AirTouchPlanner.NEEDS_AERIAL_THRESHOLD) {
 
@@ -70,12 +60,13 @@ public class ChaseBallStep implements Step {
                     this.plan = new Plan().withStep(new AsapAerialStep());
                     this.plan.begin();
                     return this.plan.getOutput(input);
-                } else if (catchOpportunity.isPresent()) {
-                    BotLog.println(String.format("Going for catch because aerial looks bad. Boost: %s Close enough: %s Distance: %s Time: %s",
+                } else {
+
+                    BotLog.println(String.format("Going for jump hit because aerial looks bad. Boost: %s Close enough: %s Distance: %s Time: %s",
                             checklist.hasBoost, checklist.closeEnough,
                             catchOpportunity.get().space.subCopy(input.getMyPosition()).magnitude(),
                             Duration.between(input.time, catchOpportunity.get().time)), input.team);
-                    this.plan = new Plan().withStep(new CatchBallStep(catchOpportunity.get())).withStep(new DribbleStep());
+                    this.plan = new Plan().withStep(new JumpHitStep());
                     this.plan.begin();
                     return this.plan.getOutput(input);
                 }

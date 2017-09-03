@@ -20,10 +20,6 @@ public class JumpHitStep implements Step {
 
     public AgentOutput getOutput(AgentInput input) {
 
-        if (input.getMyPosition().z > 1) {
-            isComplete = true;
-        }
-
         if (plan != null) {
             if (plan.isComplete()) {
                 if (startedStrike) {
@@ -35,39 +31,40 @@ public class JumpHitStep implements Step {
             }
         }
 
-        double currentSpeed = input.getMyVelocity().magnitude();
+        if (input.getMyPosition().z > 1) {
+            isComplete = true;
+        }
+
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(3));
 
-        List<SpaceTime> currentIntercepts = SteerUtil.getInterceptOpportunitiesAssumingMaxAccel(input, ballPath, input.getMyBoost());
-        if (currentIntercepts.size() > 0) {
+        Optional<SpaceTime> interceptOpportunity = SteerUtil.getInterceptOpportunityAssumingMaxAccel(input, ballPath, input.getMyBoost());
+        if (interceptOpportunity.isPresent()) {
 
-            SpaceTime intercept = currentIntercepts.get(0);
+            SpaceTime intercept = interceptOpportunity.get();
 
             if (intercept.space.z > AirTouchPlanner.NEEDS_AERIAL_THRESHOLD) {
-                BotLog.println("JumpHitStep failing because ball will be too high!.", input.team);
+
+                Optional<SpaceTime> volleyOpportunity = SteerUtil.getVolleyOpportunity(input, ballPath, input.getMyBoost(), AirTouchPlanner.NEEDS_AERIAL_THRESHOLD);
+                if (volleyOpportunity.isPresent()) {
+
+                    return SteerUtil.getThereOnTime(input, volleyOpportunity.get());
+                }
+
+                BotLog.println("JumpHitStep failing because ball will be too high and we can't find a volley.", input.team);
                 isComplete = true;
                 return new AgentOutput();
             }
 
-            LaunchChecklist checklist = AirTouchPlanner.checkJumpHitReadiness(input, currentIntercepts.get(0));
+            LaunchChecklist checklist = AirTouchPlanner.checkJumpHitReadiness(input, intercept);
             if (checklist.readyToLaunch()) {
                 plan = SetPieces.performJumpHit(intercept.space.z);
                 plan.begin();
                 return plan.getOutput(input);
-            } else if (!checklist.notTooClose) {
-                double nextSpeed = currentSpeed * .9;
-
-                List<SpaceTime> slowerIntercepts = SteerUtil.getInterceptOpportunities(input, ballPath, nextSpeed);
-                if (slowerIntercepts.size() > 0) {
-
-                    return SteerUtil.getThereOnTime(input, slowerIntercepts.get(0));
-                }
             } else if (!checklist.closeEnough) {
                 BotLog.println("JumpHit failing because we are not close enough", input.team);
                 isComplete = true;
-            }
-            else {
-                return getThereAsap(input, currentIntercepts.get(0));
+            } else {
+                return getThereAsap(input, interceptOpportunity.get());
             }
         } else {
             BotLog.println("JumpHitStep failing because there are no max speed intercepts", input.team);

@@ -10,6 +10,7 @@ import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 
 public class MidairStrikeStep implements Step {
 
@@ -22,8 +23,8 @@ public class MidairStrikeStep implements Step {
     public AgentOutput getOutput(AgentInput input) {
 
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(3));
-        List<SpaceTime> interceptOpportunities = SteerUtil.getInterceptOpportunities(input, ballPath, input.getMyVelocity().magnitude());
-        if (interceptOpportunities.isEmpty()) {
+        Optional<SpaceTime> interceptOpportunity = SteerUtil.getInterceptOpportunity(input, ballPath, input.getMyVelocity().magnitude());
+        if (!interceptOpportunity.isPresent()) {
             confusionCount++;
             if (confusionCount > 3) {
                 // Front flip out of confusion
@@ -31,7 +32,7 @@ public class MidairStrikeStep implements Step {
             }
             return new AgentOutput().withBoost();
         }
-        SpaceTime intercept = interceptOpportunities.get(0);
+        SpaceTime intercept = interceptOpportunity.get();
         Vector3 carToIntercept = (Vector3) intercept.space.subCopy(input.getMyPosition());
         long millisTillIntercept = Duration.between(input.time, intercept.time).toMillis();
         double distance = input.getMyPosition().distance(input.ballPosition);
