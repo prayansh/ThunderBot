@@ -37,6 +37,7 @@ public class JumpHitStep implements Step {
         }
 
         if (input.getMyPosition().z > 1) {
+            BotLog.println("JumpHitStep failing because we're off the ground.", input.team);
             isComplete = true;
         }
 
@@ -111,6 +112,7 @@ public class JumpHitStep implements Step {
 
     @Override
     public String getSituation() {
-        return "Preparing for JumpHit";
+        return (startedStrike ? "JumpHit strike! " : "Preparing for JumpHit ")
+                + (plan != null && !plan.isComplete() ? "(" + plan.getSituation() + ")" : "");
     }
 }

@@ -1,9 +1,11 @@
 package tarehart.rlbot.steps;
 
+import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.math.SpaceTime;
+import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.tuning.BotLog;
@@ -38,12 +40,6 @@ public class MidairStrikeStep implements Step {
         double distance = input.getMyPosition().distance(input.ballPosition);
         BotLog.println("Midair strike running... Distance: " + distance, input.team);
 
-        if (millisTillIntercept > DODGE_TIME && carToIntercept.normaliseCopy().dotProduct(input.getMyVelocity().normaliseCopy()) < .6) {
-            BotLog.println("Failed aerial on bad angle", input.team);
-            isComplete = true;
-            return new AgentOutput();
-        }
-
         double correctionAngleRad = SteerUtil.getCorrectionAngleRad(input, intercept.space);
 
         if (millisTillIntercept < DODGE_TIME || distance < DODGE_DISTANCE) {
@@ -60,9 +56,41 @@ public class MidairStrikeStep implements Step {
             }
         }
 
+        if (millisTillIntercept > DODGE_TIME && carToIntercept.normaliseCopy().dotProduct(input.getMyVelocity().normaliseCopy()) < .6) {
+            BotLog.println("Failed aerial on bad angle", input.team);
+            isComplete = true;
+            return new AgentOutput();
+        }
+
+        Vector3 idealDirection = (Vector3) carToIntercept.normaliseCopy();
+        Vector3 currentMotion = (Vector3) input.getMyVelocity().normaliseCopy();
+        Vector3 currentPitch = input.getMyRotation().noseVector;
+
+        Vector2 sidescrollerCurrentVelocity = getPitchVector(currentMotion);
+        Vector2 sidescrollerIdealVelocity = getPitchVector(idealDirection);
+        Vector2 sidescrollerOrientation = getPitchVector(currentPitch);
+
+        double currentVelocityAngle = SteerUtil.getCorrectionAngleRad(new Vector2(1, 0), sidescrollerCurrentVelocity);
+        double idealVelocityAngle = SteerUtil.getCorrectionAngleRad(new Vector2(1, 0), sidescrollerIdealVelocity);
+        double currentOrientation = SteerUtil.getCorrectionAngleRad(new Vector2(1, 0), sidescrollerOrientation);
+
+        double desiredOrientation = idealVelocityAngle + Math.PI / 6 + (idealVelocityAngle - currentVelocityAngle) * .5;
+        double orientationChange = desiredOrientation - currentOrientation;
+
         // TODO: midair steering!
 
-        return new AgentOutput().withBoost();
+        return new AgentOutput().withBoost().withPitch(orientationChange * 2);
+    }
+
+    /**
+     * Pretend this is suddenly a 2D sidescroller where the car can't steer, it just boosts up and down.
+     * Translate into that world.
+     *
+     * @param unitDirection normalized vector pointing in some direction
+     * @return A unit vector in two dimensions, with positive x, and z equal to unitDirection z.
+     */
+    private Vector2 getPitchVector(Vector3 unitDirection) {
+        return new Vector2(Math.sqrt(1 - unitDirection.z * unitDirection.z), unitDirection.z);
     }
 
     @Override

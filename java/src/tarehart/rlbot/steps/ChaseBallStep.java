@@ -4,6 +4,7 @@ import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.VectorUtil;
+import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.*;
 import tarehart.rlbot.steps.strikes.FlipHitStep;
@@ -25,10 +26,9 @@ public class ChaseBallStep implements Step {
             return plan.getOutput(input);
         }
 
-        if (DribbleStep.canDribble(input) && VectorUtil.flatDistance(input.getMyVelocity(), input.ballVelocity) < 15) {
-            plan = new Plan().withStep(new DribbleStep());
-            plan.begin();
-            return plan.getOutput(input);
+        if (input.getMyPosition().z > 1 && !ArenaModel.isCarNearWall(input)) {
+            isComplete = true;
+            return new AgentOutput();
         }
 
         if (input.getMyBoost() < 10 && GetBoostStep.seesOpportunisticBoost(input)) {
@@ -80,6 +80,10 @@ public class ChaseBallStep implements Step {
                 this.plan = new Plan().withStep(new FlipHitStep(intercept.space));
                 this.plan.begin();
                 return this.plan.getOutput(input);
+            } else if (DribbleStep.canDribble(input, false) && VectorUtil.flatDistance(input.getMyVelocity(), input.ballVelocity) < 15) {
+                plan = new Plan().withStep(new DribbleStep());
+                plan.begin();
+                return plan.getOutput(input);
             }
             return getThereAsap(input, intercept);
 

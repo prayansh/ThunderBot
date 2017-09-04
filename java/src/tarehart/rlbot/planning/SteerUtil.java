@@ -97,8 +97,12 @@ public class SteerUtil {
             Optional<DistanceTimeSpeed> motionAt = acceleration.getMotionAt(ballMoment.getTime());
             if (motionAt.isPresent()) {
                 DistanceTimeSpeed dts = motionAt.get();
-                if (dts.distance > VectorUtil.flatDistance(myPosition, ballMoment.space)) {
-                    return Optional.of(ballMoment.toSpaceTime());
+                double ballDistance = VectorUtil.flatDistance(myPosition, ballMoment.space);
+                if (dts.distance > ballDistance) {
+                    Optional<Double> travelSeconds = AccelerationModel.getTravelSeconds(input, acceleration, ballMoment.space);
+                    if (travelSeconds.isPresent() && travelSeconds.get() <= TimeUtil.secondsBetween(input.time, ballMoment.getTime())) {
+                        return Optional.of(ballMoment.toSpaceTime());
+                    }
                 }
             } else {
                 return Optional.empty();
@@ -170,7 +174,7 @@ public class SteerUtil {
         boolean shouldSlide = shouldBrake || difference > Math.PI / 2;
         boolean isSupersonic = SUPERSONIC_SPEED - speed < .01;
 
-        boolean shouldBoost = !shouldBrake && difference < Math.PI / 6 && !isSupersonic;
+        boolean shouldBoost = !shouldBrake && turnSharpness < .5 && !isSupersonic;
 
         return new AgentOutput()
                 .withAcceleration(shouldBrake ? 0 : 1)

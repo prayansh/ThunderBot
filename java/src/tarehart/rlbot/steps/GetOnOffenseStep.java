@@ -31,15 +31,18 @@ public class GetOnOffenseStep implements Step {
         SplineHandle enemyGoal = GoalUtil.getEnemyGoal(input.team).navigationSpline;
 
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(2));
-        SpaceTimeVelocity futureMotion = ballPath.getMotionAt(input.time.plusSeconds(2)).get();
 
+        Vector3 target = input.ballPosition.copy();
+        if (input.ballVelocity.y * (enemyGoal.getLocation().y - input.ballPosition.y) < 0) {
+            // if ball is rolling away from the enemy goal
+            SpaceTimeVelocity futureMotion = ballPath.getMotionAt(input.time.plusSeconds(2)).get();
+            target = futureMotion.getSpace().clone();
+        }
 
-        Vector3 target = futureMotion.getSpace().clone();
-
-        if (Math.abs(futureMotion.space.x) < 20) {
-            Vector3 goalToBall = (Vector3) futureMotion.getSpace().subCopy(enemyGoal.getLocation());
+        if (Math.abs(target.x) < 20) {
+            Vector3 goalToBall = (Vector3) target.subCopy(enemyGoal.getLocation());
             Vector3 goalToBallNormal = (Vector3) goalToBall.normaliseCopy();
-            target.add(goalToBallNormal.scaleCopy(30));
+            target.add(goalToBallNormal.scaleCopy(10));
         }
 
         target.x = clamp(target.x, -ArenaModel.SIDE_WALL + SIDE_WALL_BUFFER, ArenaModel.SIDE_WALL - SIDE_WALL_BUFFER);

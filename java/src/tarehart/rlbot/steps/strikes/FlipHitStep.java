@@ -30,6 +30,7 @@ public class FlipHitStep implements Step {
             if (plan.isComplete()) {
                 if (startedStrike) {
                     isComplete = true;
+                    return new AgentOutput();
                 }
                 plan = null;
             } else {
@@ -39,6 +40,7 @@ public class FlipHitStep implements Step {
 
         if (input.getMyPosition().z > 5) {
             isComplete = true;
+            return new AgentOutput();
         }
 
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(3));
@@ -65,7 +67,9 @@ public class FlipHitStep implements Step {
             intercept.space.add(fromGoal.normaliseCopy());
             double distance = input.getMyPosition().distance(intercept.space);
 
-            if (Duration.between(input.time, intercept.time).toMillis() < 500 || distance < 5) {
+            LaunchChecklist checklist = AirTouchPlanner.checkFlipHitReadiness(input, intercept);
+
+            if (checklist.readyToLaunch()) {
                 startedStrike = true;
                 plan = SetPieces.frontFlip();
                 plan.begin();

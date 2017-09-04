@@ -28,8 +28,8 @@ public class AccelerationModel {
 
     public static Optional<Double> getTravelSeconds(AgentInput input, DistancePlot plot, Vector3 target) {
         double distance = input.getMyPosition().distance(target);
-        double penaltySeconds = getSteerPenaltySeconds(input, target);
         Optional<Double> travelTime = plot.getTravelTime(distance);
+        double penaltySeconds = getSteerPenaltySeconds(input, target);
         return travelTime.map(time -> time + penaltySeconds);
     }
 
@@ -98,10 +98,20 @@ public class AccelerationModel {
 
             double acceleration = getAcceleration(currentSpeed, boostRemaining > 0);
             currentSpeed += acceleration * TIME_STEP;
+            if (currentSpeed > SUPERSONIC_SPEED) {
+                currentSpeed = SUPERSONIC_SPEED;
+            }
             distanceSoFar += currentSpeed * TIME_STEP;
             secondsSoFar += TIME_STEP;
             boostRemaining -= BOOST_CONSUMED_PER_SECOND * TIME_STEP;
             plot.addSlice(new DistanceTimeSpeed(distanceSoFar, input.time.plus(TimeUtil.toDuration(secondsSoFar)), currentSpeed));
+
+            if (currentSpeed >= SUPERSONIC_SPEED) {
+                // It gets boring from now on. Put a slice at the very end.
+                double secondsRemaining = secondsToSimulate - secondsSoFar;
+                plot.addSlice(new DistanceTimeSpeed(distanceSoFar + SUPERSONIC_SPEED * secondsRemaining, input.time.plus(duration), SUPERSONIC_SPEED));
+                break;
+            }
         }
 
         return plot;

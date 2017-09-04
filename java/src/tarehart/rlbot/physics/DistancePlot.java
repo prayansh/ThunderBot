@@ -41,8 +41,8 @@ public class DistancePlot {
 
                 long simulationStepMillis = Duration.between(current.getTime(), next.getTime()).toMillis();
                 double tweenPoint = Duration.between(current.getTime(), time).toMillis() * 1.0 / simulationStepMillis;
-                double distance = (tweenPoint * current.distance + (1 - tweenPoint) * next.distance) / 2;
-                double speed = (tweenPoint * current.speed + (1 - tweenPoint) * next.speed) / 2;
+                double distance = (1 - tweenPoint) * current.distance + tweenPoint * next.distance;
+                double speed = (1 - tweenPoint) * current.speed + tweenPoint * next.speed;
                 return Optional.of(new DistanceTimeSpeed(distance, time, speed));
             }
         }

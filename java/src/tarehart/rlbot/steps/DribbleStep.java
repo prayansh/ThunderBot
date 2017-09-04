@@ -23,7 +23,7 @@ public class DribbleStep implements Step {
 
 
     public AgentOutput getOutput(AgentInput input) {
-        if (!canDribble(input)) {
+        if (!canDribble(input, true)) {
             isComplete = true;
         }
 
@@ -44,11 +44,11 @@ public class DribbleStep implements Step {
         Vector2 ballToGoal = (Vector2) scoreLocation.subCopy(futureBallPosition);
 
         double velocityCorrectionAngle = SteerUtil.getCorrectionAngleRad(ballVelocityFlat, ballToGoal);
-        double angleTweak = Math.min(Math.PI / 6, Math.max(-Math.PI / 6, velocityCorrectionAngle));
+        double angleTweak = Math.min(Math.PI / 6, Math.max(-Math.PI / 6, velocityCorrectionAngle * 2));
 
         Vector2 pushDirection = (Vector2) VectorUtil.rotateVector(ballToGoal, angleTweak).normaliseCopy();
 
-        double approachDistance = VectorUtil.project(toBallFlat, new Vector2(pushDirection.y, -pushDirection.x)).magnitude() * 1.2 + .85;
+        double approachDistance = VectorUtil.project(toBallFlat, new Vector2(pushDirection.y, -pushDirection.x)).magnitude() * 1.6 + .8;
         approachDistance = Math.min(approachDistance, 4);
         Vector2 pressurePoint = (Vector2) futureBallPosition.subCopy(pushDirection.normaliseCopy().scaleCopy(approachDistance));
         Vector2 carToPressurePoint = (Vector2) pressurePoint.subCopy(myPositonFlat);
@@ -69,32 +69,47 @@ public class DribbleStep implements Step {
         }
 
         AgentOutput dribble = SteerUtil.getThereOnTime(input, new SpaceTime(new Vector3(pressurePoint.x, pressurePoint.y, 0), hurryUp));
-        if (carToPressurePoint.normaliseCopy().dotProduct(ballToGoal.normaliseCopy()) > .90 && flatDistance > 3 && flatDistance < 5 && input.ballPosition.z < 2) {
+        if (carToPressurePoint.normaliseCopy().dotProduct(ballToGoal.normaliseCopy()) > .80 && flatDistance > 3 && flatDistance < 5 && input.ballPosition.z < 2 && approachDistance < 2) {
             dribble.withAcceleration(1).withBoost();
         }
         return dribble;
     }
 
-    public static boolean canDribble(AgentInput input) {
+    public static boolean canDribble(AgentInput input, boolean log) {
         if (input.getMyPosition().distance(input.ballPosition) > DRIBBLE_DISTANCE) {
             // It got away from us
+            if (log) {
+                BotLog.println("Too far to dribble", input.team);
+            }
             return false;
         }
 
         if (input.ballPosition.subCopy(input.getMyPosition()).dotProduct(GoalUtil.getEnemyGoal(input.team).navigationSpline.getLocation().subCopy(input.ballPosition)) < -.6) {
             // Wrong side of ball
+            if (log) {
+                BotLog.println("Wrong side of ball for dribble", input.team);
+            }
             return false;
         }
 
-        if (VectorUtil.flatDistance(input.getMyVelocity(), input.ballVelocity) > 25) {
+        if (VectorUtil.flatDistance(input.getMyVelocity(), input.ballVelocity) > 50) {
+            if (log) {
+                BotLog.println("Velocity too different to dribble.", input.team);
+            }
             return false;
         }
 
         if (input.ballPosition.z > 10) {
+            if (log) {
+                BotLog.println("Ball too high to dribble", input.team);
+            }
             return false;
         }
 
         if (input.getMyPosition().z > 5) {
+            if (log) {
+                BotLog.println("Car too high to dribble", input.team);
+            }
             return false;
         }
 

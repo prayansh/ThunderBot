@@ -3,6 +3,7 @@ package tarehart.rlbot.planning;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.math.SpaceTime;
+import tarehart.rlbot.math.TimeUtil;
 
 import java.time.Duration;
 
@@ -33,13 +34,21 @@ public class AirTouchPlanner {
         return checklist;
     }
 
+    public static LaunchChecklist checkFlipHitReadiness(AgentInput input, SpaceTime intercept) {
+        LaunchChecklist checklist = new LaunchChecklist();
+        checkLaunchReadiness(checklist, input, intercept);
+        checklist.notTooClose = true;
+        checklist.timeForIgnition = TimeUtil.secondsBetween(input.time, intercept.time) < .6;
+        return checklist;
+    }
+
     private static void checkLaunchReadiness(LaunchChecklist checklist, AgentInput input, SpaceTime carPositionAtContact) {
 
         double correctionAngleRad = SteerUtil.getCorrectionAngleRad(input, carPositionAtContact.space);
         Duration timeTillIntercept = Duration.between(input.time, carPositionAtContact.time);
         Duration tMinus = getAerialLaunchCountdown(carPositionAtContact, timeTillIntercept);
 
-        checklist.linedUp = Math.abs(correctionAngleRad) < Math.PI / 30;
+        checklist.linedUp = Math.abs(correctionAngleRad) < Math.PI / 60;
         checklist.closeEnough = timeTillIntercept.toMillis() < 4000;
         checklist.notTooClose = timeTillIntercept.toMillis() > 500;
         checklist.timeForIgnition = tMinus.toMillis() < 80;
