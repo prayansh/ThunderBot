@@ -55,9 +55,7 @@ public class GetOnOffenseStep implements Step {
             isComplete = true;
         }
 
-        double secondsRemaining = flatDistance / input.getMyVelocity().magnitude();
-
-        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, new SpaceTime(target, input.time.plus(TimeUtil.toDuration(secondsRemaining))));
+        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, target);
         if (sensibleFlip.isPresent()) {
             BotLog.println("Front flipping into offense!", input.team);
             plan = sensibleFlip.get();

@@ -1,8 +1,7 @@
 package tarehart.rlbot.planning;
 
-import mikera.vectorz.Vector;
 import mikera.vectorz.Vector3;
-import tarehart.rlbot.AgentInput;
+import tarehart.rlbot.math.Plane;
 import tarehart.rlbot.math.SplineHandle;
 import tarehart.rlbot.physics.ArenaModel;
 
@@ -15,6 +14,7 @@ public class Goal {
 
     public static final double EXTENT = 17.8555;
     public SplineHandle navigationSpline;
+    private Plane threatPlane;
 
     public Goal(boolean negativeSide) {
 
@@ -22,6 +22,8 @@ public class Goal {
                 new Vector3(0, GOAL_DISTANCE * (negativeSide ? -1 : 1), 0),
                 new Vector3(-HANDLE_LENGTH, 0, 0),
                 new Vector3(HANDLE_LENGTH, 0, 0));
+
+        threatPlane = new Plane(new Vector3(0, negativeSide ? 1 : -1, 0), new Vector3(0, (GOAL_DISTANCE - 1) * (negativeSide ? -1 : 1), 0));
     }
 
 
@@ -32,5 +34,9 @@ public class Goal {
         double x = Math.min(adjustedExtent, Math.max(-adjustedExtent, ballPosition.x));
         double z = Math.min(adjustedHeight, Math.max(ArenaModel.BALL_RADIUS, ballPosition.z));
         return new Vector3(x, navigationSpline.getLocation().y, z);
+    }
+
+    public Plane getThreatPlane() {
+        return threatPlane;
     }
 }

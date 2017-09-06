@@ -87,7 +87,7 @@ public class FlipHitStep implements Step {
 
     private AgentOutput getThereAsap(AgentInput input, SpaceTime groundPosition) {
 
-        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, groundPosition);
+        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, groundPosition.space);
         if (sensibleFlip.isPresent()) {
             BotLog.println("Front flip to approach FlipHit", input.team);
             this.plan = sensibleFlip.get();

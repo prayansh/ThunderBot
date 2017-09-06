@@ -15,9 +15,20 @@ public class Plan {
     private boolean isComplete = false;
 
     public enum Posture {
-        NEUTRAL,
-        DEFENSIVE,
-        OFFENSIVE
+        NEUTRAL(0),
+        DEFENSIVE(5),
+        SAVE(10),
+        OFFENSIVE(1);
+
+        private int urgency;
+
+        Posture(int urgency) {
+            this.urgency = urgency;
+        }
+
+        public boolean lessUrgentThan(Posture other) {
+            return urgency < other.urgency;
+        }
     }
 
     public Plan() {

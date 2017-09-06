@@ -61,11 +61,6 @@ public class ChaseBallStep implements Step {
                     this.plan.begin();
                     return this.plan.getOutput(input);
                 } else {
-
-                    BotLog.println(String.format("Going for jump hit because aerial looks bad. Boost: %s Close enough: %s Distance: %s Time: %s",
-                            checklist.hasBoost, checklist.closeEnough,
-                            catchOpportunity.get().space.subCopy(input.getMyPosition()).magnitude(),
-                            Duration.between(input.time, catchOpportunity.get().time)), input.team);
                     this.plan = new Plan().withStep(new JumpHitStep(intercept.space));
                     this.plan.begin();
                     return this.plan.getOutput(input);
@@ -101,7 +96,7 @@ public class ChaseBallStep implements Step {
 
     private AgentOutput getThereAsap(AgentInput input, SpaceTime groundPosition) {
 
-        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, groundPosition);
+        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, groundPosition.space);
         if (sensibleFlip.isPresent()) {
             BotLog.println("Front flip to chase ball", input.team);
             this.plan = sensibleFlip.get();

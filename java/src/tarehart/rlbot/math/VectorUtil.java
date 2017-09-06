@@ -25,16 +25,16 @@ public class VectorUtil {
         return flatten(a).distance(flatten(b));
     }
 
-    public static Optional<Vector3> getPlaneIntersection(Vector3 planePosition, Vector3 planeNormal, Vector3 segmentPosition, Vector3 segmentVector) {
+    public static Optional<Vector3> getPlaneIntersection(Plane plane, Vector3 segmentPosition, Vector3 segmentVector) {
         // get d value
-        double d = planeNormal.dotProduct(planePosition);
+        double d = plane.normal.dotProduct(plane.position);
 
-        if (planeNormal.dotProduct(segmentVector) == 0) {
+        if (plane.normal.dotProduct(segmentVector) == 0) {
             return Optional.empty(); // No intersection, the line is parallel to the plane
         }
 
         // Compute the X value for the directed line ray intersecting the plane
-        double x = (d - planeNormal.dotProduct(segmentPosition)) / planeNormal.dotProduct(segmentVector);
+        double x = (d - plane.normal.dotProduct(segmentPosition)) / plane.normal.dotProduct(segmentVector);
 
         // output contact point
         Vector3 intersection = segmentPosition.addCopy(segmentVector.scaleCopy(x));
@@ -52,4 +52,7 @@ public class VectorUtil {
                 vec.x * Math.sin(radians) + vec.y * Math.cos(radians));
     }
 
+    public static Vector2 orthogonal(Vector2 vec) {
+        return new Vector2(vec.y, -vec.x);
+    }
 }

@@ -87,7 +87,7 @@ public class AccelerationModel {
         double secondsToSimulate = TimeUtil.toSeconds(duration);
 
         while (secondsSoFar < secondsToSimulate) {
-            double hypotheticalFrontFlipDistance = ((currentSpeed * 2 + FRONT_FLIP_SPEED_BOOST) / 2) * FRONT_FLIP_SECONDS;
+            double hypotheticalFrontFlipDistance = getFrontFlipDistance(currentSpeed);
             if (boostRemaining <= 0 && distanceSoFar + hypotheticalFrontFlipDistance < flipCutoffDistance) {
                 secondsSoFar += FRONT_FLIP_SECONDS;
                 distanceSoFar += hypotheticalFrontFlipDistance;
@@ -134,4 +134,7 @@ public class AccelerationModel {
         return accel;
     }
 
+    public static double getFrontFlipDistance(double speed) {
+        return (speed + FRONT_FLIP_SPEED_BOOST / 2) * FRONT_FLIP_SECONDS;
+    }
 }

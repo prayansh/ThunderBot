@@ -47,7 +47,7 @@ public class GetOnDefenseStep implements Step {
             target = targetLocation.getFarthestHandle(input.ballPosition);
         }
 
-        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, new SpaceTime(target, input.time.plus(TimeUtil.toDuration(secondsRemaining))));
+        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, target);
         if (sensibleFlip.isPresent()) {
             BotLog.println("Front flip for defense", input.team);
             plan = sensibleFlip.get();

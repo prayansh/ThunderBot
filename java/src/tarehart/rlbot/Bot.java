@@ -5,8 +5,10 @@ import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
+import tarehart.rlbot.planning.GoalUtil;
 import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.planning.SetPieces;
+import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.steps.*;
 import tarehart.rlbot.tuning.BallRecorder;
 import tarehart.rlbot.tuning.BotLog;
@@ -73,7 +75,17 @@ public class Bot {
             return currentPlan.getOutput(input);
         }
 
-        if (currentPlan == null || currentPlan.getPosture() != Plan.Posture.DEFENSIVE) {
+        BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(5));
+        if (currentPlan == null || currentPlan.getPosture().lessUrgentThan(Plan.Posture.SAVE)) {
+            Optional<SpaceTimeVelocity> scoredOn = GoalUtil.predictGoalEvent(GoalUtil.getOwnGoal(input.team), ballPath);
+            if (scoredOn.isPresent()) {
+                currentPlan = new Plan(Plan.Posture.SAVE).withStep(new WhatASaveStep(scoredOn.get()));
+                currentPlan.begin();
+                return currentPlan.getOutput(input);
+            }
+        }
+
+        if (currentPlan == null || currentPlan.getPosture().lessUrgentThan(Plan.Posture.DEFENSIVE)) {
             if (GetOnDefenseStep.needDefense(input)) {
                 BotLog.println("Going on defense", input.team);
                 currentPlan = new Plan(Plan.Posture.DEFENSIVE).withStep(new GetOnDefenseStep());

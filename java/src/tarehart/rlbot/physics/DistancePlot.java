@@ -50,22 +50,24 @@ public class DistancePlot {
         return Optional.of(plot.get(plot.size() - 1));
     }
 
-    public Optional<Double> getTravelTime(double distance) {
+    public Optional<DistanceTimeSpeed> getMotionAt(double distance) {
 
         for (int i = 0; i < plot.size() - 1; i++) {
             DistanceTimeSpeed current = plot.get(i);
             DistanceTimeSpeed next = plot.get(i + 1);
             if (next.distance > distance) {
-
                 double stepSeconds = TimeUtil.secondsBetween(current.getTime(), next.getTime());
                 double tweenPoint = (distance - current.distance) / (next.distance - current.distance);
-
                 LocalDateTime moment = current.getTime().plus(TimeUtil.toDuration(stepSeconds * tweenPoint));
-
-                return Optional.of(TimeUtil.secondsBetween(plot.get(0).getTime(), moment));
+                double speed = (1 - tweenPoint) * current.speed + tweenPoint * next.speed;
+                return Optional.of(new DistanceTimeSpeed(distance, moment, speed));
             }
         }
-
         return Optional.empty();
+    }
+
+    public Optional<Double> getTravelTime(double distance) {
+        Optional<DistanceTimeSpeed> motionAt = getMotionAt(distance);
+        return motionAt.map(distanceTimeSpeed -> TimeUtil.secondsBetween(plot.get(0).getTime(), distanceTimeSpeed.getTime()));
     }
 }

@@ -64,7 +64,7 @@ public class SteerUtil {
 
         LocalDateTime searchStart = input.time;
 
-        Optional<SpaceTimeVelocity> landingOption = ballPath.getPlaneBreak(searchStart, new Vector3(0, 0, height), new Vector3(0, 0, 1), true);
+        Optional<SpaceTimeVelocity> landingOption = ballPath.getPlaneBreak(searchStart, new Plane(new Vector3(0, 0, height), new Vector3(0, 0, 1)), true);
 
         if (landingOption.isPresent()) {
             SpaceTime landing = landingOption.get().toSpaceTime();
@@ -202,13 +202,14 @@ public class SteerUtil {
         return loc.distance(input.getMyPosition());
     }
 
-    public static Optional<Plan> getSensibleFlip(AgentInput input, SpaceTime target) {
+    public static Optional<Plan> getSensibleFlip(AgentInput input, Vector3 target) {
 
-        Duration timeTillIntercept = Duration.between(input.time, target.time);
-        double distanceToIntercept = VectorUtil.flatDistance(target.space, input.getMyPosition());
-        if (timeTillIntercept.toMillis() > AccelerationModel.FRONT_FLIP_SECONDS * 1000 * 1.5 && distanceToIntercept > 50) {
+        double distanceCovered = AccelerationModel.getFrontFlipDistance(input.getMyVelocity().magnitude());
 
-            double correctionAngleRad = SteerUtil.getCorrectionAngleRad(input, target.space);
+        double distanceToIntercept = VectorUtil.flatDistance(target, input.getMyPosition());
+        if (distanceToIntercept > distanceCovered + 15) {
+
+            double correctionAngleRad = SteerUtil.getCorrectionAngleRad(input, target);
 
             if (Math.abs(correctionAngleRad) < GOOD_ENOUGH_ANGLE
                     && input.getMyVelocity().magnitude() > SteerUtil.SUPERSONIC_SPEED / 4) {
@@ -218,15 +219,6 @@ public class SteerUtil {
         }
 
         return Optional.empty();
-    }
-
-    public static Optional<Plan> getSensibleFlip(AgentInput input, Vector3 target) {
-
-        double distanceToIntercept = VectorUtil.flatDistance(target, input.getMyPosition());
-        double speed = input.getMyVelocity().magnitude();
-
-        double seconds = distanceToIntercept / speed; // This will underestimate; that's alright because it will cause us to flip less when we're oriented wrong.
-        return getSensibleFlip(input, new SpaceTime(target, input.time.plus(TimeUtil.toDuration(seconds))));
     }
 
     public static AgentOutput getThereOnTime(AgentInput input, SpaceTime groundPositionAndTime) {
@@ -251,6 +243,61 @@ public class SteerUtil {
             AgentOutput agentOutput = SteerUtil.steerTowardPosition(input, groundPositionAndTime.space);
             agentOutput.withAcceleration(0).withBoost(false).withDeceleration(Math.max(0, pace - 1.5)); // Hit the brakes, but keep steering!
             return agentOutput;
+        }
+    }
+
+    private static double getTurnRadius(double speed) {
+        return Math.abs(speed) * .6;
+    }
+
+    public static AgentOutput getThereWithFacing(AgentInput input, DistancePlot distancePlot, Vector2 targetPosition, Vector2 targetFacing) {
+        Vector2 flatPosition = VectorUtil.flatten(input.getMyPosition());
+        Vector2 flatVelocity = VectorUtil.flatten(input.getMyVelocity());
+        Vector2 toTarget = (Vector2) targetPosition.subCopy(flatPosition);
+        double distance = flatPosition.distance(targetPosition);
+        double expectedSpeed = AccelerationModel.SUPERSONIC_SPEED;
+
+        Optional<DistanceTimeSpeed> motion = distancePlot.getMotionAt(distance);
+        if (motion.isPresent()) {
+            expectedSpeed = motion.get().speed;
+        }
+
+
+        Vector2 currentFacing = VectorUtil.flatten(input.getMyRotation().noseVector);
+
+        double correctionAngle = getCorrectionAngleRad(currentFacing, targetFacing);
+
+        if (Math.abs(correctionAngle) > Math.PI / 2) {
+            // Back off a small waypoint and then slide in to the finish
+            double slideRange = expectedSpeed * .8; // Maybe it'll take about .8 seconds to slide in...
+            if (distance < slideRange) {
+                // Start sliding
+
+                return new AgentOutput().withSteer(-Math.signum(correctionAngle)).withSlide().withAcceleration(1);
+            }
+            Vector2 waypoint = (Vector2) targetPosition.subCopy(toTarget.normaliseCopy().scaleCopy(slideRange));
+            return SteerUtil.steerTowardPosition(input, new Vector3(waypoint.x, waypoint.y, 0));
+        } else {
+            double turnRadius = getTurnRadius(expectedSpeed);
+            Vector2 radiusVector = (Vector2) VectorUtil.orthogonal(targetFacing).scaleCopy(turnRadius);
+            if (radiusVector.dotProduct(toTarget) > 0) {
+                radiusVector.scale(-1); // Make sure the radius vector points from the target position to the center of the turn circle.
+            }
+
+            Vector2 center = (Vector2) targetPosition.addCopy(radiusVector);
+
+            if (flatPosition.distance(center) < turnRadius * 1.1) {
+                // We're inside the circle, so turn toward the target and hope for the best!
+                return SteerUtil.steerTowardPosition(input, new Vector3(targetPosition.x, targetPosition.y, 0)).withSlide(false);
+            }
+
+            Vector2 centerToTangent = (Vector2) VectorUtil.orthogonal(toTarget).normaliseCopy().scaleCopy(turnRadius);
+            if (centerToTangent.dotProduct(targetFacing) > 0) {
+                centerToTangent.scale(-1); // Make sure we choose the tangent point behind the target car.
+            }
+            Vector2 tangentPoint = (Vector2) center.addCopy(centerToTangent);
+            return SteerUtil.steerTowardPosition(input, new Vector3(tangentPoint.x, tangentPoint.y, 0));
+
         }
     }
 
