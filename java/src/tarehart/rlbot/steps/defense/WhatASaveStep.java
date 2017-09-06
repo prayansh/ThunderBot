@@ -1,4 +1,4 @@
-package tarehart.rlbot.steps;
+package tarehart.rlbot.steps.defense;
 
 import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
@@ -11,6 +11,7 @@ import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.DistancePlot;
 import tarehart.rlbot.planning.*;
+import tarehart.rlbot.steps.Step;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;

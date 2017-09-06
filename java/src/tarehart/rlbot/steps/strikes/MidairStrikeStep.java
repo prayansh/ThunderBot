@@ -1,4 +1,4 @@
-package tarehart.rlbot.steps;
+package tarehart.rlbot.steps.strikes;
 
 import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
@@ -8,6 +8,7 @@ import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.SteerUtil;
+import tarehart.rlbot.steps.Step;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;

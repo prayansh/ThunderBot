@@ -1,4 +1,4 @@
-package tarehart.rlbot.steps;
+package tarehart.rlbot.steps.landing;
 
 import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
@@ -8,6 +8,7 @@ import tarehart.rlbot.Bot;
 import tarehart.rlbot.CarRotation;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.planning.Plan;
+import tarehart.rlbot.steps.Step;
 import tarehart.rlbot.steps.rotation.PitchToPlaneStep;
 import tarehart.rlbot.steps.rotation.RollToPlaneStep;
 import tarehart.rlbot.steps.rotation.YawToPlaneStep;

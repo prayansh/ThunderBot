@@ -1,10 +1,11 @@
-package tarehart.rlbot.steps;
+package tarehart.rlbot.steps.strikes;
 
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.*;
+import tarehart.rlbot.steps.Step;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;

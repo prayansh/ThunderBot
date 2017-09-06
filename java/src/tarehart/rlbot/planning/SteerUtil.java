@@ -252,7 +252,6 @@ public class SteerUtil {
 
     public static AgentOutput getThereWithFacing(AgentInput input, DistancePlot distancePlot, Vector2 targetPosition, Vector2 targetFacing) {
         Vector2 flatPosition = VectorUtil.flatten(input.getMyPosition());
-        Vector2 flatVelocity = VectorUtil.flatten(input.getMyVelocity());
         Vector2 toTarget = (Vector2) targetPosition.subCopy(flatPosition);
         double distance = flatPosition.distance(targetPosition);
         double expectedSpeed = AccelerationModel.SUPERSONIC_SPEED;

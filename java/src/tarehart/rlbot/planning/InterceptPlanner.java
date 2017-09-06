@@ -3,11 +3,10 @@ package tarehart.rlbot.planning;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.physics.BallPath;
-import tarehart.rlbot.steps.AsapAerialStep;
+import tarehart.rlbot.steps.strikes.AsapAerialStep;
 import tarehart.rlbot.steps.strikes.FlipHitStep;
 import tarehart.rlbot.steps.strikes.JumpHitStep;
 
-import java.time.Duration;
 import java.util.Optional;
 
 public class InterceptPlanner {

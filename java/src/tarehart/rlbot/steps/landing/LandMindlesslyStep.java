@@ -1,7 +1,8 @@
-package tarehart.rlbot.steps;
+package tarehart.rlbot.steps.landing;
 
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.steps.Step;
 
 public class LandMindlesslyStep implements Step {
 

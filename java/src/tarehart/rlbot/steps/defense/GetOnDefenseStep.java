@@ -1,19 +1,17 @@
-package tarehart.rlbot.steps;
+package tarehart.rlbot.steps.defense;
 
+import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
-import tarehart.rlbot.Bot;
-import tarehart.rlbot.math.SpaceTime;
-import tarehart.rlbot.math.SplineHandle;
-import tarehart.rlbot.math.TimeUtil;
-import tarehart.rlbot.math.VectorUtil;
-import tarehart.rlbot.planning.GoalUtil;
-import tarehart.rlbot.planning.Plan;
-import tarehart.rlbot.planning.SetPieces;
-import tarehart.rlbot.planning.SteerUtil;
+import tarehart.rlbot.math.*;
+import tarehart.rlbot.physics.BallPath;
+import tarehart.rlbot.physics.DistancePlot;
+import tarehart.rlbot.planning.*;
+import tarehart.rlbot.steps.Step;
 import tarehart.rlbot.tuning.BotLog;
 
+import java.time.Duration;
 import java.util.Optional;
 
 public class GetOnDefenseStep implements Step {
@@ -101,4 +99,5 @@ public class GetOnDefenseStep implements Step {
     public String getSituation() {
         return "Getting on defense";
     }
+
 }

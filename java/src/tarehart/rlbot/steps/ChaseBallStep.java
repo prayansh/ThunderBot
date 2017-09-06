@@ -7,6 +7,7 @@ import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.*;
+import tarehart.rlbot.steps.strikes.AsapAerialStep;
 import tarehart.rlbot.steps.strikes.FlipHitStep;
 import tarehart.rlbot.steps.strikes.JumpHitStep;
 import tarehart.rlbot.tuning.BotLog;

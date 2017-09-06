@@ -2,6 +2,9 @@ package tarehart.rlbot.planning;
 
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.steps.*;
+import tarehart.rlbot.steps.landing.LandGracefullyStep;
+import tarehart.rlbot.steps.landing.LandMindlesslyStep;
+import tarehart.rlbot.steps.strikes.MidairStrikeStep;
 
 import java.time.Duration;
 
