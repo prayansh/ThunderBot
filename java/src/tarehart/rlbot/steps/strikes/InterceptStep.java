@@ -7,6 +7,7 @@ import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.DistancePlot;
 import tarehart.rlbot.planning.*;
+import tarehart.rlbot.steps.DribbleStep;
 import tarehart.rlbot.steps.Step;
 import tarehart.rlbot.tuning.BotLog;
 
@@ -30,6 +31,16 @@ public class InterceptStep implements Step {
 
         if (plan != null && !plan.isComplete()) {
             return plan.getOutput(input);
+        }
+
+        if (input.getMyPosition().distance(input.ballPosition) < 4 && input.getMyVelocity().distance(input.ballVelocity) < 4) {
+            if (DribbleStep.canDribble(input, false)) {
+                // We inadvertently caught the ball. Let's dribble!
+                plan = new Plan().withStep(new DribbleStep());
+                plan.begin();
+                return plan.getOutput(input);
+            }
+            return Optional.empty();
         }
 
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(4));
@@ -77,12 +88,7 @@ public class InterceptStep implements Step {
 
     public Optional<Intercept> getFlipHitIntercept(AgentInput input, BallPath ballPath, DistancePlot fullAcceleration) {
         Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(input, ballPath, fullAcceleration, interceptModifier, AirTouchPlanner::isFlipHitAccessible);
-        if (interceptOpportunity.isPresent()) {
-            if (interceptOpportunity.get().space.z > AirTouchPlanner.NEEDS_JUMP_HIT_THRESHOLD) {
-                return Optional.of(new Intercept(interceptOpportunity.get()));
-            }
-        }
-        return Optional.empty();
+        return interceptOpportunity.map(Intercept::new);
     }
 
     private AgentOutput getThereOnTime(AgentInput input, SpaceTime groundPosition, double reservedBoost) {
@@ -120,6 +126,6 @@ public class InterceptStep implements Step {
 
     @Override
     public String getSituation() {
-        return "Working on intercept";
+        return Plan.concatSituation("Working on intercept", plan);
     }
 }

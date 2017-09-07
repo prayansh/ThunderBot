@@ -63,7 +63,7 @@ public class SetPieces {
 
     public static Plan performJumpHit(double strikeHeight) {
 
-        long totalRiseMillis = Math.min(500, (long) (strikeHeight * 90));
+        long totalRiseMillis = Math.min(500, (long) (strikeHeight * 80));
         long pitchBackPortion = Math.min(360, totalRiseMillis);
         long driftUpPortion = totalRiseMillis - pitchBackPortion;
 
@@ -85,6 +85,11 @@ public class SetPieces {
 
 
         return plan
+                .withStep(new TapStep(1,
+                        new AgentOutput()
+                                .withPitch(-1)
+                                .withJump(false)
+                                .withAcceleration(1)))
                 .withStep(new TapStep(5,
                         new AgentOutput()
                                 .withPitch(-1)

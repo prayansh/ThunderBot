@@ -87,13 +87,7 @@ public class AirTouchPlanner {
     }
 
     public static boolean isFlipHitAccessible(AgentInput input, SpaceTime intercept) {
-        if (intercept.space.z > MAX_FLIP_HIT) {
-            return false;
-        }
-
-        double secondsTillIntercept = TimeUtil.secondsBetween(input.time, intercept.time);
-        double tMinus = secondsTillIntercept - .2;
-        return tMinus >= -0.1;
+        return intercept.space.z <= MAX_FLIP_HIT;
     }
 
     private static double getAerialLaunchCountdown(double height, double secondsTillIntercept) {

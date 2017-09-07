@@ -138,6 +138,6 @@ public class WhatASaveStep implements Step {
 
     @Override
     public String getSituation() {
-        return "Making a save";
+        return Plan.concatSituation("Making a save", plan);
     }
 }

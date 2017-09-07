@@ -15,6 +15,10 @@ public class Plan {
     private boolean hasBegun = false;
     private boolean isComplete = false;
 
+    public static String concatSituation(String baseSituation, Plan plan) {
+        return baseSituation + (plan != null && !plan.isComplete() ? "(" + plan.getSituation() + ")" : "");
+    }
+
     public enum Posture {
         NEUTRAL(0),
         DEFENSIVE(5),
@@ -86,15 +90,20 @@ public class Plan {
 
     private void nextStep() {
         currentStepIndex++;
-        steps.get(currentStepIndex).begin();
+        if (!isComplete()) {
+            steps.get(currentStepIndex).begin();
+        }
     }
 
     public String getSituation() {
+        if (isComplete()) {
+            return "Dead plan";
+        }
         return (currentStepIndex + 1) + ". " + steps.get(currentStepIndex).getSituation();
     }
 
     public boolean isComplete() {
-        if (isComplete) {
+        if (isComplete || currentStepIndex >= steps.size()) {
             return true;
         } else if (currentStepIndex == steps.size() - 1 &&
                 steps.get(currentStepIndex).isBlindlyComplete()) {

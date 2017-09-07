@@ -54,7 +54,7 @@ public class ChaseBallStep implements Step {
             return output;
         }
 
-        return Optional.empty();
+        return Optional.of(SteerUtil.steerTowardPosition(input, input.ballPosition));
     }
 
     @Override
@@ -68,6 +68,6 @@ public class ChaseBallStep implements Step {
 
     @Override
     public String getSituation() {
-        return "Chasing ball " + (plan != null && !plan.isComplete() ? "(" + plan.getSituation() + ")" : "");
+        return Plan.concatSituation("Chasing ball", plan);
     }
 }

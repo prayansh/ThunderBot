@@ -124,7 +124,7 @@ public class Bot {
         }
 
         BotLog.println("Temporarily befuddled.", input.team);
-        return new AgentOutput();
+        return SteerUtil.steerTowardPosition(input, input.ballPosition);
     }
 
 

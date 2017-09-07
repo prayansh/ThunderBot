@@ -2,6 +2,7 @@ package tarehart.rlbot.planning;
 
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.math.SpaceTime;
+import tarehart.rlbot.tuning.BotLog;
 
 import java.util.Optional;
 
@@ -13,6 +14,7 @@ public class InterceptPlanner {
         if (intercept.space.z > AirTouchPlanner.NEEDS_AERIAL_THRESHOLD) {
             AerialChecklist checklist = AirTouchPlanner.checkAerialReadiness(input, intercept);
             if (checklist.readyToLaunch()) {
+                BotLog.println("Performing Aerial!", input.team);
                 return Optional.of(SetPieces.performAerial());
             }
             return Optional.empty();
@@ -21,6 +23,7 @@ public class InterceptPlanner {
         if (intercept.space.z > AirTouchPlanner.NEEDS_JUMP_HIT_THRESHOLD && AirTouchPlanner.isJumpHitAccessible(input, intercept)) {
             LaunchChecklist checklist = AirTouchPlanner.checkJumpHitReadiness(input, intercept);
             if (checklist.readyToLaunch()) {
+                BotLog.println("Performing JumpHit!", input.team);
                 return Optional.of(SetPieces.performJumpHit(intercept.space.z));
             }
             return Optional.empty();
@@ -29,6 +32,7 @@ public class InterceptPlanner {
         if (intercept.space.z > AirTouchPlanner.NEEDS_FRONT_FLIP_THRESHOLD && AirTouchPlanner.isFlipHitAccessible(input, intercept)) {
             LaunchChecklist checklist = AirTouchPlanner.checkFlipHitReadiness(input, intercept);
             if (checklist.readyToLaunch()) {
+                BotLog.println("Performing FlipHit!", input.team);
                 return Optional.of(SetPieces.frontFlip());
             }
             return Optional.empty();
