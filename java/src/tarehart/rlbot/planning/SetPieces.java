@@ -49,6 +49,11 @@ public class SetPieces {
                 .appendPlan(performAerial());
     }
 
+    /*
+    TODO: we should do less of this blind.
+    MidairStrike is now capable of managing pitch on its own.
+    It can do an even better job if it starts estimating angular velocity of the car
+     */
     public static Plan performAerial() {
         return new Plan()
                 .withStep(new BlindStep(

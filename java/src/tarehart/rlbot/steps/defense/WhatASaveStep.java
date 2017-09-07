@@ -81,6 +81,18 @@ public class WhatASaveStep implements Step {
 
         if (!hasReachedWaypoint) {
 
+            /*
+
+            if me-to-threat is about the same angle as the ball velocity, we need to get around the ball and increase
+            our angle of attack. We'll use getThereWithFacing.
+            - Choose which side we want to go around the ball
+            - Choose a waypoint position which is the same distance from the car as the max speed intercept
+            - Choose a facing that bends back toward the ball's path a little.
+            - When we get near the waypoint, we'll forget about it and go for a ball intercept.
+
+             */
+            Optional<SpaceTime> hypotheticalIntercept = SteerUtil.getInterceptOpportunityAssumingMaxAccel(input, ballPath, input.getMyBoost());
+
             Vector2 waypoint = new Vector2((targetGoalPost.x + threat.space.x) / 2, targetGoalPost.y - Math.signum(targetGoalPost.y));
             Vector2 facing = (Vector2) VectorUtil.flatten(threat.space).subCopy(waypoint);
 

@@ -1,5 +1,6 @@
 package tarehart.rlbot.steps;
 
+import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.math.SpaceTime;
@@ -9,6 +10,7 @@ import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.*;
 import tarehart.rlbot.steps.strikes.AsapAerialStep;
 import tarehart.rlbot.steps.strikes.FlipHitStep;
+import tarehart.rlbot.steps.strikes.InterceptStep;
 import tarehart.rlbot.steps.strikes.JumpHitStep;
 import tarehart.rlbot.tuning.BotLog;
 
@@ -32,84 +34,34 @@ public class ChaseBallStep implements Step {
             return new AgentOutput();
         }
 
-        if (input.getMyBoost() < 10 && GetBoostStep.seesOpportunisticBoost(input)) {
-            plan = new Plan().withStep(new GetBoostStep());
-            plan.begin();
-            return plan.getOutput(input);
-        }
 
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(3));
-        Optional<SpaceTime> interceptOpportunity = SteerUtil.getInterceptOpportunityAssumingMaxAccel(input, ballPath, AirTouchPlanner.getBoostBudget(input));
-        Optional<SpaceTime> catchOpportunity = SteerUtil.getCatchOpportunity(input, ballPath, AirTouchPlanner.getBoostBudget(input));
 
-        if (interceptOpportunity.isPresent()) {
-
-            SpaceTime intercept = interceptOpportunity.get();
-
-            if (intercept.space.z > AirTouchPlanner.NEEDS_AERIAL_THRESHOLD) {
-
-                AerialChecklist checklist = AirTouchPlanner.checkAerialReadiness(input, intercept);
-                if (checklist.readyToLaunch()) {
-                    this.plan = SetPieces.performAerial();
-                    this.plan.begin();
-                    return this.plan.getOutput(input);
-                } else if(checklist.notTooClose && checklist.closeEnough && checklist.hasBoost) {
-                    // Hopefully this will line us up and we'll aerial in a future frame.
-                    return getThereAsap(input, intercept);
-                } else if (checklist.closeEnough && checklist.hasBoost) {
-                    BotLog.println("Lining up for aerial as soon as possible...", input.team);
-                    this.plan = new Plan().withStep(new AsapAerialStep());
-                    this.plan.begin();
-                    return this.plan.getOutput(input);
-                } else {
-                    this.plan = new Plan().withStep(new JumpHitStep(intercept.space));
-                    this.plan.begin();
-                    return this.plan.getOutput(input);
-                }
-            } else if (intercept.space.z > AirTouchPlanner.NEEDS_JUMP_HIT_THRESHOLD) {
-                BotLog.println("Lining up jump hit...", input.team);
-                this.plan = new Plan().withStep(new JumpHitStep(intercept.space));
-                this.plan.begin();
-                return this.plan.getOutput(input);
-            } else if (intercept.space.z > AirTouchPlanner.NEEDS_FRONT_FLIP_THRESHOLD) {
-                BotLog.println("Lining up flip hit...", input.team);
-                this.plan = new Plan().withStep(new FlipHitStep(intercept.space));
-                this.plan.begin();
-                return this.plan.getOutput(input);
-            } else if (DribbleStep.canDribble(input, false) && VectorUtil.flatDistance(input.getMyVelocity(), input.ballVelocity) < 15) {
-                plan = new Plan().withStep(new DribbleStep());
+        if (input.getEnemyPosition().distance(input.ballPosition) > 50) {
+            if (input.getMyBoost() < 10 && GetBoostStep.seesOpportunisticBoost(input)) {
+                plan = new Plan().withStep(new GetBoostStep());
                 plan.begin();
                 return plan.getOutput(input);
             }
-            return getThereAsap(input, intercept);
 
-        } else if (catchOpportunity.isPresent()) {
-            BotLog.println(String.format("Going for catch because there are no full speed intercepts. Distance: %s Time: %s",
-                    catchOpportunity.get().space.subCopy(input.getMyPosition()).magnitude(),
-                    Duration.between(input.time, catchOpportunity.get().time)), input.team);
-            plan = new Plan().withStep(new CatchBallStep(catchOpportunity.get())).withStep(new DribbleStep());
+            Optional<SpaceTime> catchOpportunity = SteerUtil.getCatchOpportunity(input, ballPath, AirTouchPlanner.getBoostBudget(input));
+            if (catchOpportunity.isPresent()) {
+                plan = new Plan().withStep(new CatchBallStep(catchOpportunity.get())).withStep(new DribbleStep());
+                plan.begin();
+                return plan.getOutput(input);
+            }
+        }
+
+        InterceptStep interceptStep = new InterceptStep(new Vector3());
+        AgentOutput output = interceptStep.getOutput(input);
+        if (true) {
+            plan = new Plan().withStep(interceptStep);
             plan.begin();
-            return plan.getOutput(input);
-        } else {
-            return getThereAsap(input, new SpaceTime(input.ballPosition, input.time.plusSeconds(3)));
-        }
-    }
-
-    private AgentOutput getThereAsap(AgentInput input, SpaceTime groundPosition) {
-
-        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, groundPosition.space);
-        if (sensibleFlip.isPresent()) {
-            BotLog.println("Front flip to chase ball", input.team);
-            this.plan = sensibleFlip.get();
-            this.plan.begin();
-            return this.plan.getOutput(input);
+            return output;
         }
 
-        AgentOutput steer = SteerUtil.steerTowardPosition(input, groundPosition.space);
-        if (input.getMyBoost() < AirTouchPlanner.BOOST_NEEDED_FOR_AERIAL + 5) {
-            steer.withBoost(false);
-        }
-        return steer;
+        isComplete = true;
+        return new AgentOutput();
     }
 
     @Override

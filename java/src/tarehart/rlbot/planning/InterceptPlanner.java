@@ -8,6 +8,7 @@ import tarehart.rlbot.steps.strikes.FlipHitStep;
 import tarehart.rlbot.steps.strikes.JumpHitStep;
 
 import java.util.Optional;
+import java.util.Set;
 
 public class InterceptPlanner {
 
@@ -38,4 +39,33 @@ public class InterceptPlanner {
         return Optional.empty();
     }
 
+    public static Optional<Plan> planImmediateLaunch(AgentInput input, SpaceTime intercept) {
+
+
+        if (intercept.space.z > AirTouchPlanner.NEEDS_AERIAL_THRESHOLD) {
+            AerialChecklist checklist = AirTouchPlanner.checkAerialReadiness(input, intercept);
+            if (checklist.readyToLaunch()) {
+                return Optional.of(SetPieces.performAerial());
+            }
+            return Optional.empty();
+        }
+
+        if (intercept.space.z > AirTouchPlanner.NEEDS_JUMP_HIT_THRESHOLD && AirTouchPlanner.isJumpHitAccessible(input, intercept)) {
+            LaunchChecklist checklist = AirTouchPlanner.checkJumpHitReadiness(input, intercept);
+            if (checklist.readyToLaunch()) {
+                return Optional.of(SetPieces.performJumpHit(intercept.space.z));
+            }
+            return Optional.empty();
+        }
+
+        if (intercept.space.z > AirTouchPlanner.NEEDS_FRONT_FLIP_THRESHOLD && AirTouchPlanner.isFlipHitAccessible(input, intercept)) {
+            LaunchChecklist checklist = AirTouchPlanner.checkFlipHitReadiness(input, intercept);
+            if (checklist.readyToLaunch()) {
+                return Optional.of(SetPieces.frontFlip());
+            }
+            return Optional.empty();
+        }
+
+        return Optional.empty();
+    }
 }

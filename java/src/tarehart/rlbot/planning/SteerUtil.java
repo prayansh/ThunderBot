@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiPredicate;
 
 public class SteerUtil {
 
@@ -90,6 +91,11 @@ public class SteerUtil {
     }
 
     public static Optional<SpaceTime> getInterceptOpportunity(AgentInput input, BallPath ballPath, DistancePlot acceleration) {
+        return getFilteredInterceptOpportunity(input, ballPath, acceleration, new Vector3(), (a, b) -> true);
+    }
+
+    public static Optional<SpaceTime> getFilteredInterceptOpportunity(
+            AgentInput input, BallPath ballPath, DistancePlot acceleration, Vector3 interceptModifier, BiPredicate<AgentInput, SpaceTime> predicate) {
 
         Vector3 myPosition = input.getMyPosition();
 
@@ -97,18 +103,21 @@ public class SteerUtil {
             Optional<DistanceTimeSpeed> motionAt = acceleration.getMotionAt(ballMoment.getTime());
             if (motionAt.isPresent()) {
                 DistanceTimeSpeed dts = motionAt.get();
-                double ballDistance = VectorUtil.flatDistance(myPosition, ballMoment.space);
+                Vector3 intercept = ballMoment.space.addCopy(interceptModifier);
+                SpaceTime interceptSpaceTime = new SpaceTime(intercept, ballMoment.getTime());
+                double ballDistance = VectorUtil.flatDistance(myPosition, intercept);
                 if (dts.distance > ballDistance) {
-                    Optional<Double> travelSeconds = AccelerationModel.getTravelSeconds(input, acceleration, ballMoment.space);
-                    if (travelSeconds.isPresent() && travelSeconds.get() <= TimeUtil.secondsBetween(input.time, ballMoment.getTime())) {
-                        return Optional.of(ballMoment.toSpaceTime());
+                    Optional<Double> travelSeconds = AccelerationModel.getTravelSeconds(input, acceleration, intercept);
+                    if (travelSeconds.isPresent() && travelSeconds.get() <= TimeUtil.secondsBetween(input.time, interceptSpaceTime.time)) {
+                        if (predicate.test(input, interceptSpaceTime)) {
+                            return Optional.of(interceptSpaceTime);
+                        }
                     }
                 }
             } else {
                 return Optional.empty();
             }
         }
-
         return Optional.empty();
     }
 

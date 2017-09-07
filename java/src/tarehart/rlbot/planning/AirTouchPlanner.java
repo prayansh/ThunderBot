@@ -1,5 +1,6 @@
 package tarehart.rlbot.planning;
 
+import mikera.vectorz.Vector;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.math.SpaceTime;
@@ -10,10 +11,14 @@ import java.time.Duration;
 public class AirTouchPlanner {
 
     private static final double AERIAL_RISE_RATE = 7;
+    private static final double JUMP_RISE_RATE = 12;
     public static final double BOOST_NEEDED_FOR_AERIAL = 20;
     public static final double NEEDS_AERIAL_THRESHOLD = 6;
+    public static final double MAX_JUMP_HIT = NEEDS_AERIAL_THRESHOLD;
     public static final double NEEDS_JUMP_HIT_THRESHOLD = 4;
     public static final double NEEDS_FRONT_FLIP_THRESHOLD = 2;
+    private static final double CAR_BASE_HEIGHT = 0.33;
+    private static final double MAX_FLIP_HIT = NEEDS_JUMP_HIT_THRESHOLD;
 
 
     public static AerialChecklist checkAerialReadiness( AgentInput input, SpaceTime carPositionAtContact) {
@@ -45,35 +50,60 @@ public class AirTouchPlanner {
     private static void checkLaunchReadiness(LaunchChecklist checklist, AgentInput input, SpaceTime carPositionAtContact) {
 
         double correctionAngleRad = SteerUtil.getCorrectionAngleRad(input, carPositionAtContact.space);
-        Duration timeTillIntercept = Duration.between(input.time, carPositionAtContact.time);
-        Duration tMinus = getAerialLaunchCountdown(carPositionAtContact, timeTillIntercept);
+        double secondsTillIntercept = TimeUtil.secondsBetween(input.time, carPositionAtContact.time);
+        double tMinus = getAerialLaunchCountdown(carPositionAtContact.space.z, secondsTillIntercept);
 
         checklist.linedUp = Math.abs(correctionAngleRad) < Math.PI / 60;
-        checklist.closeEnough = timeTillIntercept.toMillis() < 4000;
-        checklist.notTooClose = timeTillIntercept.toMillis() > 500;
-        checklist.timeForIgnition = tMinus.toMillis() < 80;
+        checklist.closeEnough = secondsTillIntercept < 4;
+        checklist.notTooClose = isVerticallyAccessible(input, carPositionAtContact);
+        checklist.timeForIgnition = tMinus < 0.1;
         checklist.upright = input.getMyRotation().roofVector.dotProduct(new Vector3(0, 0, 1)) > .99;
-        checklist.onTheGround = input.getMyPosition().z < .36;
+        checklist.onTheGround = input.getMyPosition().z < CAR_BASE_HEIGHT + 0.03; // Add a little wiggle room
     }
 
     public static boolean isVerticallyAccessible(AgentInput input, SpaceTime intercept) {
-        Duration timeTillIntercept = Duration.between(input.time, intercept.time);
+        double secondsTillIntercept = TimeUtil.secondsBetween(input.time, intercept.time);
 
         if (intercept.space.z < NEEDS_AERIAL_THRESHOLD) {
-            // We can probably just get it by jumping
-            return true;
+            double tMinus = getJumpLaunchCountdown(intercept.space.z, secondsTillIntercept);
+            return tMinus >= -0.1;
         }
 
         if (input.getMyBoost() > BOOST_NEEDED_FOR_AERIAL) {
-            Duration tMinus = getAerialLaunchCountdown(intercept, timeTillIntercept);
-            return tMinus.toMillis() >= -100;
+            double tMinus = getAerialLaunchCountdown(intercept.space.z, secondsTillIntercept);
+            return tMinus >= -0.1;
         }
         return false;
     }
 
-    public static Duration getAerialLaunchCountdown(SpaceTime intercept, Duration timeTillIntercept) {
-        Duration expectedAerialTime = Duration.ofMillis((long) (1000 * intercept.space.z / AERIAL_RISE_RATE));
-        return timeTillIntercept.minus(expectedAerialTime);
+    public static boolean isJumpHitAccessible(AgentInput input, SpaceTime intercept) {
+        if (intercept.space.z > MAX_JUMP_HIT) {
+            return false;
+        }
+
+        double secondsTillIntercept = TimeUtil.secondsBetween(input.time, intercept.time);
+        double tMinus = getJumpLaunchCountdown(intercept.space.z, secondsTillIntercept);
+        return tMinus >= -0.1;
+    }
+
+    public static boolean isFlipHitAccessible(AgentInput input, SpaceTime intercept) {
+        if (intercept.space.z > MAX_FLIP_HIT) {
+            return false;
+        }
+
+        double secondsTillIntercept = TimeUtil.secondsBetween(input.time, intercept.time);
+        double tMinus = secondsTillIntercept - .2;
+        return tMinus >= -0.1;
+    }
+
+    private static double getAerialLaunchCountdown(double height, double secondsTillIntercept) {
+        double expectedAerialSeconds = (height - CAR_BASE_HEIGHT) / AERIAL_RISE_RATE;
+        return secondsTillIntercept - expectedAerialSeconds;
+    }
+
+    private static double getJumpLaunchCountdown(double height, double secondsTillIntercept) {
+        double expectedJumpSeconds = (height - CAR_BASE_HEIGHT) / JUMP_RISE_RATE;
+        return secondsTillIntercept - expectedJumpSeconds;
     }
 
     public static double getBoostBudget(AgentInput input) {

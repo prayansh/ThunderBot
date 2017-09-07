@@ -76,4 +76,8 @@ public class AgentInput {
     public double getMyBoost() {
         return team == Bot.Team.BLUE ? blueBoost : orangeBoost;
     }
+
+    public Vector3 getEnemyPosition() {
+        return team == Bot.Team.BLUE ? orangePosition : bluePosition;
+    }
 }
