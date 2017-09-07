@@ -2,10 +2,10 @@ package tarehart.rlbot.steps;
 
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
-import tarehart.rlbot.planning.PlanOutput;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 public class BlindStep implements Step {
     private AgentOutput output;
@@ -17,18 +17,24 @@ public class BlindStep implements Step {
         this.duration = duration;
     }
 
-    public AgentOutput getOutput(AgentInput input) {
-        return output;
+    public Optional<AgentOutput> getOutput(AgentInput input) {
+        if (scheduledEndTime == null) {
+            scheduledEndTime = input.time.plus(duration);
+        }
+
+        if (input.time.isAfter(scheduledEndTime)) {
+            return Optional.empty();
+        }
+        return Optional.of(output);
     }
 
     @Override
-    public boolean isComplete() {
-        return scheduledEndTime != null && LocalDateTime.now().isAfter(scheduledEndTime);
+    public boolean isBlindlyComplete() {
+        return false;
     }
 
     @Override
     public void begin() {
-        scheduledEndTime = LocalDateTime.now().plus(duration);
     }
 
     @Override

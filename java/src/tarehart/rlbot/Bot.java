@@ -72,16 +72,14 @@ public class Bot {
         if (VectorUtil.flatten(input.ballPosition).magnitudeSquared() == 0) {
             currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new GoForKickoffStep());
             currentPlan.begin();
-            return currentPlan.getOutput(input);
         }
 
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(5));
         if (currentPlan == null || currentPlan.getPosture().lessUrgentThan(Plan.Posture.SAVE)) {
             Optional<SpaceTimeVelocity> scoredOn = GoalUtil.predictGoalEvent(GoalUtil.getOwnGoal(input.team), ballPath);
             if (scoredOn.isPresent()) {
-                currentPlan = new Plan(Plan.Posture.SAVE).withStep(new WhatASaveStep(scoredOn.get()));
+                currentPlan = new Plan(Plan.Posture.SAVE).withStep(new WhatASaveStep());
                 currentPlan.begin();
-                return currentPlan.getOutput(input);
             }
         }
 
@@ -118,10 +116,14 @@ public class Bot {
             if (currentPlan.isComplete()) {
                 currentPlan = null;
             } else {
-                return currentPlan.getOutput(input);
+                Optional<AgentOutput> output = currentPlan.getOutput(input);
+                if (output.isPresent()) {
+                    return output.get();
+                }
             }
         }
 
+        BotLog.println("Temporarily befuddled.", input.team);
         return new AgentOutput();
     }
 

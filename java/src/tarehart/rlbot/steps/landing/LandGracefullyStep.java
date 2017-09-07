@@ -15,12 +15,12 @@ import tarehart.rlbot.steps.rotation.YawToPlaneStep;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.util.Comparator;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class LandGracefullyStep implements Step {
     private static final double SIN_45 = Math.sin(Math.PI / 4);
     public static final Vector3 UP_VECTOR = new Vector3(0, 0, 1);
-    private boolean isComplete = false;
     private Plan plan = null;
     private Vector2 desiredFacing;
 
@@ -31,7 +31,7 @@ public class LandGracefullyStep implements Step {
         this.desiredFacing = desiredFacing;
     }
 
-    public AgentOutput getOutput(AgentInput input) {
+    public Optional<AgentOutput> getOutput(AgentInput input) {
 
         if (desiredFacing == null) {
             CarRotation rot = input.getMyRotation();
@@ -40,17 +40,12 @@ public class LandGracefullyStep implements Step {
         }
 
         if (input.getMyPosition().z < .40f || isOnWall(input)) {
-            isComplete = true;
-            return new AgentOutput().withAcceleration(1);
+            return Optional.empty();
         }
 
-        if (plan == null) {
+        if (plan == null || plan.isComplete()) {
             plan = planRotation(input.getMyRotation(), desiredFacing, input.team);
             plan.begin();
-        }
-
-        if (plan.isComplete()) {
-            return new AgentOutput().withAcceleration(1);
         }
 
         return plan.getOutput(input);
@@ -104,8 +99,8 @@ public class LandGracefullyStep implements Step {
     }
 
     @Override
-    public boolean isComplete() {
-        return isComplete;
+    public boolean isBlindlyComplete() {
+        return false;
     }
 
     @Override

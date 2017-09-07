@@ -15,16 +15,15 @@ import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 public class DribbleStep implements Step {
 
     public static final double DRIBBLE_DISTANCE = 20;
-    private boolean isComplete;
 
-
-    public AgentOutput getOutput(AgentInput input) {
+    public Optional<AgentOutput> getOutput(AgentInput input) {
         if (!canDribble(input, true)) {
-            isComplete = true;
+            return Optional.empty();
         }
 
 
@@ -65,14 +64,14 @@ public class DribbleStep implements Step {
             fallBack.normalise();
             fallBack.scale(5);
 
-            return SteerUtil.getThereOnTime(input, new SpaceTime(new Vector3(fallBack.x, fallBack.y, 0), hurryUp));
+            return Optional.of(SteerUtil.getThereOnTime(input, new SpaceTime(new Vector3(fallBack.x, fallBack.y, 0), hurryUp)));
         }
 
         AgentOutput dribble = SteerUtil.getThereOnTime(input, new SpaceTime(new Vector3(pressurePoint.x, pressurePoint.y, 0), hurryUp));
         if (carToPressurePoint.normaliseCopy().dotProduct(ballToGoal.normaliseCopy()) > .80 && flatDistance > 3 && flatDistance < 5 && input.ballPosition.z < 2 && approachDistance < 2) {
             dribble.withAcceleration(1).withBoost();
         }
-        return dribble;
+        return Optional.of(dribble);
     }
 
     public static boolean canDribble(AgentInput input, boolean log) {
@@ -117,8 +116,8 @@ public class DribbleStep implements Step {
     }
 
     @Override
-    public boolean isComplete() {
-        return isComplete;
+    public boolean isBlindlyComplete() {
+        return false;
     }
 
     @Override

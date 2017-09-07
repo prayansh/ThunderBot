@@ -26,7 +26,7 @@ public class InterceptStep implements Step {
         this.interceptModifier = interceptModifier;
     }
 
-    public AgentOutput getOutput(AgentInput input) {
+    public Optional<AgentOutput> getOutput(AgentInput input) {
 
         if (plan != null && !plan.isComplete()) {
             return plan.getOutput(input);
@@ -48,12 +48,7 @@ public class InterceptStep implements Step {
             return plan.getOutput(input);
         }
 
-        if (chosenIntercept.isPresent()) {
-            return getThereOnTime(input, chosenIntercept.get().toSpaceTime(), chosenIntercept.get().getAirBoost());
-        }
-
-        isComplete = true;
-        return new AgentOutput();
+        return chosenIntercept.map(intercept -> getThereOnTime(input, intercept.toSpaceTime(), intercept.getAirBoost()));
     }
 
     public Optional<Intercept> getAerialIntercept(AgentInput input, BallPath ballPath) {
@@ -92,12 +87,18 @@ public class InterceptStep implements Step {
 
     private AgentOutput getThereOnTime(AgentInput input, SpaceTime groundPosition, double reservedBoost) {
 
+        Optional<AgentOutput> flipOut = Optional.empty();
+
         Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, groundPosition.space);
         if (sensibleFlip.isPresent()) {
             BotLog.println("Front flip for AsapAerial", input.team);
             this.plan = sensibleFlip.get();
             this.plan.begin();
-            return this.plan.getOutput(input);
+            flipOut = this.plan.getOutput(input);
+        }
+
+        if (flipOut.isPresent()) {
+            return flipOut.get();
         }
 
         AgentOutput output = SteerUtil.getThereOnTime(input, groundPosition);
@@ -108,8 +109,8 @@ public class InterceptStep implements Step {
     }
 
     @Override
-    public boolean isComplete() {
-        return isComplete;
+    public boolean isBlindlyComplete() {
+        return false;
     }
 
     @Override

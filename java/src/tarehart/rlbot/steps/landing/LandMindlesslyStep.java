@@ -4,20 +4,22 @@ import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.steps.Step;
 
+import java.util.Optional;
+
 public class LandMindlesslyStep implements Step {
 
     private boolean isComplete = false;
 
-    public AgentOutput getOutput(AgentInput input) {
+    public Optional<AgentOutput> getOutput(AgentInput input) {
 
         if (input.getMyPosition().z < .40f || LandGracefullyStep.isOnWall(input)) {
             isComplete = true;
         }
-        return new AgentOutput().withAcceleration(1);
+        return Optional.of(new AgentOutput().withAcceleration(1));
     }
 
     @Override
-    public boolean isComplete() {
+    public boolean isBlindlyComplete() {
         return isComplete;
     }
 

@@ -1,26 +1,24 @@
 package tarehart.rlbot.steps.defense;
 
-import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
-import tarehart.rlbot.math.*;
-import tarehart.rlbot.physics.BallPath;
-import tarehart.rlbot.physics.DistancePlot;
-import tarehart.rlbot.planning.*;
+import tarehart.rlbot.math.SplineHandle;
+import tarehart.rlbot.math.VectorUtil;
+import tarehart.rlbot.planning.GoalUtil;
+import tarehart.rlbot.planning.Plan;
+import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.steps.Step;
 import tarehart.rlbot.tuning.BotLog;
 
-import java.time.Duration;
 import java.util.Optional;
 
 public class GetOnDefenseStep implements Step {
-    private boolean isComplete = false;
     private SplineHandle targetLocation = null;
 
     private Plan plan;
 
-    public AgentOutput getOutput(AgentInput input) {
+    public Optional<AgentOutput> getOutput(AgentInput input) {
 
         if (targetLocation == null) {
             init(input);
@@ -34,8 +32,7 @@ public class GetOnDefenseStep implements Step {
         double secondsRemaining = distance / input.getMyVelocity().magnitude();
 
         if (!needDefense(input) || secondsRemaining < 1.5) {
-            isComplete = true;
-            return new AgentOutput().withSlide(true).withDeceleration(1);
+            return Optional.empty();
         }
 
         Vector3 target;
@@ -52,7 +49,7 @@ public class GetOnDefenseStep implements Step {
             plan.begin();
             return plan.getOutput(input);
         } else {
-            return SteerUtil.steerTowardPosition(input, target);
+            return Optional.of(SteerUtil.steerTowardPosition(input, target));
         }
     }
 
@@ -61,8 +58,8 @@ public class GetOnDefenseStep implements Step {
     }
 
     @Override
-    public boolean isComplete() {
-        return isComplete;
+    public boolean isBlindlyComplete() {
+        return false;
     }
 
     @Override

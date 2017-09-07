@@ -4,34 +4,28 @@ import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.math.SpaceTime;
-import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
-import tarehart.rlbot.planning.*;
-import tarehart.rlbot.steps.strikes.AsapAerialStep;
-import tarehart.rlbot.steps.strikes.FlipHitStep;
+import tarehart.rlbot.planning.AirTouchPlanner;
+import tarehart.rlbot.planning.Plan;
+import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.steps.strikes.InterceptStep;
-import tarehart.rlbot.steps.strikes.JumpHitStep;
-import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
 import java.util.Optional;
 
 public class ChaseBallStep implements Step {
 
-
-    private boolean isComplete = false;
     private Plan plan;
 
-    public AgentOutput getOutput(AgentInput input) {
+    public Optional<AgentOutput> getOutput(AgentInput input) {
 
         if (plan != null && !plan.isComplete()) {
             return plan.getOutput(input);
         }
 
         if (input.getMyPosition().z > 1 && !ArenaModel.isCarNearWall(input)) {
-            isComplete = true;
-            return new AgentOutput();
+            return Optional.empty();
         }
 
 
@@ -53,20 +47,19 @@ public class ChaseBallStep implements Step {
         }
 
         InterceptStep interceptStep = new InterceptStep(new Vector3());
-        AgentOutput output = interceptStep.getOutput(input);
-        if (true) {
+        Optional<AgentOutput> output = interceptStep.getOutput(input);
+        if (output.isPresent()) {
             plan = new Plan().withStep(interceptStep);
             plan.begin();
             return output;
         }
 
-        isComplete = true;
-        return new AgentOutput();
+        return Optional.empty();
     }
 
     @Override
-    public boolean isComplete() {
-        return isComplete;
+    public boolean isBlindlyComplete() {
+        return false;
     }
 
     @Override

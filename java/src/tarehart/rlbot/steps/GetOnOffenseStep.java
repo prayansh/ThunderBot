@@ -8,7 +8,6 @@ import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.GoalUtil;
 import tarehart.rlbot.planning.Plan;
-import tarehart.rlbot.planning.SetPieces;
 import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.tuning.BotLog;
 
@@ -18,11 +17,10 @@ import java.util.Optional;
 public class GetOnOffenseStep implements Step {
     public static final int BACK_WALL_BUFFER = 0;
     public static final int SIDE_WALL_BUFFER = 0;
-    private boolean isComplete = false;
 
     private Plan plan;
 
-    public AgentOutput getOutput(AgentInput input) {
+    public Optional<AgentOutput> getOutput(AgentInput input) {
 
         if (plan != null && !plan.isComplete()) {
             return plan.getOutput(input);
@@ -52,7 +50,7 @@ public class GetOnOffenseStep implements Step {
         double flatDistance = VectorUtil.flatDistance(target, input.getMyPosition());
         Vector3 carToTargetNormal = (Vector3) carToTarget.normaliseCopy();
         if (flatDistance < 20 || flatDistance < 50 && input.getMyVelocity().dotProduct(carToTargetNormal) > 30) {
-            isComplete = true;
+            return Optional.empty();
         }
 
         Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, target);
@@ -62,7 +60,7 @@ public class GetOnOffenseStep implements Step {
             plan.begin();
             return plan.getOutput(input);
         } else {
-            return SteerUtil.steerTowardPosition(input, target).withBoost(false);
+            return Optional.of(SteerUtil.steerTowardPosition(input, target).withBoost(false));
         }
     }
 
@@ -73,8 +71,8 @@ public class GetOnOffenseStep implements Step {
     }
 
     @Override
-    public boolean isComplete() {
-        return isComplete;
+    public boolean isBlindlyComplete() {
+        return false;
     }
 
     @Override

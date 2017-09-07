@@ -12,37 +12,29 @@ import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.DistancePlot;
 import tarehart.rlbot.planning.*;
 import tarehart.rlbot.steps.Step;
+import tarehart.rlbot.steps.strikes.InterceptStep;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
 import java.util.Optional;
 
 public class WhatASaveStep implements Step {
-    private SpaceTimeVelocity initialThreat;
-    private boolean isComplete;
     private Plan plan;
     private boolean hasReachedWaypoint;
     private Vector3 targetGoalPost;
 
-    public WhatASaveStep(SpaceTimeVelocity initialThreat) {
-        this.initialThreat = initialThreat;
-    }
-
     @Override
-    public AgentOutput getOutput(AgentInput input) {
+    public Optional<AgentOutput> getOutput(AgentInput input) {
 
         if (plan != null && !plan.isComplete()) {
             return plan.getOutput(input);
         }
 
-
-
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(5));
         Goal goal = GoalUtil.getOwnGoal(input.team);
         Optional<SpaceTimeVelocity> currentThreat = GoalUtil.predictGoalEvent(goal, ballPath);
         if (!currentThreat.isPresent()) {
-            isComplete = true;
-            return new AgentOutput();
+            return Optional.empty();
         }
 
         SpaceTimeVelocity threat = currentThreat.get();
@@ -101,18 +93,13 @@ public class WhatASaveStep implements Step {
                 hasReachedWaypoint = true;
             }
 
-            return SteerUtil.getThereWithFacing(input, plot, waypoint, (Vector2) facing.normaliseCopy());
+            return Optional.of(SteerUtil.getThereWithFacing(input, plot, waypoint, (Vector2) facing.normaliseCopy()));
         }
 
-        Optional<Plan> interceptPlan = InterceptPlanner.planFullSpeedIntercept(input, ballPath);
-        if (interceptPlan.isPresent()) {
-            plan = interceptPlan.get();
-            plan.begin();
-            return plan.getOutput(input);
-        }
+        plan = new Plan(Plan.Posture.SAVE).withStep(new InterceptStep(new Vector3(0, Math.signum(targetGoalPost.y) * .7, 0)));
+        plan.begin();
+        return plan.getOutput(input);
 
-        BotLog.println("No intercept plan, am I hosed?", input.team);
-        return SteerUtil.getThereOnTime(input, threat.toSpaceTime());
     }
 
     private boolean isBetweenThePosts(Vector3 position) {
@@ -139,22 +126,9 @@ public class WhatASaveStep implements Step {
         return Optional.empty();
     }
 
-    private AgentOutput getThereAsap(AgentInput input, Vector3 target) {
-
-        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, target);
-        if (sensibleFlip.isPresent()) {
-            BotLog.println("Front flip toward save", input.team);
-            this.plan = sensibleFlip.get();
-            this.plan.begin();
-            return this.plan.getOutput(input);
-        }
-
-        return SteerUtil.steerTowardPosition(input, target);
-    }
-
     @Override
-    public boolean isComplete() {
-        return isComplete;
+    public boolean isBlindlyComplete() {
+        return false;
     }
 
     @Override

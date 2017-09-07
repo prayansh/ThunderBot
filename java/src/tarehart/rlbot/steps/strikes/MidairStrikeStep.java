@@ -5,14 +5,14 @@ import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.math.SpaceTime;
-import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.BallPath;
+import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.steps.Step;
+import tarehart.rlbot.steps.TapStep;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Optional;
 
 public class MidairStrikeStep implements Step {
@@ -22,8 +22,16 @@ public class MidairStrikeStep implements Step {
     public static final double DODGE_DISTANCE = 5;
     private boolean isComplete = false;
     private int confusionCount = 0;
+    private Plan plan;
 
-    public AgentOutput getOutput(AgentInput input) {
+    public Optional<AgentOutput> getOutput(AgentInput input) {
+
+        if (plan != null) {
+            if (plan.isComplete()) {
+                return Optional.empty();
+            }
+            return plan.getOutput(input);
+        }
 
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(3));
         Optional<SpaceTime> interceptOpportunity = SteerUtil.getInterceptOpportunity(input, ballPath, input.getMyVelocity().magnitude());
@@ -31,9 +39,11 @@ public class MidairStrikeStep implements Step {
             confusionCount++;
             if (confusionCount > 3) {
                 // Front flip out of confusion
-                return new AgentOutput().withPitch(-1).withJump();
+                plan = new Plan().withStep(new TapStep(2, new AgentOutput().withPitch(-1).withJump()));
+                plan.begin();
+                return plan.getOutput(input);
             }
-            return new AgentOutput().withBoost();
+            return Optional.of(new AgentOutput().withBoost());
         }
         SpaceTime intercept = interceptOpportunity.get();
         Vector3 carToIntercept = (Vector3) intercept.space.subCopy(input.getMyPosition());
@@ -47,20 +57,21 @@ public class MidairStrikeStep implements Step {
             // Let's flip into the ball!
             if (Math.abs(correctionAngleRad) <= SIDE_DODGE_THRESHOLD) {
                 BotLog.println("Front flip strike", input.team);
-                isComplete = true;
-                return new AgentOutput().withPitch(-1).withJump();
+                plan = new Plan().withStep(new TapStep(2, new AgentOutput().withPitch(-1).withJump()));
+                plan.begin();
+                return plan.getOutput(input);
             } else {
                 // Dodge right
                 BotLog.println("Side flip strike", input.team);
-                isComplete = true;
-                return new AgentOutput().withSteer(correctionAngleRad < 0 ? 1 : -1).withJump();
+                plan = new Plan().withStep(new TapStep(2, new AgentOutput().withSteer(correctionAngleRad < 0 ? 1 : -1).withJump()));
+                plan.begin();
+                return plan.getOutput(input);
             }
         }
 
         if (millisTillIntercept > DODGE_TIME && carToIntercept.normaliseCopy().dotProduct(input.getMyVelocity().normaliseCopy()) < .6) {
             BotLog.println("Failed aerial on bad angle", input.team);
-            isComplete = true;
-            return new AgentOutput();
+            return Optional.empty();
         }
 
         Vector3 idealDirection = (Vector3) carToIntercept.normaliseCopy();
@@ -80,7 +91,7 @@ public class MidairStrikeStep implements Step {
 
         // TODO: midair steering!
 
-        return new AgentOutput().withBoost().withPitch(orientationChange * 2);
+        return Optional.of(new AgentOutput().withBoost().withPitch(orientationChange * 2));
     }
 
     /**
@@ -95,7 +106,7 @@ public class MidairStrikeStep implements Step {
     }
 
     @Override
-    public boolean isComplete() {
+    public boolean isBlindlyComplete() {
         return isComplete;
     }
 

@@ -5,6 +5,7 @@ import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.steps.Step;
 
 import java.util.ArrayList;
+import java.util.Optional;
 
 public class Plan {
 
@@ -54,7 +55,7 @@ public class Plan {
         steps.get(currentStepIndex).begin();
     }
 
-    public AgentOutput getOutput(AgentInput input) {
+    public Optional<AgentOutput> getOutput(AgentInput input) {
 
         if (!hasBegun) {
             throw new RuntimeException("Need to call begin on plan!");
@@ -64,14 +65,28 @@ public class Plan {
             throw new RuntimeException("Plan is already complete!");
         }
 
-        Step currentStep = steps.get(currentStepIndex);
-        if (currentStep.isComplete()) {
-            currentStepIndex++;
-            currentStep = steps.get(currentStepIndex);
-            currentStep.begin();
+        while (currentStepIndex < steps.size()) {
+            Step currentStep = steps.get(currentStepIndex);
+            if (currentStep.isBlindlyComplete()) {
+                nextStep();
+                continue;
+            }
+
+            Optional<AgentOutput> output = currentStep.getOutput(input);
+            if (output.isPresent()) {
+                return output;
+            }
+
+            nextStep();
         }
 
-        return currentStep.getOutput(input);
+        isComplete = true;
+        return Optional.empty();
+    }
+
+    private void nextStep() {
+        currentStepIndex++;
+        steps.get(currentStepIndex).begin();
     }
 
     public String getSituation() {
@@ -82,7 +97,7 @@ public class Plan {
         if (isComplete) {
             return true;
         } else if (currentStepIndex == steps.size() - 1 &&
-                steps.get(currentStepIndex).isComplete()) {
+                steps.get(currentStepIndex).isBlindlyComplete()) {
             isComplete = true;
             return true;
         }

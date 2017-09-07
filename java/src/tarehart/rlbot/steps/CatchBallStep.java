@@ -9,7 +9,6 @@ import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.*;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Optional;
 
 public class CatchBallStep implements Step {
@@ -23,11 +22,11 @@ public class CatchBallStep implements Step {
         latestCatchLocation = initialCatchLocation;
     }
 
-    public AgentOutput getOutput(AgentInput input) {
+    public Optional<AgentOutput> getOutput(AgentInput input) {
 
         if (firstFrame) {
             firstFrame = false;
-            return playCatch(input, latestCatchLocation);
+            return Optional.of(playCatch(input, latestCatchLocation));
         }
 
         double distance = input.getMyPosition().distance(input.ballPosition);
@@ -48,7 +47,7 @@ public class CatchBallStep implements Step {
             confusionLevel++;
         }
 
-        return playCatch(input, latestCatchLocation);
+        return Optional.of(playCatch(input, latestCatchLocation));
     }
 
     private AgentOutput playCatch(AgentInput input, SpaceTime catchLocation) {
@@ -67,7 +66,7 @@ public class CatchBallStep implements Step {
     }
 
     @Override
-    public boolean isComplete() {
+    public boolean isBlindlyComplete() {
         return isComplete;
     }
 

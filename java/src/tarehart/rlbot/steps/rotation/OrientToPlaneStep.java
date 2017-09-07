@@ -9,6 +9,8 @@ import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.steps.Step;
 
+import java.util.Optional;
+
 public abstract class OrientToPlaneStep implements Step {
 
     private Plan plan;
@@ -32,7 +34,7 @@ public abstract class OrientToPlaneStep implements Step {
     }
 
     @Override
-    public AgentOutput getOutput(AgentInput input) {
+    public Optional<AgentOutput> getOutput(AgentInput input) {
 
         if (plan == null) {
             plan = makeOrientationPlan(input.getMyRotation(), input.team);
@@ -43,7 +45,7 @@ public abstract class OrientToPlaneStep implements Step {
     }
 
     @Override
-    public boolean isComplete() {
+    public boolean isBlindlyComplete() {
         return plan != null && plan.isComplete();
     }
 

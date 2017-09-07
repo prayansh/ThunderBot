@@ -37,18 +37,6 @@ public class SetPieces {
                 .withStep(new LandMindlesslyStep());
     }
 
-    public static Plan chaseBall() {
-        return new Plan()
-                .withStep(new ChaseBallStep());
-    }
-
-    public static Plan getBoostAndAerial() {
-        return new Plan()
-                .withStep(new GetBoostStep())
-                .withStep(new TurnTowardCenterStep())
-                .appendPlan(performAerial());
-    }
-
     /*
     TODO: we should do less of this blind.
     MidairStrike is now capable of managing pitch on its own.

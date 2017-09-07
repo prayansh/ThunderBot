@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Optional;
 
 public class GetBoostStep implements Step {
-    private boolean isComplete = false;
     private SplineHandle targetLocation = null;
 
     private static final float MIDFIELD_BOOST_WIDTH = 71.5f;
@@ -38,7 +37,7 @@ public class GetBoostStep implements Step {
 
     private Plan plan;
 
-    public AgentOutput getOutput(AgentInput input) {
+    public Optional<AgentOutput> getOutput(AgentInput input) {
 
         if (targetLocation == null) {
             init(input);
@@ -51,8 +50,7 @@ public class GetBoostStep implements Step {
         }
 
         if (distance < 3 || !canRun(input)) {
-            isComplete = true;
-            return new AgentOutput().withAcceleration(1);
+            return Optional.empty();
         } else {
 
             Vector3 myPosition = input.getMyPosition();
@@ -66,7 +64,8 @@ public class GetBoostStep implements Step {
                 return plan.getOutput(input);
             }
 
-            return SteerUtil.arcTowardPosition(input, targetLocation);
+            // TODO: use SteerUtil.getThereWithFacing
+            return Optional.of(SteerUtil.arcTowardPosition(input, targetLocation));
         }
     }
 
@@ -108,8 +107,8 @@ public class GetBoostStep implements Step {
 
 
     @Override
-    public boolean isComplete() {
-        return isComplete;
+    public boolean isBlindlyComplete() {
+        return false;
     }
 
     @Override

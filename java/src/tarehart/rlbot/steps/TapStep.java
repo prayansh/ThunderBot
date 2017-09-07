@@ -3,9 +3,10 @@ package tarehart.rlbot.steps;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 
+import java.util.Optional;
+
 public class TapStep implements Step {
     private AgentOutput output;
-    private boolean isComplete;
     private int numFrames;
     private int frameCount;
 
@@ -18,17 +19,17 @@ public class TapStep implements Step {
         this.numFrames = numFrames;
     }
 
-    public AgentOutput getOutput(AgentInput input) {
+    public Optional<AgentOutput> getOutput(AgentInput input) {
         frameCount++;
-        if (frameCount == numFrames) {
-            isComplete = true;
+        if (frameCount > numFrames) {
+            return Optional.empty();
         }
-        return output;
+        return Optional.of(output);
     }
 
     @Override
-    public boolean isComplete() {
-        return isComplete;
+    public boolean isBlindlyComplete() {
+        return false;
     }
 
     @Override
