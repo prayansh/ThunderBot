@@ -6,7 +6,6 @@ import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.SpaceTimeVelocity;
-import tarehart.rlbot.math.TimeUtil;
 import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.DistancePlot;
@@ -20,8 +19,7 @@ import java.util.Optional;
 
 public class WhatASaveStep implements Step {
     private Plan plan;
-    private boolean hasReachedWaypoint;
-    private Vector3 targetGoalPost;
+    private Double whichPost;
 
     @Override
     public Optional<AgentOutput> getOutput(AgentInput input) {
@@ -39,30 +37,28 @@ public class WhatASaveStep implements Step {
 
         SpaceTimeVelocity threat = currentThreat.get();
 
-        if (targetGoalPost == null) {
-            double whichPost;
+        if (whichPost == null) {
 
-            if (isBetweenThePosts(input.getMyPosition())) {
-                whichPost = Math.signum(threat.space.x) * -1; // Opposite side from threat
-            } else {
-                whichPost = Math.signum(input.getMyPosition().x); // Same side as car
-            }
-            targetGoalPost = new Vector3(whichPost * Goal.EXTENT, goal.navigationSpline.getLocation().y, 0);
+            Vector3 carToThreat = (Vector3) threat.space.subCopy(input.getMyPosition());
+            double carApproachVsBallApproach = SteerUtil.getCorrectionAngleRad(VectorUtil.flatten(carToThreat), VectorUtil.flatten(input.ballVelocity));
+            // When carApproachVsBallApproach < 0, car is to the right of the ball, angle wise. Right is positive X when we're on the positive Y side of the field.
+            whichPost = Math.signum(-carApproachVsBallApproach * threat.space.y);
+
         }
 
         double distance = VectorUtil.flatDistance(input.getMyPosition(), threat.getSpace());
         Duration timeTillGoal = Duration.between(input.time, threat.getTime());
         DistancePlot plot = AccelerationModel.simulateAcceleration(input, timeTillGoal, input.getMyBoost(), distance - 15);
-        Optional<Double> travelSeconds = AccelerationModel.getTravelSeconds(input, plot, threat.space);
+//        Optional<Double> travelSeconds = AccelerationModel.getTravelSeconds(input, plot, threat.space);
 
-        double secondsToSpare = 0;
-        if (travelSeconds.isPresent()) {
-            secondsToSpare = TimeUtil.toSeconds(timeTillGoal) - travelSeconds.get();
-        }
+//        double secondsToSpare = 0;
+//        if (travelSeconds.isPresent()) {
+//            secondsToSpare = TimeUtil.toSeconds(timeTillGoal) - travelSeconds.get();
+//        }
 
-        if (secondsToSpare <= 0) {
-            BotLog.println("Uh oh...", input.team);
-        }
+//        if (secondsToSpare <= 0) {
+//            BotLog.println("Uh oh...", input.team);
+//        }
 
 
         Optional<SpaceTime> collisionWithBall = getCollisionWithBall(input, ballPath);
@@ -71,39 +67,45 @@ public class WhatASaveStep implements Step {
             BotLog.println("I should be swerving...", input.team);
         }
 
-        if (!hasReachedWaypoint) {
 
-            /*
+        /*
 
-            if me-to-threat is about the same angle as the ball velocity, we need to get around the ball and increase
-            our angle of attack. We'll use getThereWithFacing.
-            - Choose which side we want to go around the ball
-            - Choose a waypoint position which is the same distance from the car as the max speed intercept
-            - Choose a facing that bends back toward the ball's path a little.
-            - When we get near the waypoint, we'll forget about it and go for a ball intercept.
+        if me-to-threat is about the same angle as the ball velocity, we need to get around the ball and increase
+        our angle of attack. We'll use getThereWithFacing.
+        - Choose which side we want to go around the ball
+        - Choose a waypoint position which is the same distance from the car as the max speed intercept
+        - Choose a facing that bends back toward the ball's path a little.
+        - When we get near the waypoint, we'll forget about it and go for a ball intercept.
 
-             */
-            Optional<SpaceTime> hypotheticalIntercept = SteerUtil.getInterceptOpportunityAssumingMaxAccel(input, ballPath, input.getMyBoost());
+         */
 
-            Vector2 waypoint = new Vector2((targetGoalPost.x + threat.space.x) / 2, targetGoalPost.y - Math.signum(targetGoalPost.y));
-            Vector2 facing = (Vector2) VectorUtil.flatten(threat.space).subCopy(waypoint);
+        SpaceTime intercept = SteerUtil.getInterceptOpportunityAssumingMaxAccel(input, ballPath, input.getMyBoost()).orElse(threat.toSpaceTime());
 
+        Vector3 carToIntercept = (Vector3) intercept.space.subCopy(input.getMyPosition());
+        double carApproachVsBallApproach = SteerUtil.getCorrectionAngleRad(VectorUtil.flatten(carToIntercept), VectorUtil.flatten(input.ballVelocity));
+        if (Math.abs(carApproachVsBallApproach) > Math.PI / 6 &&
+                Math.abs(SteerUtil.getCorrectionAngleRad(VectorUtil.flatten(input.getMyRotation().noseVector), VectorUtil.flatten(carToIntercept))) < Math.PI / 12) {
 
-            if (VectorUtil.flatten(input.getMyPosition()).distance(waypoint) < 10) {
-                hasReachedWaypoint = true;
-            }
-
-            return Optional.of(SteerUtil.getThereWithFacing(input, plot, waypoint, (Vector2) facing.normaliseCopy()));
+            plan = new Plan(Plan.Posture.SAVE).withStep(new InterceptStep(new Vector3(0, Math.signum(goal.navigationSpline.getLocation().y) * .7, 0)));
+            plan.begin();
+            return plan.getOutput(input);
         }
 
-        plan = new Plan(Plan.Posture.SAVE).withStep(new InterceptStep(new Vector3(0, Math.signum(targetGoalPost.y) * .7, 0)));
-        plan.begin();
-        return plan.getOutput(input);
+        Vector2 facing = new Vector2(-whichPost, 0);
+        Vector2 waypoint = VectorUtil.flatten(intercept.space);
+        waypoint.sub(facing.scaleCopy(2));
 
-    }
+        SteerPlan thereWithFacingPlan = SteerUtil.getThereWithFacing(input, plot, waypoint, (Vector2) facing.normaliseCopy());
 
-    private boolean isBetweenThePosts(Vector3 position) {
-        return Math.abs(position.x) < Goal.EXTENT;
+        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, thereWithFacingPlan.waypoint);
+        if (sensibleFlip.isPresent()) {
+            BotLog.println("Front flip for Save", input.team);
+            this.plan = sensibleFlip.get();
+            this.plan.begin();
+            return this.plan.getOutput(input);
+        }
+
+        return Optional.of(thereWithFacingPlan.immediateSteer);
     }
 
     /**

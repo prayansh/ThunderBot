@@ -15,6 +15,7 @@ public class Goal {
     public static final double EXTENT = 17.8555;
     public SplineHandle navigationSpline;
     private Plane threatPlane;
+    private Plane scorePlane;
 
     public Goal(boolean negativeSide) {
 
@@ -24,6 +25,7 @@ public class Goal {
                 new Vector3(HANDLE_LENGTH, 0, 0));
 
         threatPlane = new Plane(new Vector3(0, negativeSide ? 1 : -1, 0), new Vector3(0, (GOAL_DISTANCE - 1) * (negativeSide ? -1 : 1), 0));
+        scorePlane = new Plane(new Vector3(0, negativeSide ? 1 : -1, 0), new Vector3(0, (GOAL_DISTANCE + 2) * (negativeSide ? -1 : 1), 0));
     }
 
 
@@ -38,5 +40,9 @@ public class Goal {
 
     public Plane getThreatPlane() {
         return threatPlane;
+    }
+
+    public Plane getScorePlane() {
+        return scorePlane;
     }
 }

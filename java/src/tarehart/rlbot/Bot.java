@@ -97,7 +97,7 @@ public class Bot {
         if (currentPlan == null || currentPlan.isComplete()) {
             BotLog.println("Making fresh plans", input.team);
             if (input.getMyPosition().z > 1) {
-                currentPlan = new Plan().withStep(new LandGracefullyStep()).withStep(new ChaseBallStep());
+                currentPlan = new Plan(Plan.Posture.LANDING).withStep(new LandGracefullyStep()).withStep(new ChaseBallStep());
                 currentPlan.begin();
             } else if (input.getMyBoost() < 30 && GetBoostStep.canRun(input)) {
                 currentPlan = new Plan().withStep(new GetBoostStep());

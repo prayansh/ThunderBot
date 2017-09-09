@@ -23,7 +23,8 @@ public class Plan {
         NEUTRAL(0),
         DEFENSIVE(5),
         SAVE(10),
-        OFFENSIVE(1);
+        OFFENSIVE(1),
+        LANDING(15);
 
         private int urgency;
 

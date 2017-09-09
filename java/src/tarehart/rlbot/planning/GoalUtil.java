@@ -23,6 +23,6 @@ public class GoalUtil {
     }
 
     public static Optional<SpaceTimeVelocity> predictGoalEvent(Goal goal, BallPath ballPath) {
-        return ballPath.getPlaneBreak(ballPath.getStartPoint().time, goal.getThreatPlane(), true);
+        return ballPath.getPlaneBreak(ballPath.getStartPoint().time, goal.getScorePlane(), true);
     }
 }
