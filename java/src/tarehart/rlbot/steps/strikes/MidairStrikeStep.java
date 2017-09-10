@@ -13,6 +13,7 @@ import tarehart.rlbot.steps.TapStep;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public class MidairStrikeStep implements Step {
@@ -20,9 +21,15 @@ public class MidairStrikeStep implements Step {
     private static final double SIDE_DODGE_THRESHOLD = Math.PI / 8;
     public static final int DODGE_TIME = 400;
     public static final double DODGE_DISTANCE = 5;
-    private boolean isComplete = false;
+    private static final Duration maxTimeForAirDodge = Duration.ofMillis(1500);
     private int confusionCount = 0;
     private Plan plan;
+    private LocalDateTime lastMomentForDodge;
+    private Duration timeInAirAtStart;
+
+    public MidairStrikeStep(Duration timeInAirAtStart) {
+        this.timeInAirAtStart = timeInAirAtStart;
+    }
 
     public Optional<AgentOutput> getOutput(AgentInput input) {
 
@@ -31,6 +38,10 @@ public class MidairStrikeStep implements Step {
                 return Optional.empty();
             }
             return plan.getOutput(input);
+        }
+
+        if (lastMomentForDodge == null) {
+            lastMomentForDodge = input.time.plus(maxTimeForAirDodge).minus(timeInAirAtStart);
         }
 
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(3));
@@ -53,7 +64,7 @@ public class MidairStrikeStep implements Step {
 
         double correctionAngleRad = SteerUtil.getCorrectionAngleRad(input, intercept.space);
 
-        if (millisTillIntercept < DODGE_TIME || distance < DODGE_DISTANCE) {
+        if (input.time.isBefore(lastMomentForDodge) && distance < DODGE_DISTANCE) {
             // Let's flip into the ball!
             if (Math.abs(correctionAngleRad) <= SIDE_DODGE_THRESHOLD) {
                 BotLog.println("Front flip strike", input.team);
@@ -61,7 +72,7 @@ public class MidairStrikeStep implements Step {
                 plan.begin();
                 return plan.getOutput(input);
             } else {
-                // Dodge right
+                // Dodge to the side
                 BotLog.println("Side flip strike", input.team);
                 plan = new Plan().withStep(new TapStep(2, new AgentOutput().withSteer(correctionAngleRad < 0 ? 1 : -1).withJump()));
                 plan.begin();
@@ -107,7 +118,7 @@ public class MidairStrikeStep implements Step {
 
     @Override
     public boolean isBlindlyComplete() {
-        return isComplete;
+        return false;
     }
 
     @Override

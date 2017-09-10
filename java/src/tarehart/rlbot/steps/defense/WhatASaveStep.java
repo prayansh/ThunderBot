@@ -47,18 +47,7 @@ public class WhatASaveStep implements Step {
         }
 
         double distance = VectorUtil.flatDistance(input.getMyPosition(), threat.getSpace());
-        Duration timeTillGoal = Duration.between(input.time, threat.getTime());
-        DistancePlot plot = AccelerationModel.simulateAcceleration(input, timeTillGoal, input.getMyBoost(), distance - 15);
-//        Optional<Double> travelSeconds = AccelerationModel.getTravelSeconds(input, plot, threat.space);
-
-//        double secondsToSpare = 0;
-//        if (travelSeconds.isPresent()) {
-//            secondsToSpare = TimeUtil.toSeconds(timeTillGoal) - travelSeconds.get();
-//        }
-
-//        if (secondsToSpare <= 0) {
-//            BotLog.println("Uh oh...", input.team);
-//        }
+        DistancePlot plot = AccelerationModel.simulateAcceleration(input, Duration.ofSeconds(5), input.getMyBoost(), distance - 15);
 
 
         Optional<SpaceTime> collisionWithBall = getCollisionWithBall(input, ballPath);
@@ -95,17 +84,21 @@ public class WhatASaveStep implements Step {
         Vector2 waypoint = VectorUtil.flatten(intercept.space);
         waypoint.sub(facing.scaleCopy(2));
 
-        SteerPlan thereWithFacingPlan = SteerUtil.getThereWithFacing(input, plot, waypoint, (Vector2) facing.normaliseCopy());
+        Optional<Vector2> circleTurnOption = SteerUtil.getWaypointForCircleTurn(input, plot, waypoint, (Vector2) facing.normaliseCopy());
+        if (circleTurnOption.isPresent()) {
+            Vector2 circleTurn = circleTurnOption.get();
+            Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, circleTurn);
+            if (sensibleFlip.isPresent()) {
+                BotLog.println("Front flip for Save", input.team);
+                this.plan = sensibleFlip.get();
+                this.plan.begin();
+                return this.plan.getOutput(input);
+            }
 
-        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, thereWithFacingPlan.waypoint);
-        if (sensibleFlip.isPresent()) {
-            BotLog.println("Front flip for Save", input.team);
-            this.plan = sensibleFlip.get();
-            this.plan.begin();
-            return this.plan.getOutput(input);
+            return Optional.of(SteerUtil.steerTowardPosition(input, circleTurn));
         }
 
-        return Optional.of(thereWithFacingPlan.immediateSteer);
+        return Optional.of(SteerUtil.steerTowardPosition(input, waypoint));
     }
 
     /**

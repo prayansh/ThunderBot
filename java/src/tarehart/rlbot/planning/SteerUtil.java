@@ -8,6 +8,7 @@ import tarehart.rlbot.CarRotation;
 import tarehart.rlbot.math.*;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
+import tarehart.rlbot.physics.BallPhysics;
 import tarehart.rlbot.physics.DistancePlot;
 import tarehart.rlbot.tuning.BotLog;
 import tarehart.rlbot.tuning.Telemetry;
@@ -35,9 +36,7 @@ public class SteerUtil {
 
         LocalDateTime searchStart = input.time;
 
-        double potentialEnergy = (input.ballPosition.z - ArenaModel.BALL_RADIUS) * ArenaModel.GRAVITY;
-        double verticalKineticEnergy = 0.5 * input.ballVelocity.z * input.ballVelocity.z;
-        double groundBounceEnergy = potentialEnergy + verticalKineticEnergy;
+        double groundBounceEnergy = BallPhysics.getGroundBounceEnergy(input);
 
         if (groundBounceEnergy < 50) {
             return Optional.empty();
@@ -149,8 +148,12 @@ public class SteerUtil {
         return telemetry.getBallPath();
     }
 
-    public static double getCorrectionAngleRad(AgentInput input, Vector3 position) {
-        return getCorrectionAngleRad(VectorUtil.flatten(input.getMyRotation().noseVector), VectorUtil.flatten((Vector3) position.subCopy(input.getMyPosition())));
+    public static double getCorrectionAngleRad(AgentInput input, Vector3 target) {
+        return getCorrectionAngleRad(input, VectorUtil.flatten(target));
+    }
+
+    public static double getCorrectionAngleRad(AgentInput input, Vector2 target) {
+        return getCorrectionAngleRad(VectorUtil.flatten(input.getMyRotation().noseVector), (Vector2) target.subCopy(VectorUtil.flatten(input.getMyPosition())));
     }
 
     public static double getCorrectionAngleRad(Vector2 current, Vector2 ideal) {
@@ -170,15 +173,16 @@ public class SteerUtil {
         return idealRad - currentRad;
     }
 
-    public static AgentOutput steerTowardPosition(AgentInput input, Vector3 position) {
+    public static AgentOutput steerTowardPosition(AgentInput input, Vector2 position) {
 
         double correctionAngle = getCorrectionAngleRad(input, position);
+        Vector2 myPositionFlat = VectorUtil.flatten(input.getMyPosition());
 
         double speed = input.getMyVelocity().magnitude();
         double difference = Math.abs(correctionAngle);
         double turnSharpness = difference * 6/Math.PI + difference * speed * .1;
 
-        double distance = position.subCopy(input.getMyPosition()).magnitude();
+        double distance = position.distance(myPositionFlat);
         boolean shouldBrake = distance < 25 && difference > Math.PI / 6 && speed > SUPERSONIC_SPEED * .6;
         boolean shouldSlide = shouldBrake || difference > Math.PI / 2;
         boolean isSupersonic = SUPERSONIC_SPEED - speed < .01;
@@ -191,6 +195,10 @@ public class SteerUtil {
                 .withSteer((float) (-Math.signum(correctionAngle) * turnSharpness))
                 .withSlide(shouldSlide)
                 .withBoost(shouldBoost);
+    }
+
+    public static AgentOutput steerTowardPosition(AgentInput input, Vector3 position) {
+        return steerTowardPosition(input, VectorUtil.flatten(position));
     }
 
     public static AgentOutput arcTowardPosition(AgentInput input, SplineHandle position) {
@@ -260,10 +268,10 @@ public class SteerUtil {
     }
 
     private static double getTurnRadius(double speed) {
-        return Math.abs(speed) * .6;
+        return Math.abs(speed) * .8;
     }
 
-    public static SteerPlan getThereWithFacing(AgentInput input, DistancePlot distancePlot, Vector2 targetPosition, Vector2 targetFacing) {
+    public static Optional<Vector2> getWaypointForCircleTurn(AgentInput input, DistancePlot distancePlot, Vector2 targetPosition, Vector2 targetFacing) {
         Vector2 flatPosition = VectorUtil.flatten(input.getMyPosition());
         Vector2 toTarget = (Vector2) targetPosition.subCopy(flatPosition);
         double distance = flatPosition.distance(targetPosition);
@@ -274,44 +282,35 @@ public class SteerUtil {
             expectedSpeed = motion.get().speed;
         }
 
-
         Vector2 currentFacing = VectorUtil.flatten(input.getMyRotation().noseVector);
-
-        double correctionAngle = getCorrectionAngleRad(currentFacing, targetFacing);
-
-        if (Math.abs(correctionAngle) > Math.PI / 2) {
-            // Back off a small waypoint and then slide in to the finish
-            double slideRange = expectedSpeed * .8; // Maybe it'll take about .8 seconds to slide in...
-            if (distance < slideRange) {
-                // Start sliding
-
-                return new SteerPlan(new AgentOutput().withSteer(-Math.signum(correctionAngle)).withSlide().withAcceleration(1),
-                        targetPosition);
-            }
-            Vector2 waypoint = (Vector2) targetPosition.subCopy(toTarget.normaliseCopy().scaleCopy(slideRange));
-            return new SteerPlan(SteerUtil.steerTowardPosition(input, new Vector3(waypoint.x, waypoint.y, 0)), waypoint);
-        } else {
-            double turnRadius = getTurnRadius(expectedSpeed);
-            Vector2 radiusVector = (Vector2) VectorUtil.orthogonal(targetFacing).scaleCopy(turnRadius);
-            if (radiusVector.dotProduct(toTarget) > 0) {
-                radiusVector.scale(-1); // Make sure the radius vector points from the target position to the center of the turn circle.
-            }
-
-            Vector2 center = (Vector2) targetPosition.addCopy(radiusVector);
-
-            if (flatPosition.distance(center) < turnRadius * 1.1) {
-                // We're inside the circle, so turn toward the target and hope for the best!
-                return new SteerPlan(SteerUtil.steerTowardPosition(input, new Vector3(targetPosition.x, targetPosition.y, 0)).withSlide(false), targetPosition);
-            }
-
-            Vector2 centerToTangent = (Vector2) VectorUtil.orthogonal(toTarget).normaliseCopy().scaleCopy(turnRadius);
-            if (centerToTangent.dotProduct(targetFacing) > 0) {
-                centerToTangent.scale(-1); // Make sure we choose the tangent point behind the target car.
-            }
-            Vector2 tangentPoint = (Vector2) center.addCopy(centerToTangent);
-            return new SteerPlan(SteerUtil.steerTowardPosition(input, new Vector3(tangentPoint.x, tangentPoint.y, 0)), tangentPoint);
-
+        double approachCorrection = getCorrectionAngleRad(currentFacing, toTarget);
+        if (Math.abs(approachCorrection) > Math.PI / 2) {
+            return Optional.empty();
         }
-    }
 
+        double turnRadius = getTurnRadius(expectedSpeed);
+        Vector2 radiusVector = (Vector2) VectorUtil.orthogonal(targetFacing).scaleCopy(turnRadius);
+        if (radiusVector.dotProduct(toTarget) > 0) {
+            radiusVector.scale(-1); // Make sure the radius vector points from the target position to the center of the turn circle.
+        }
+
+        Vector2 center = (Vector2) targetPosition.addCopy(radiusVector);
+        double distanceFromCenter = flatPosition.distance(center);
+
+        if (distanceFromCenter < turnRadius * 1.1) {
+
+            if (distanceFromCenter < turnRadius * .8) {
+                return Optional.empty();
+            }
+
+            return Optional.of(targetPosition);
+        }
+
+        Vector2 centerToTangent = (Vector2) VectorUtil.orthogonal(toTarget).normaliseCopy().scaleCopy(turnRadius);
+        if (centerToTangent.dotProduct(targetFacing) > 0) {
+            centerToTangent.scale(-1); // Make sure we choose the tangent point behind the target car.
+        }
+        Vector2 tangentPoint = (Vector2) center.addCopy(centerToTangent);
+        return Optional.of(tangentPoint);
+    }
 }

@@ -12,6 +12,7 @@ import tarehart.rlbot.steps.Step;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -22,6 +23,7 @@ public class InterceptStep implements Step {
     private Plan plan;
     private boolean isComplete;
     private Vector3 interceptModifier;
+    private LocalDateTime doneMoment;
 
     public InterceptStep(Vector3 interceptModifier) {
         this.interceptModifier = interceptModifier;
@@ -33,14 +35,13 @@ public class InterceptStep implements Step {
             return plan.getOutput(input);
         }
 
-        if (input.getMyPosition().distance(input.ballPosition) < 4 && input.getMyVelocity().distance(input.ballVelocity) < 4) {
-            if (DribbleStep.canDribble(input, false)) {
-                // We inadvertently caught the ball. Let's dribble!
-                plan = new Plan().withStep(new DribbleStep());
-                plan.begin();
-                return plan.getOutput(input);
-            }
+        if (doneMoment != null && input.time.isAfter(doneMoment)) {
             return Optional.empty();
+        }
+
+        if (doneMoment == null && input.getMyPosition().distance(input.ballPosition) < 4.5) {
+            // You get a tiny bit more time
+            doneMoment = input.time.plus(Duration.ofMillis(1000));
         }
 
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(4));

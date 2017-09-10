@@ -1,5 +1,6 @@
 package tarehart.rlbot;
 
+import mikera.vectorz.Vector3;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.ArenaModel;
@@ -11,6 +12,8 @@ import tarehart.rlbot.steps.*;
 import tarehart.rlbot.steps.defense.GetOnDefenseStep;
 import tarehart.rlbot.steps.defense.WhatASaveStep;
 import tarehart.rlbot.steps.landing.LandGracefullyStep;
+import tarehart.rlbot.steps.strikes.DirectedKickStep;
+import tarehart.rlbot.steps.strikes.InterceptStep;
 import tarehart.rlbot.tuning.BotLog;
 import tarehart.rlbot.tuning.Telemetry;
 import tarehart.rlbot.ui.Readout;
@@ -75,7 +78,7 @@ public class Bot {
         }
 
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(5));
-        if (currentPlan == null || currentPlan.getPosture().lessUrgentThan(Plan.Posture.SAVE)) {
+        if (canInterruptPlanFor(Plan.Posture.SAVE)) {
             Optional<SpaceTimeVelocity> scoredOn = GoalUtil.predictGoalEvent(GoalUtil.getOwnGoal(input.team), ballPath);
             if (scoredOn.isPresent()) {
                 currentPlan = new Plan(Plan.Posture.SAVE).withStep(new WhatASaveStep());
@@ -83,7 +86,7 @@ public class Bot {
             }
         }
 
-        if (currentPlan == null || currentPlan.getPosture().lessUrgentThan(Plan.Posture.DEFENSIVE)) {
+        if (canInterruptPlanFor(Plan.Posture.DEFENSIVE)) {
             if (GetOnDefenseStep.needDefense(input)) {
                 BotLog.println("Going on defense", input.team);
                 currentPlan = new Plan(Plan.Posture.DEFENSIVE).withStep(new GetOnDefenseStep());
@@ -97,17 +100,26 @@ public class Bot {
         if (currentPlan == null || currentPlan.isComplete()) {
             BotLog.println("Making fresh plans", input.team);
             if (input.getMyPosition().z > 1) {
-                currentPlan = new Plan(Plan.Posture.LANDING).withStep(new LandGracefullyStep()).withStep(new ChaseBallStep());
+                currentPlan = new Plan(Plan.Posture.LANDING).withStep(new LandGracefullyStep());
+                currentPlan.begin();
+            } else if (DribbleStep.canDribble(input, false)) {
+                BotLog.println("Beginning dribble", input.team);
+                currentPlan = new Plan().withStep(new DribbleStep());
                 currentPlan.begin();
             } else if (input.getMyBoost() < 30 && GetBoostStep.canRun(input)) {
                 currentPlan = new Plan().withStep(new GetBoostStep());
                 currentPlan.begin();
-            } else if (GetOnDefenseStep.getWrongSidedness(input) > 0) {
+            }
+            else if (DirectedKickStep.canMakeDirectedKick(input)) {
+                currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new DirectedKickStep(GoalUtil.getEnemyGoal(input.team).getCenter()));
+                currentPlan.begin();
+            }
+            else if (GetOnDefenseStep.getWrongSidedness(input) > 0) {
                 BotLog.println("Getting behind the ball", input.team);
-                currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new GetOnOffenseStep()).withStep(new ChaseBallStep());
+                currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new GetOnOffenseStep());
                 currentPlan.begin();
             } else {
-                currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new ChaseBallStep());
+                currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new InterceptStep(new Vector3()));
                 currentPlan.begin();
             }
         }
@@ -125,6 +137,10 @@ public class Bot {
 
         BotLog.println("Temporarily befuddled.", input.team);
         return SteerUtil.steerTowardPosition(input, input.ballPosition);
+    }
+
+    private boolean canInterruptPlanFor(Plan.Posture posture) {
+        return currentPlan == null || currentPlan.getPosture().lessUrgentThan(posture) && currentPlan.canInterrupt();
     }
 
 

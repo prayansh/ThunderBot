@@ -10,6 +10,7 @@ import java.util.Optional;
 public class Plan {
 
     private final Posture posture;
+    private boolean unstoppable;
     private ArrayList<Step> steps = new ArrayList<>();
     private int currentStepIndex = 0;
     private boolean hasBegun = false;
@@ -17,6 +18,10 @@ public class Plan {
 
     public static String concatSituation(String baseSituation, Plan plan) {
         return baseSituation + (plan != null && !plan.isComplete() ? "(" + plan.getSituation() + ")" : "");
+    }
+
+    public boolean canInterrupt() {
+        return isComplete() || !unstoppable;
     }
 
     public enum Posture {
@@ -47,6 +52,11 @@ public class Plan {
 
     public Plan withStep(Step step) {
         steps.add(step);
+        return this;
+    }
+
+    public Plan unstoppable() {
+        this.unstoppable = true;
         return this;
     }
 

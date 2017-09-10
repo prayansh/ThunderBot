@@ -45,4 +45,8 @@ public class Goal {
     public Plane getScorePlane() {
         return scorePlane;
     }
+
+    public Vector3 getCenter() {
+        return navigationSpline.getLocation();
+    }
 }

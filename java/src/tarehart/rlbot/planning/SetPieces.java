@@ -13,6 +13,7 @@ public class SetPieces {
     public static Plan frontFlip() {
 
         return new Plan()
+                .unstoppable()
                 .withStep(new TapStep(2,
                         new AgentOutput()
                                 .withPitch(-1)
@@ -43,21 +44,24 @@ public class SetPieces {
     It can do an even better job if it starts estimating angular velocity of the car
      */
     public static Plan performAerial() {
+        Duration tiltBackDuration = Duration.ofMillis(360);
+        Duration tiltForwardDuration = Duration.ofMillis(360);
+
         return new Plan()
                 .withStep(new BlindStep(
                         new AgentOutput()
                             .withJump(true)
                             .withPitch(1),
-                        Duration.ofMillis(360)
+                        tiltBackDuration
                 ))
                 .withStep(new BlindStep(
                         new AgentOutput()
                             .withJump(true)
                             .withPitch(-1)
                             .withBoost(true),
-                        Duration.ofMillis(360)
+                        tiltForwardDuration
                 ))
-                .withStep(new MidairStrikeStep())
+                .withStep(new MidairStrikeStep(tiltBackDuration.plus(tiltForwardDuration)))
                 .withStep(new LandGracefullyStep());
     }
 
@@ -101,6 +105,25 @@ public class SetPieces {
                                 .withPitch(-1),
                         Duration.ofMillis(50)
                 ))
+                .withStep(new LandMindlesslyStep());
+    }
+
+    public static Plan sideFlip(boolean flipLeft) {
+        return new Plan()
+                .unstoppable()
+                .withStep(new TapStep(2,
+                        new AgentOutput()
+                                .withJump(true)
+                                .withAcceleration(1)))
+                .withStep(new TapStep(2,
+                        new AgentOutput()
+                                .withAcceleration(1)
+                ))
+                .withStep(new TapStep(2,
+                        new AgentOutput()
+                                .withJump(true)
+                                .withAcceleration(1)
+                                .withSteer(flipLeft ? -1 : 1)))
                 .withStep(new LandMindlesslyStep());
     }
 }
