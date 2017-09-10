@@ -273,15 +273,21 @@ public class SteerUtil {
 
     public static Optional<Vector2> getWaypointForCircleTurn(AgentInput input, DistancePlot distancePlot, Vector2 targetPosition, Vector2 targetFacing) {
         Vector2 flatPosition = VectorUtil.flatten(input.getMyPosition());
-        Vector2 toTarget = (Vector2) targetPosition.subCopy(flatPosition);
         double distance = flatPosition.distance(targetPosition);
+        double currentSpeed = input.getMyVelocity().magnitude();
         double expectedSpeed = AccelerationModel.SUPERSONIC_SPEED;
 
         Optional<DistanceTimeSpeed> motion = distancePlot.getMotionAt(distance);
         if (motion.isPresent()) {
             expectedSpeed = motion.get().speed;
         }
+        return circleWaypoint(input, targetPosition, targetFacing, currentSpeed, expectedSpeed);
+    }
 
+    private static Optional<Vector2> circleWaypoint(AgentInput input, Vector2 targetPosition, Vector2 targetFacing, double currentSpeed, double expectedSpeed) {
+
+        Vector2 flatPosition = VectorUtil.flatten(input.getMyPosition());
+        Vector2 toTarget = (Vector2) targetPosition.subCopy(flatPosition);
         Vector2 currentFacing = VectorUtil.flatten(input.getMyRotation().noseVector);
         double approachCorrection = getCorrectionAngleRad(currentFacing, toTarget);
         if (Math.abs(approachCorrection) > Math.PI / 2) {
@@ -300,6 +306,9 @@ public class SteerUtil {
         if (distanceFromCenter < turnRadius * 1.1) {
 
             if (distanceFromCenter < turnRadius * .8) {
+                if (currentSpeed < expectedSpeed) {
+                    return circleWaypoint(input, targetPosition, targetFacing, currentSpeed, currentSpeed);
+                }
                 return Optional.empty();
             }
 

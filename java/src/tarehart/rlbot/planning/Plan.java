@@ -26,9 +26,11 @@ public class Plan {
 
     public enum Posture {
         NEUTRAL(0),
-        DEFENSIVE(5),
-        SAVE(10),
         OFFENSIVE(1),
+        SHOT(3),
+        DEFENSIVE(5),
+        CLEAR(8),
+        SAVE(10),
         LANDING(15);
 
         private int urgency;
@@ -110,7 +112,7 @@ public class Plan {
         if (isComplete()) {
             return "Dead plan";
         }
-        return (currentStepIndex + 1) + ". " + steps.get(currentStepIndex).getSituation();
+        return posture.name() + " " + (currentStepIndex + 1) + ". " + steps.get(currentStepIndex).getSituation();
     }
 
     public boolean isComplete() {

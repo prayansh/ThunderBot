@@ -48,7 +48,8 @@ public class ArenaModel {
     // Higher = more diagonal showing.
     public static final float RAIL_HEIGHT = 1.8f;
     public static final float BALL_RESTITUTION = .583f;
-    public static final float WALL_RESTITUTION = 1f;
+    public static final float WALL_RESTITUTION = .8f;
+    public static final float WALL_FRICTION = .9f;
     public static final float BALL_FRICTION = .6f;
     public static final int STEPS_PER_SECOND = 10;
 
@@ -139,6 +140,7 @@ public class ArenaModel {
                 0, null, boxGround, new Vector3f());
         RigidBody wall = new RigidBody(rbInfo);
         wall.setRestitution(WALL_RESTITUTION);
+        wall.setFriction(WALL_FRICTION);
         wall.setWorldTransform(wallTransform);
 
         world.addRigidBody(wall);

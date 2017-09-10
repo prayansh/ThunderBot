@@ -1,12 +1,11 @@
 package tarehart.rlbot.planning;
 
-import mikera.vectorz.Vector3;
 import tarehart.rlbot.Bot;
 import tarehart.rlbot.math.SpaceTimeVelocity;
-import tarehart.rlbot.math.SplineHandle;
-import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.BallPath;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public class GoalUtil {
@@ -24,5 +23,10 @@ public class GoalUtil {
 
     public static Optional<SpaceTimeVelocity> predictGoalEvent(Goal goal, BallPath ballPath) {
         return ballPath.getPlaneBreak(ballPath.getStartPoint().time, goal.getScorePlane(), true);
+    }
+
+    public static boolean ballEntersBox(Goal goal, BallPath ballPath, Duration limit) {
+        LocalDateTime lastMoment = ballPath.getStartPoint().getTime().plus(limit);
+        return ballPath.findSlice(slice -> goal.isInBox(slice.getSpace()), lastMoment).isPresent();
     }
 }

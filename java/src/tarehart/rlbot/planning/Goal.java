@@ -49,4 +49,20 @@ public class Goal {
     public Vector3 getCenter() {
         return navigationSpline.getLocation();
     }
+
+    public boolean isInBox(Vector3 position) {
+        if (getCenter().y * position.y < 0) {
+            return false; // Wrong side of field
+        }
+
+        if (Math.abs(position.y) < 80) {
+            return false; // Too much toward center
+        }
+
+        if (Math.abs(position.x) > 50) {
+            return false; // Too much to the side
+        }
+
+        return true;
+    }
 }

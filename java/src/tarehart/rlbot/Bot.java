@@ -1,5 +1,6 @@
 package tarehart.rlbot;
 
+import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.math.VectorUtil;
@@ -12,8 +13,7 @@ import tarehart.rlbot.steps.*;
 import tarehart.rlbot.steps.defense.GetOnDefenseStep;
 import tarehart.rlbot.steps.defense.WhatASaveStep;
 import tarehart.rlbot.steps.landing.LandGracefullyStep;
-import tarehart.rlbot.steps.strikes.DirectedKickStep;
-import tarehart.rlbot.steps.strikes.InterceptStep;
+import tarehart.rlbot.steps.strikes.*;
 import tarehart.rlbot.tuning.BotLog;
 import tarehart.rlbot.tuning.Telemetry;
 import tarehart.rlbot.ui.Readout;
@@ -86,6 +86,16 @@ public class Bot {
             }
         }
 
+        if (canInterruptPlanFor(Plan.Posture.CLEAR)) {
+            boolean ballEntersOurBox = GoalUtil.ballEntersBox(GoalUtil.getOwnGoal(input.team), ballPath, Duration.ofSeconds(5));
+            if (ballEntersOurBox) {
+                BotLog.println("Going for clear", input.team);
+                KickStrategy awayFromGoal = new KickInGeneralDirection(new Vector2(0, -GoalUtil.getOwnGoal(input.team).getCenter().y), Math.PI / 2);
+                currentPlan = new Plan(Plan.Posture.CLEAR).withStep(new DirectedKickStep(awayFromGoal));
+                currentPlan.begin();
+            }
+        }
+
         if (canInterruptPlanFor(Plan.Posture.DEFENSIVE)) {
             if (GetOnDefenseStep.needDefense(input)) {
                 BotLog.println("Going on defense", input.team);
@@ -97,8 +107,16 @@ public class Bot {
             }
         }
 
+        if (canInterruptPlanFor(Plan.Posture.SHOT)) {
+            boolean ballEntersEnemyBox = GoalUtil.ballEntersBox(GoalUtil.getEnemyGoal(input.team), ballPath, Duration.ofSeconds(2));
+            if (ballEntersEnemyBox) {
+                BotLog.println("Going for shot", input.team);
+                currentPlan = new Plan(Plan.Posture.SHOT).withStep(new DirectedKickStep(new KickAtEnemyGoal()));
+                currentPlan.begin();
+            }
+        }
+
         if (currentPlan == null || currentPlan.isComplete()) {
-            BotLog.println("Making fresh plans", input.team);
             if (input.getMyPosition().z > 1) {
                 currentPlan = new Plan(Plan.Posture.LANDING).withStep(new LandGracefullyStep());
                 currentPlan.begin();
@@ -111,7 +129,7 @@ public class Bot {
                 currentPlan.begin();
             }
             else if (DirectedKickStep.canMakeDirectedKick(input)) {
-                currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new DirectedKickStep(GoalUtil.getEnemyGoal(input.team).getCenter()));
+                currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new DirectedKickStep(new KickAtEnemyGoal()));
                 currentPlan.begin();
             }
             else if (GetOnDefenseStep.getWrongSidedness(input) > 0) {
@@ -135,7 +153,6 @@ public class Bot {
             }
         }
 
-        BotLog.println("Temporarily befuddled.", input.team);
         return SteerUtil.steerTowardPosition(input, input.ballPosition);
     }
 

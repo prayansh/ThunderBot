@@ -39,7 +39,7 @@ public class LandGracefullyStep implements Step {
             desiredFacing.normalise();
         }
 
-        if (input.getMyPosition().z < .40f || isOnWall(input)) {
+        if (input.getMyPosition().z < 5 || isOnWall(input)) {
             return Optional.empty();
         }
 

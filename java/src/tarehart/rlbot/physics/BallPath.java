@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 public class BallPath {
 
@@ -185,5 +186,27 @@ public class BallPath {
 
     private Optional<Vector3> getPlaneBreak(Vector3 start, Vector3 end, Plane plane) {
         return VectorUtil.getPlaneIntersection(plane, start, (Vector3) end.subCopy(start));
+    }
+
+    public Optional<SpaceTimeVelocity> findSlice(Predicate<SpaceTimeVelocity> decider) {
+        for (int i = 1; i < path.size(); i++) {
+            if (decider.test(path.get(i))) {
+                return Optional.of(path.get(i));
+            }
+        }
+        return Optional.empty();
+    }
+
+    public Optional<SpaceTimeVelocity> findSlice(Predicate<SpaceTimeVelocity> decider, LocalDateTime timeLimit) {
+        for (int i = 1; i < path.size(); i++) {
+            SpaceTimeVelocity slice = path.get(i);
+            if (slice.getTime().isAfter(timeLimit)) {
+                return Optional.empty();
+            }
+            if (decider.test(slice)) {
+                return Optional.of(slice);
+            }
+        }
+        return Optional.empty();
     }
 }
