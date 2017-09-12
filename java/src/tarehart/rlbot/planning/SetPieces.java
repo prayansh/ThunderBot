@@ -44,7 +44,7 @@ public class SetPieces {
     It can do an even better job if it starts estimating angular velocity of the car
      */
     public static Plan performAerial() {
-        Duration tiltBackDuration = Duration.ofMillis(360);
+        Duration tiltBackDuration = Duration.ofMillis(390);
         Duration tiltForwardDuration = Duration.ofMillis(360);
 
         return new Plan()

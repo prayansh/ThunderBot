@@ -54,7 +54,7 @@ public class ChaseBallStep implements Step {
             return output;
         }
 
-        return Optional.of(SteerUtil.steerTowardPosition(input, input.ballPosition));
+        return Optional.of(SteerUtil.steerTowardGroundPosition(input, input.ballPosition));
     }
 
     @Override

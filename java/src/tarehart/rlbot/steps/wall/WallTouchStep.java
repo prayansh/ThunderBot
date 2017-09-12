@@ -1,0 +1,127 @@
+package tarehart.rlbot.steps.wall;
+
+import mikera.vectorz.Vector3;
+import tarehart.rlbot.AgentInput;
+import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.math.SpaceTime;
+import tarehart.rlbot.math.SpaceTimeVelocity;
+import tarehart.rlbot.math.TimeUtil;
+import tarehart.rlbot.math.VectorUtil;
+import tarehart.rlbot.physics.ArenaModel;
+import tarehart.rlbot.physics.BallPath;
+import tarehart.rlbot.physics.DistancePlot;
+import tarehart.rlbot.planning.*;
+import tarehart.rlbot.steps.Step;
+import tarehart.rlbot.tuning.BotLog;
+
+import java.time.Duration;
+import java.util.Optional;
+
+public class WallTouchStep implements Step {
+
+    public static final double ACCEPTABLE_WALL_DISTANCE = ArenaModel.BALL_RADIUS + 5;
+    public static final double WALL_DEPART_SPEED = 10;
+    private Vector3 originalIntercept;
+
+    private static boolean isBallNearWall(AgentInput input, SpaceTime ballPosition) {
+        return ArenaModel.getDistanceFromWall(ballPosition.space) <= ACCEPTABLE_WALL_DISTANCE;
+    }
+
+    private static boolean isBallNearWall(SpaceTimeVelocity ballPosition) {
+        return ArenaModel.getDistanceFromWall(ballPosition.space) <= ACCEPTABLE_WALL_DISTANCE;
+    }
+
+    public Optional<AgentOutput> getOutput(AgentInput input) {
+
+        if (!ArenaModel.isCarOnWall(input)) {
+            BotLog.println("Failed to make the wall touch because the car is not on the wall", input.team);
+            return Optional.empty();
+        }
+
+
+        BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(4));
+        DistancePlot fullAcceleration = AccelerationModel.simulateAcceleration(input, Duration.ofSeconds(4), input.getMyBoost(), 0);
+
+        Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(input, ballPath, fullAcceleration, new Vector3(), WallTouchStep::isBallNearWall);
+        Optional<SpaceTimeVelocity> ballMotion = interceptOpportunity.flatMap(inter -> ballPath.getMotionAt(inter.time));
+
+
+        if (!ballMotion.isPresent()) {
+            BotLog.println("Failed to make the wall touch because we see no intercepts on the wall", input.team);
+            return Optional.empty();
+        }
+        SpaceTimeVelocity motion = ballMotion.get();
+
+
+
+        if (originalIntercept == null) {
+            originalIntercept = motion.getSpace();
+        } else {
+            if (originalIntercept.distance(motion.getSpace()) > 20) {
+                BotLog.println("Failed to make the wall touch because the intercept changed", input.team);
+                return Optional.empty(); // Failed to kick it soon enough, new stuff has happened.
+            }
+        }
+
+        if (readyToJump(input, motion.toSpaceTime())) {
+            return Optional.of(new AgentOutput().withAcceleration(1).withJump());
+        }
+
+        return Optional.of(SteerUtil.steerTowardWallPosition(input, motion.space));
+    }
+
+
+    private static boolean readyToJump(AgentInput input, SpaceTime carPositionAtContact) {
+
+        if (ArenaModel.getDistanceFromWall(carPositionAtContact.space) > ArenaModel.BALL_RADIUS + .5) {
+            return false; // Really close to wall, no need to jump. Just chip it.
+        }
+        Vector3 toPosition = (Vector3) carPositionAtContact.space.subCopy(input.getMyPosition());
+        double correctionAngleRad = VectorUtil.getCorrectionAngle(input.getMyRotation().noseVector, toPosition, input.getMyRotation().roofVector);
+        double secondsTillIntercept = TimeUtil.secondsBetween(input.time, carPositionAtContact.time);
+        double wallDistanceAtIntercept = ArenaModel.getDistanceFromWall(carPositionAtContact.space);
+        double tMinus = secondsTillIntercept - wallDistanceAtIntercept / WALL_DEPART_SPEED;
+        boolean linedUp = Math.abs(correctionAngleRad) < Math.PI / 8;
+        if (tMinus < 3) {
+            BotLog.println("Correction angle: " + correctionAngleRad, input.team);
+        }
+
+        return tMinus < 0.1 && tMinus > -.4 && linedUp;
+    }
+
+
+    @Override
+    public boolean isBlindlyComplete() {
+        return false;
+    }
+
+    @Override
+    public void begin() {
+
+    }
+
+    @Override
+    public String getSituation() {
+        return "Making a wall touch.";
+    }
+
+    public static boolean hasWallTouchOpportunity(AgentInput input, BallPath ballPath) {
+
+        Optional<SpaceTimeVelocity> nearWallOption = ballPath.findSlice(WallTouchStep::isBallNearWall);
+        if (nearWallOption.isPresent()) {
+            SpaceTimeVelocity nearWall = nearWallOption.get();
+            if (TimeUtil.secondsBetween(input.time, nearWall.getTime()) > 3) {
+                return false; // Not on wall soon enough
+            }
+
+            Optional<SpaceTimeVelocity> ballLater = ballPath.getMotionAt(nearWall.getTime().plusSeconds(1));
+            if (ballLater.isPresent()) {
+                SpaceTimeVelocity motion = ballLater.get();
+                return ArenaModel.getDistanceFromWall(motion.getSpace()) <= ACCEPTABLE_WALL_DISTANCE;
+            }
+
+        }
+
+        return false;
+    }
+}

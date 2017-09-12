@@ -12,6 +12,7 @@ import tarehart.rlbot.steps.Step;
 import tarehart.rlbot.steps.rotation.PitchToPlaneStep;
 import tarehart.rlbot.steps.rotation.RollToPlaneStep;
 import tarehart.rlbot.steps.rotation.YawToPlaneStep;
+import tarehart.rlbot.steps.wall.DescendFromWallStep;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.util.Comparator;
@@ -21,6 +22,7 @@ import java.util.stream.Stream;
 public class LandGracefullyStep implements Step {
     private static final double SIN_45 = Math.sin(Math.PI / 4);
     public static final Vector3 UP_VECTOR = new Vector3(0, 0, 1);
+    public static final int NEEDS_LANDING_HEIGHT = 5;
     private Plan plan = null;
     private Vector2 desiredFacing;
 
@@ -33,13 +35,19 @@ public class LandGracefullyStep implements Step {
 
     public Optional<AgentOutput> getOutput(AgentInput input) {
 
+        if (ArenaModel.isCarOnWall(input)) {
+            plan = new Plan().withStep(new DescendFromWallStep());
+            plan.begin();
+            return plan.getOutput(input);
+        }
+
         if (desiredFacing == null) {
             CarRotation rot = input.getMyRotation();
             desiredFacing = new Vector2(rot.noseVector.x, rot.noseVector.y);
             desiredFacing.normalise();
         }
 
-        if (input.getMyPosition().z < 5 || isOnWall(input)) {
+        if (input.getMyPosition().z < NEEDS_LANDING_HEIGHT) {
             return Optional.empty();
         }
 
@@ -49,10 +57,6 @@ public class LandGracefullyStep implements Step {
         }
 
         return plan.getOutput(input);
-    }
-
-    public static boolean isOnWall(AgentInput input) {
-        return ArenaModel.isCarNearWall(input) && Math.abs(input.getMyRotation().roofVector.z) < 0.02;
     }
 
     private static Plan planRotation(CarRotation current, Vector2 desiredFacing, Bot.Team team) {

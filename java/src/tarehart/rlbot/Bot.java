@@ -14,6 +14,9 @@ import tarehart.rlbot.steps.defense.GetOnDefenseStep;
 import tarehart.rlbot.steps.defense.WhatASaveStep;
 import tarehart.rlbot.steps.landing.LandGracefullyStep;
 import tarehart.rlbot.steps.strikes.*;
+import tarehart.rlbot.steps.wall.DescendFromWallStep;
+import tarehart.rlbot.steps.wall.MountWallStep;
+import tarehart.rlbot.steps.wall.WallTouchStep;
 import tarehart.rlbot.tuning.BotLog;
 import tarehart.rlbot.tuning.Telemetry;
 import tarehart.rlbot.ui.Readout;
@@ -117,7 +120,7 @@ public class Bot {
         }
 
         if (currentPlan == null || currentPlan.isComplete()) {
-            if (input.getMyPosition().z > 1) {
+            if (input.getMyPosition().z > LandGracefullyStep.NEEDS_LANDING_HEIGHT) {
                 currentPlan = new Plan(Plan.Posture.LANDING).withStep(new LandGracefullyStep());
                 currentPlan.begin();
             } else if (DribbleStep.canDribble(input, false)) {
@@ -127,8 +130,10 @@ public class Bot {
             } else if (input.getMyBoost() < 30 && GetBoostStep.canRun(input)) {
                 currentPlan = new Plan().withStep(new GetBoostStep());
                 currentPlan.begin();
-            }
-            else if (DirectedKickStep.canMakeDirectedKick(input)) {
+            } else if (WallTouchStep.hasWallTouchOpportunity(input, ballPath)) {
+                currentPlan = new Plan().withStep(new MountWallStep()).withStep(new WallTouchStep()).withStep(new DescendFromWallStep());
+                currentPlan.begin();
+            } else if (DirectedKickStep.canMakeDirectedKick(input)) {
                 currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new DirectedKickStep(new KickAtEnemyGoal()));
                 currentPlan.begin();
             }
@@ -153,7 +158,7 @@ public class Bot {
             }
         }
 
-        return SteerUtil.steerTowardPosition(input, input.ballPosition);
+        return SteerUtil.steerTowardGroundPosition(input, input.ballPosition);
     }
 
     private boolean canInterruptPlanFor(Plan.Posture posture) {

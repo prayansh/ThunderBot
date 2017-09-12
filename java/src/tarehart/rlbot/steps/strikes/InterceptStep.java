@@ -7,7 +7,6 @@ import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.DistancePlot;
 import tarehart.rlbot.planning.*;
-import tarehart.rlbot.steps.DribbleStep;
 import tarehart.rlbot.steps.Step;
 import tarehart.rlbot.tuning.BotLog;
 
@@ -21,9 +20,9 @@ import java.util.Optional;
 public class InterceptStep implements Step {
 
     private Plan plan;
-    private boolean isComplete;
     private Vector3 interceptModifier;
     private LocalDateTime doneMoment;
+    private Vector3 originalIntercept;
 
     public InterceptStep(Vector3 interceptModifier) {
         this.interceptModifier = interceptModifier;
@@ -59,6 +58,18 @@ public class InterceptStep implements Step {
             plan.begin();
             return plan.getOutput(input);
         }
+
+        if (chosenIntercept.isPresent()) {
+            if (originalIntercept == null) {
+                originalIntercept = chosenIntercept.get().getSpace();
+            } else {
+                if (originalIntercept.distance(chosenIntercept.get().getSpace()) > 20) {
+                    BotLog.println("Failed to make the intercept", input.team);
+                    return Optional.empty(); // Failed to kick it soon enough, new stuff has happened.
+                }
+            }
+        }
+
 
         return chosenIntercept.map(intercept -> getThereOnTime(input, intercept.toSpaceTime(), intercept.getAirBoost()));
     }

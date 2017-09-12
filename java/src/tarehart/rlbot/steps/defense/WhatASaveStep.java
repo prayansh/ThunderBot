@@ -95,10 +95,10 @@ public class WhatASaveStep implements Step {
                 return this.plan.getOutput(input);
             }
 
-            return Optional.of(SteerUtil.steerTowardPosition(input, circleTurn));
+            return Optional.of(SteerUtil.steerTowardGroundPosition(input, circleTurn));
         }
 
-        return Optional.of(SteerUtil.steerTowardPosition(input, waypoint));
+        return Optional.of(SteerUtil.steerTowardGroundPosition(input, waypoint));
     }
 
     /**

@@ -48,8 +48,8 @@ public class ArenaModel {
     // Higher = more diagonal showing.
     public static final float RAIL_HEIGHT = 1.8f;
     public static final float BALL_RESTITUTION = .583f;
-    public static final float WALL_RESTITUTION = .8f;
-    public static final float WALL_FRICTION = .9f;
+    public static final float WALL_RESTITUTION = 1f;
+    public static final float WALL_FRICTION = .5f;
     public static final float BALL_FRICTION = .6f;
     public static final int STEPS_PER_SECOND = 10;
 
@@ -288,8 +288,17 @@ public class ArenaModel {
 
     public static boolean isCarNearWall(AgentInput input) {
         Vector3 position = input.getMyPosition();
-        return Math.abs(position.x) > SIDE_WALL - 2 ||
-                Math.abs(position.y) > BACK_WALL - 2 ||
-                Math.abs(position.x) + Math.abs(position.y) > CORNER_ANGLE_CENTER.x + CORNER_ANGLE_CENTER.y - 2;
+        return getDistanceFromWall(position) < 2;
+    }
+
+    public static double getDistanceFromWall(Vector3 position) {
+        double sideWall = SIDE_WALL - Math.abs(position.x);
+        double backWall = BACK_WALL - Math.abs(position.y);
+        double diagonal = CORNER_ANGLE_CENTER.x + CORNER_ANGLE_CENTER.y - Math.abs(position.x) - Math.abs(position.y);
+        return Math.min(Math.min(sideWall, backWall), diagonal);
+    }
+
+    public static boolean isCarOnWall(AgentInput input) {
+        return isCarNearWall(input) && Math.abs(input.getMyRotation().roofVector.z) < 0.05;
     }
 }

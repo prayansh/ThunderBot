@@ -11,7 +11,7 @@ import java.time.Duration;
 public class AirTouchPlanner {
 
     private static final double AERIAL_RISE_RATE = 10;
-    private static final double JUMP_RISE_RATE = 12;
+    private static final double JUMP_RISE_RATE = 10;
     public static final double BOOST_NEEDED_FOR_AERIAL = 20;
     public static final double NEEDS_AERIAL_THRESHOLD = 6;
     public static final double MAX_JUMP_HIT = NEEDS_AERIAL_THRESHOLD;

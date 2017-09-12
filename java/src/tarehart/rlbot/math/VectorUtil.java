@@ -55,4 +55,25 @@ public class VectorUtil {
     public static Vector2 orthogonal(Vector2 vec) {
         return new Vector2(vec.y, -vec.x);
     }
+
+    public static double getCorrectionAngle(Vector3 current, Vector3 ideal, Vector3 up) {
+
+        Vector3 currentProj = projectToPlane(current, up);
+        Vector3 idealProj = projectToPlane(ideal, up);
+        double angle = currentProj.angle(idealProj);
+
+        Vector3 cross = currentProj.clone();
+        cross.crossProduct(idealProj);
+
+        if (cross.dotProduct(up) < 0) {
+            angle *= -1;
+        }
+        return angle;
+    }
+
+    public static Vector3 projectToPlane(Vector3 vec, Vector3 planeNormal) {
+        Vector3 projected = vec.copy();
+        projected.projectToPlane(planeNormal.normaliseCopy(), 0);
+        return projected;
+    }
 }

@@ -18,7 +18,7 @@ public class GoForKickoffStep implements Step {
         }
 
         Vector3 target = new Vector3(0, 0, 0);
-        return Optional.of(SteerUtil.steerTowardPosition(input, target));
+        return Optional.of(SteerUtil.steerTowardGroundPosition(input, target));
     }
 
     @Override

@@ -49,7 +49,7 @@ public class GetOnDefenseStep implements Step {
             plan.begin();
             return plan.getOutput(input);
         } else {
-            return Optional.of(SteerUtil.steerTowardPosition(input, target));
+            return Optional.of(SteerUtil.steerTowardGroundPosition(input, target));
         }
     }
 

@@ -1,6 +1,5 @@
 package tarehart.rlbot.steps.strikes;
 
-import mikera.vectorz.Vector;
 import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
@@ -22,7 +21,7 @@ public class DirectedKickStep implements Step {
     private Plan plan;
     private boolean isComplete;
 
-    private Vector2 originalIntercept;
+    private Vector3 originalIntercept;
     private boolean sideFlipMode = false;
     private KickStrategy kickStrategy;
 
@@ -54,12 +53,11 @@ public class DirectedKickStep implements Step {
             return Optional.empty();
         }
         SpaceTimeVelocity motion = ballMotion.get();
-        Vector2 intercept = VectorUtil.flatten(motion.getSpace());
 
         if (originalIntercept == null) {
-            originalIntercept = intercept;
+            originalIntercept = motion.getSpace();
         } else {
-            if (originalIntercept.distance(intercept) > 20) {
+            if (originalIntercept.distance(motion.getSpace()) > 20) {
                 BotLog.println("Failed to make the directed kick", input.team);
                 return Optional.empty(); // Failed to kick it soon enough, new stuff has happened.
             }
@@ -73,6 +71,7 @@ public class DirectedKickStep implements Step {
         double orientationCorrection = SteerUtil.getCorrectionAngleRad(input, motion.space);
 
 
+        Vector2 intercept = VectorUtil.flatten(motion.getSpace());
         Optional<Vector2> circleTurnOption = Optional.empty();
 
 
@@ -136,7 +135,7 @@ public class DirectedKickStep implements Step {
                 return this.plan.getOutput(input);
             }
 
-            return Optional.of(SteerUtil.steerTowardPosition(input, circleTurn));
+            return Optional.of(SteerUtil.steerTowardGroundPosition(input, circleTurn));
         }
 
         BotLog.println("Failing directed kick because we have no circle turns.", input.team);

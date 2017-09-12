@@ -1,23 +1,26 @@
-package tarehart.rlbot.steps;
+package tarehart.rlbot.steps.wall;
 
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.planning.SteerUtil;
+import tarehart.rlbot.steps.Step;
 
 import java.util.Optional;
 
-public class EscapeTheGoalStep implements Step {
+public class MountWallStep implements Step {
 
     public Optional<AgentOutput> getOutput(AgentInput input) {
 
-        if (!ArenaModel.isBehindGoalLine(input.getMyPosition())) {
+        if (ArenaModel.isCarOnWall(input)) {
+            // Successfully made it onto the wall
             return Optional.empty();
         }
 
-        Vector3 target = new Vector3(0, 0, 0);
-        return Optional.of(SteerUtil.steerTowardGroundPosition(input, target).withBoost(false));
+        Vector3 ballPositionExaggerated = (Vector3) input.ballPosition.scaleCopy(1.1); // This assumes the ball is close to the wall
+
+        return Optional.of(SteerUtil.steerTowardGroundPosition(input, ballPositionExaggerated));
     }
 
     @Override
@@ -31,6 +34,6 @@ public class EscapeTheGoalStep implements Step {
 
     @Override
     public String getSituation() {
-        return "Escaping the goal";
+        return "Mounting the wall";
     }
 }

@@ -34,7 +34,9 @@ public class AccelerationModel {
     }
 
     public static double getSteerPenaltySeconds(AgentInput input, Vector3 target) {
-        return Math.abs(SteerUtil.getCorrectionAngleRad(input, target)) * input.getMyVelocity().magnitude() * .02;
+        Vector3 toTarget = (Vector3) target.subCopy(input.getMyPosition());
+        double correctionAngleRad = VectorUtil.getCorrectionAngle(input.getMyRotation().noseVector, toTarget, input.getMyRotation().roofVector);
+        return Math.abs(correctionAngleRad) * input.getMyVelocity().magnitude() * .02;
     }
 
     /*

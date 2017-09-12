@@ -4,20 +4,15 @@ import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
-import tarehart.rlbot.CarRotation;
 import tarehart.rlbot.math.*;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.BallPhysics;
 import tarehart.rlbot.physics.DistancePlot;
-import tarehart.rlbot.tuning.BotLog;
 import tarehart.rlbot.tuning.Telemetry;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Optional;
 import java.util.function.BiPredicate;
 
@@ -173,16 +168,26 @@ public class SteerUtil {
         return idealRad - currentRad;
     }
 
-    public static AgentOutput steerTowardPosition(AgentInput input, Vector2 position) {
-
+    public static AgentOutput steerTowardGroundPosition(AgentInput input, Vector2 position) {
         double correctionAngle = getCorrectionAngleRad(input, position);
         Vector2 myPositionFlat = VectorUtil.flatten(input.getMyPosition());
-
+        double distance = position.distance(myPositionFlat);
         double speed = input.getMyVelocity().magnitude();
+        return getSteeringOutput(correctionAngle, distance, speed);
+    }
+
+    public static AgentOutput steerTowardWallPosition(AgentInput input, Vector3 position) {
+        Vector3 toPosition = (Vector3) position.subCopy(input.getMyPosition());
+        double correctionAngle = VectorUtil.getCorrectionAngle(input.getMyRotation().noseVector, toPosition, input.getMyRotation().roofVector);
+        double speed = input.getMyVelocity().magnitude();
+        double distance = position.distance(input.getMyPosition());
+        return getSteeringOutput(correctionAngle, distance, speed);
+    }
+
+    private static AgentOutput getSteeringOutput(double correctionAngle, double distance, double speed) {
         double difference = Math.abs(correctionAngle);
         double turnSharpness = difference * 6/Math.PI + difference * speed * .1;
 
-        double distance = position.distance(myPositionFlat);
         boolean shouldBrake = distance < 25 && difference > Math.PI / 6 && speed > SUPERSONIC_SPEED * .6;
         boolean shouldSlide = shouldBrake || difference > Math.PI / 2;
         boolean isSupersonic = SUPERSONIC_SPEED - speed < .01;
@@ -197,13 +202,13 @@ public class SteerUtil {
                 .withBoost(shouldBoost);
     }
 
-    public static AgentOutput steerTowardPosition(AgentInput input, Vector3 position) {
-        return steerTowardPosition(input, VectorUtil.flatten(position));
+    public static AgentOutput steerTowardGroundPosition(AgentInput input, Vector3 position) {
+        return steerTowardGroundPosition(input, VectorUtil.flatten(position));
     }
 
     public static AgentOutput arcTowardPosition(AgentInput input, SplineHandle position) {
         if (position.isWithinHandleRange(input.getMyPosition())) {
-            AgentOutput steer = SteerUtil.steerTowardPosition(input, position.getLocation());
+            AgentOutput steer = SteerUtil.steerTowardGroundPosition(input, position.getLocation());
 
             double correction = Math.abs(SteerUtil.getCorrectionAngleRad(input, position.getLocation()));
             if (correction > Math.PI / 4 && input.getMyVelocity().magnitude() > AccelerationModel.MEDIUM_SPEED) {
@@ -211,7 +216,7 @@ public class SteerUtil {
             }
             return steer;
         } else {
-            return SteerUtil.steerTowardPosition(input, position.getNearestHandle(input.getMyPosition()));
+            return SteerUtil.steerTowardGroundPosition(input, position.getNearestHandle(input.getMyPosition()));
         }
     }
 
@@ -230,9 +235,11 @@ public class SteerUtil {
         double distanceToIntercept = target.distance(VectorUtil.flatten(input.getMyPosition()));
         if (distanceToIntercept > distanceCovered + 15) {
 
-            double correctionAngleRad = SteerUtil.getCorrectionAngleRad(VectorUtil.flatten(input.getMyRotation().noseVector), target);
+            Vector2 facing = VectorUtil.flatten(input.getMyRotation().noseVector);
+            double facingCorrection = SteerUtil.getCorrectionAngleRad(facing, target);
+            double slideAngle = SteerUtil.getCorrectionAngleRad(facing, VectorUtil.flatten(input.getMyVelocity()));
 
-            if (Math.abs(correctionAngleRad) < GOOD_ENOUGH_ANGLE
+            if (Math.abs(facingCorrection) < GOOD_ENOUGH_ANGLE && Math.abs(slideAngle) < GOOD_ENOUGH_ANGLE
                     && input.getMyVelocity().magnitude() > SteerUtil.SUPERSONIC_SPEED / 4) {
 
                 return Optional.of(SetPieces.frontFlip());
@@ -252,16 +259,16 @@ public class SteerUtil {
 
         if (flatDistance > 40) {
             // Go fast
-            return SteerUtil.steerTowardPosition(input, groundPositionAndTime.space);
+            return SteerUtil.steerTowardGroundPosition(input, groundPositionAndTime.space);
         } else if (flatDistance > 10 && pace < 1) {
             // Go fast
-            return SteerUtil.steerTowardPosition(input, groundPositionAndTime.space);
+            return SteerUtil.steerTowardGroundPosition(input, groundPositionAndTime.space);
         } else if (pace < 1) {
             // Go moderate
-            return SteerUtil.steerTowardPosition(input, groundPositionAndTime.space).withBoost(false);
+            return SteerUtil.steerTowardGroundPosition(input, groundPositionAndTime.space).withBoost(false);
         } else {
             // We're going too fast!
-            AgentOutput agentOutput = SteerUtil.steerTowardPosition(input, groundPositionAndTime.space);
+            AgentOutput agentOutput = SteerUtil.steerTowardGroundPosition(input, groundPositionAndTime.space);
             agentOutput.withAcceleration(0).withBoost(false).withDeceleration(Math.max(0, pace - 1.5)); // Hit the brakes, but keep steering!
             return agentOutput;
         }

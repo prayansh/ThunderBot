@@ -71,10 +71,10 @@ public class GetOnOffenseStep implements Step {
                 return this.plan.getOutput(input);
             }
 
-            return Optional.of(SteerUtil.steerTowardPosition(input, circleTurn).withBoost(false));
+            return Optional.of(SteerUtil.steerTowardGroundPosition(input, circleTurn).withBoost(false));
         }
 
-        return Optional.of(SteerUtil.steerTowardPosition(input, target).withBoost(false));
+        return Optional.of(SteerUtil.steerTowardGroundPosition(input, target).withBoost(false));
     }
 
     @Override
