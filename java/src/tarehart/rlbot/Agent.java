@@ -1,5 +1,6 @@
 package tarehart.rlbot;
 
+import tarehart.rlbot.input.PyGameTickPacket;
 import tarehart.rlbot.ui.Readout;
 
 import javax.swing.*;
@@ -11,11 +12,11 @@ public class Agent {
 
     private Map<Bot.Team, Bot> bots = new HashMap<>();
 
-    public int[] getOutputVector(ArrayList<ArrayList<Double>> input, String teamString) {
+    public int[] getOutputVector(PyGameTickPacket gameTickPacket, String teamString) {
 
         Bot.Team team = Bot.Team.valueOf(teamString.toUpperCase());
 
-        AgentInput translatedInput = new AgentInput(input, team);
+        AgentInput translatedInput = new AgentInput(gameTickPacket, team);
 
         if (!bots.containsKey(team)) {
             bots.put(team, new Bot(team));

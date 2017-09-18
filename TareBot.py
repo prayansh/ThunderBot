@@ -43,10 +43,10 @@ class agent:
 		self.javaAgent = self.gateway.entry_point.getAgent()
 		print("Connection to Java successful!")
 
-	def get_output_vector(self, input):
+	def get_output_vector(self, sharedValue):
 		try:
 			# Call the java process to get the output
-			listOutput = self.javaAgent.getOutputVector([list(input[0]), list(input[1])], self.team)
+			listOutput = self.javaAgent.getOutputVector(sharedValue.GameTickPacket, self.team)
 			# Convert to a regular python list
 			return list(listOutput)
 		except:

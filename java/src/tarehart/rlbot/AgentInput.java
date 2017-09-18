@@ -1,6 +1,10 @@
 package tarehart.rlbot;
 
 import mikera.vectorz.Vector3;
+import tarehart.rlbot.input.PyCarInfo;
+import tarehart.rlbot.input.PyGameTickPacket;
+import tarehart.rlbot.input.PyRotator;
+import tarehart.rlbot.input.PyVector3;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -22,6 +26,7 @@ public class AgentInput {
     public final Vector3 orangeVelocity;
     public final Vector3 blueVelocity;
     public LocalDateTime time;
+    private static final double URotationToRadians = Math.PI / 32768;
 
 
     /**
@@ -59,6 +64,58 @@ public class AgentInput {
         blueRotation = new CarRotation(new Vector3(-neuralInputs.get(8), neuralInputs.get(11), neuralInputs.get(14)),
                 new Vector3(-neuralInputs.get(10), neuralInputs.get(13),  neuralInputs.get(16)));
         blueBoost = neuralInputs.get(0);
+    }
+
+    public AgentInput(PyGameTickPacket gameTickPacket, Bot.Team team) {
+        this.team = team;
+        time = LocalDateTime.now();
+        
+        final PyCarInfo blueCar;
+        final PyCarInfo orangeCar;
+        
+        if (gameTickPacket.CarInfo.get(0).Team == 0) {
+            blueCar = gameTickPacket.CarInfo.get(0);
+            orangeCar = gameTickPacket.CarInfo.get(1);
+        } else {
+            blueCar = gameTickPacket.CarInfo.get(1);
+            orangeCar = gameTickPacket.CarInfo.get(0);
+        }
+
+        blueScore = blueCar.Score.Goals + orangeCar.Score.OwnGoals;
+        orangeScore = orangeCar.Score.Goals + blueCar.Score.OwnGoals;
+        blueDemo = blueCar.Score.Demolitions;
+        orangeDemo = orangeCar.Score.Demolitions;
+    
+        ballPosition = convert(gameTickPacket.gameBall.Location);
+        ballVelocity = convert(gameTickPacket.gameBall.Velocity);
+
+        orangePosition = convert(orangeCar.Location);
+        orangeVelocity = convert(orangeCar.Velocity);
+        orangeRotation = convert(orangeCar.Rotation);
+        orangeBoost = orangeCar.Boost;
+
+        bluePosition = convert(blueCar.Location);
+        blueVelocity = convert(blueCar.Velocity);
+        blueRotation = convert(blueCar.Rotation);
+        blueBoost = blueCar.Boost;
+    }
+
+    private CarRotation convert(PyRotator rotation) {
+        
+        double noseX = -1 * Math.cos(rotation.Pitch * URotationToRadians) * Math.cos(rotation.Yaw * URotationToRadians);
+        double noseY = Math.cos(rotation.Pitch * URotationToRadians) * Math.sin(rotation.Yaw * URotationToRadians);
+        double noseZ = Math.cos(rotation.Pitch * URotationToRadians);
+        
+        double roofX = Math.cos(rotation.Roll * URotationToRadians) * Math.sin(rotation.Pitch * URotationToRadians) * Math.cos(rotation.Yaw * URotationToRadians) + Math.sin(rotation.Roll * URotationToRadians) * Math.sin(rotation.Yaw * URotationToRadians);
+        double roofY = Math.sin(rotation.Roll * URotationToRadians) * Math.cos(rotation.Pitch * URotationToRadians);
+        double roofZ = Math.cos(rotation.Roll * URotationToRadians) * Math.cos(rotation.Pitch * URotationToRadians);
+
+        return new CarRotation(new Vector3(noseX, noseY, noseZ), new Vector3(roofX, roofY, roofZ));
+    }
+
+    private Vector3 convert(PyVector3 location) {
+        // Invert the X value so that the axes make more sense.
+        return new Vector3(-location.X, location.Y, location.Z);
     }
 
     public Vector3 getMyPosition() {
