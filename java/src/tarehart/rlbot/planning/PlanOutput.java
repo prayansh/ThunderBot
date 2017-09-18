@@ -1,18 +1,18 @@
 package tarehart.rlbot.planning;
 
 import tarehart.rlbot.AgentOutput;
-import tarehart.rlbot.tuning.Telemetry;
+import tarehart.rlbot.tuning.BallTelemetry;
 
 public class PlanOutput {
     private AgentOutput agentOutput;
-    private Telemetry telemetry;
+    private BallTelemetry telemetry;
 
     public PlanOutput withAgentOutput(AgentOutput agentOutput) {
         this.agentOutput = agentOutput;
         return this;
     }
 
-    public PlanOutput withTelemetry(Telemetry telemetry) {
+    public PlanOutput withTelemetry(BallTelemetry telemetry) {
         this.telemetry = telemetry;
         return this;
     }

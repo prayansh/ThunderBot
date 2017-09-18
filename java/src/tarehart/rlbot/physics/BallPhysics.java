@@ -1,11 +1,11 @@
 package tarehart.rlbot.physics;
 
-import tarehart.rlbot.AgentInput;
+import tarehart.rlbot.math.SpaceTimeVelocity;
 
 public class BallPhysics {
-    public static double getGroundBounceEnergy(AgentInput input) {
-        double potentialEnergy = (input.ballPosition.z - ArenaModel.BALL_RADIUS) * ArenaModel.GRAVITY;
-        double verticalKineticEnergy = 0.5 * input.ballVelocity.z * input.ballVelocity.z;
+    public static double getGroundBounceEnergy(SpaceTimeVelocity stv) {
+        double potentialEnergy = (stv.getSpace().z - ArenaModel.BALL_RADIUS) * ArenaModel.GRAVITY;
+        double verticalKineticEnergy = 0.5 * stv.getVelocity().z * stv.getVelocity().z;
         return potentialEnergy + verticalKineticEnergy;
     }
 }

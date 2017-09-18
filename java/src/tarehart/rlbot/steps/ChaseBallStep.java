@@ -3,6 +3,7 @@ package tarehart.rlbot.steps;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.CarData;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
@@ -24,21 +25,23 @@ public class ChaseBallStep implements Step {
             return plan.getOutput(input);
         }
 
-        if (input.getMyPosition().z > 1 && !ArenaModel.isCarNearWall(input)) {
+        CarData carData = input.getMyCarData();
+
+        if (carData.position.z > 1 && !ArenaModel.isCarNearWall(input)) {
             return Optional.empty();
         }
 
 
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(3));
 
-        if (input.getEnemyPosition().distance(input.ballPosition) > 50) {
-            if (input.getMyBoost() < 10 && GetBoostStep.seesOpportunisticBoost(input)) {
+        if (input.getEnemyCarData().position.distance(input.ballPosition) > 50) {
+            if (carData.boost < 10 && GetBoostStep.seesOpportunisticBoost(input)) {
                 plan = new Plan().withStep(new GetBoostStep());
                 plan.begin();
                 return plan.getOutput(input);
             }
 
-            Optional<SpaceTime> catchOpportunity = SteerUtil.getCatchOpportunity(input, ballPath, AirTouchPlanner.getBoostBudget(input));
+            Optional<SpaceTime> catchOpportunity = SteerUtil.getCatchOpportunity(carData, ballPath, AirTouchPlanner.getBoostBudget(carData));
             if (catchOpportunity.isPresent()) {
                 plan = new Plan().withStep(new CatchBallStep(catchOpportunity.get())).withStep(new DribbleStep());
                 plan.begin();

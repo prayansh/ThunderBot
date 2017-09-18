@@ -3,6 +3,7 @@ package tarehart.rlbot.steps;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.CarData;
 import tarehart.rlbot.math.SplineHandle;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.DistancePlot;
@@ -53,7 +54,8 @@ public class GetBoostStep implements Step {
             return Optional.empty();
         } else {
 
-            Vector3 myPosition = input.getMyPosition();
+            CarData carData = input.getMyCarData();
+            Vector3 myPosition = carData.position;
             Vector3 target = targetLocation.isWithinHandleRange(myPosition) ? targetLocation.getLocation() : targetLocation.getNearestHandle(myPosition);
 
             Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, target);
@@ -76,9 +78,10 @@ public class GetBoostStep implements Step {
     private static SplineHandle getTacticalBoostLocation(AgentInput input) {
         SplineHandle nearestLocation = null;
         double minTime = Double.MAX_VALUE;
-        DistancePlot distancePlot = AccelerationModel.simulateAcceleration(input, Duration.ofSeconds(4), input.getMyBoost());
+        CarData carData = input.getMyCarData();
+        DistancePlot distancePlot = AccelerationModel.simulateAcceleration(carData, Duration.ofSeconds(4), carData.boost);
         for (SplineHandle loc: boostLocations) {
-            Optional<Double> travelSeconds = AccelerationModel.getTravelSeconds(input, distancePlot, loc.getLocation());
+            Optional<Double> travelSeconds = AccelerationModel.getTravelSeconds(carData, distancePlot, loc.getLocation());
             if (travelSeconds.isPresent() && travelSeconds.get() < minTime) {
                 minTime = travelSeconds.get();
                 nearestLocation = loc;

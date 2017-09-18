@@ -10,21 +10,17 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 public class AgentInput {
+
+    public final CarData blueCar;
+    public final CarData orangeCar;
+
     public final int blueScore;
     public final int orangeScore;
     public final int blueDemo;
     public final int orangeDemo;
     public final Vector3 ballPosition;
     public final Vector3 ballVelocity;
-    public final Vector3 orangePosition;
-    public final Vector3 bluePosition;
-    public final CarRotation blueRotation;
-    public final CarRotation orangeRotation;
-    public final double orangeBoost;
-    public final double blueBoost;
     public final Bot.Team team;
-    public final Vector3 orangeVelocity;
-    public final Vector3 blueVelocity;
     public LocalDateTime time;
     private static final double URotationToRadians = Math.PI / 32768;
 
@@ -53,59 +49,67 @@ public class AgentInput {
         ballPosition = new Vector3(-neuralInputs.get(7), neuralInputs.get(2), neuralInputs.get(6));
         ballVelocity = new Vector3(-neuralInputs.get(31), neuralInputs.get(33), neuralInputs.get(32));
 
-        orangePosition = new Vector3(-neuralInputs.get(18), neuralInputs.get(3), neuralInputs.get(17));
-        orangeVelocity = new Vector3(-neuralInputs.get(34), neuralInputs.get(36), neuralInputs.get(35));
-        orangeRotation = new CarRotation(new Vector3(-neuralInputs.get(19), neuralInputs.get(22), neuralInputs.get(25)),
+        Vector3 orangePosition = new Vector3(-neuralInputs.get(18), neuralInputs.get(3), neuralInputs.get(17));
+        Vector3 orangeVelocity = new Vector3(-neuralInputs.get(34), neuralInputs.get(36), neuralInputs.get(35));
+        CarRotation orangeRotation = new CarRotation(new Vector3(-neuralInputs.get(19), neuralInputs.get(22), neuralInputs.get(25)),
                 new Vector3(-neuralInputs.get(21), neuralInputs.get(24), neuralInputs.get(27)));
-        orangeBoost = neuralInputs.get(37);
+        double orangeBoost = neuralInputs.get(37);
 
-        bluePosition = new Vector3(-neuralInputs.get(5), neuralInputs.get(1), neuralInputs.get(4));
-        blueVelocity = new Vector3(-neuralInputs.get(28), neuralInputs.get(30), neuralInputs.get(29));
-        blueRotation = new CarRotation(new Vector3(-neuralInputs.get(8), neuralInputs.get(11), neuralInputs.get(14)),
+        orangeCar = new CarData(orangePosition, orangeVelocity, orangeRotation, null, orangeBoost, Bot.Team.ORANGE, time);
+
+        Vector3 bluePosition = new Vector3(-neuralInputs.get(5), neuralInputs.get(1), neuralInputs.get(4));
+        Vector3 blueVelocity = new Vector3(-neuralInputs.get(28), neuralInputs.get(30), neuralInputs.get(29));
+        CarRotation blueRotation = new CarRotation(new Vector3(-neuralInputs.get(8), neuralInputs.get(11), neuralInputs.get(14)),
                 new Vector3(-neuralInputs.get(10), neuralInputs.get(13),  neuralInputs.get(16)));
-        blueBoost = neuralInputs.get(0);
+        double blueBoost = neuralInputs.get(0);
+
+        blueCar = new CarData(bluePosition, blueVelocity, blueRotation, null, blueBoost, Bot.Team.BLUE, time);
     }
+
 
     public AgentInput(PyGameTickPacket gameTickPacket, Bot.Team team) {
         this.team = team;
         time = LocalDateTime.now();
-        
-        final PyCarInfo blueCar;
-        final PyCarInfo orangeCar;
-        
+
+        final PyCarInfo blueCarInput;
+        final PyCarInfo orangeCarInput;
+
         if (gameTickPacket.CarInfo.get(0).Team == 0) {
-            blueCar = gameTickPacket.CarInfo.get(0);
-            orangeCar = gameTickPacket.CarInfo.get(1);
+            blueCarInput = gameTickPacket.CarInfo.get(0);
+            orangeCarInput = gameTickPacket.CarInfo.get(1);
         } else {
-            blueCar = gameTickPacket.CarInfo.get(1);
-            orangeCar = gameTickPacket.CarInfo.get(0);
+            blueCarInput = gameTickPacket.CarInfo.get(1);
+            orangeCarInput = gameTickPacket.CarInfo.get(0);
         }
 
-        blueScore = blueCar.Score.Goals + orangeCar.Score.OwnGoals;
-        orangeScore = orangeCar.Score.Goals + blueCar.Score.OwnGoals;
-        blueDemo = blueCar.Score.Demolitions;
-        orangeDemo = orangeCar.Score.Demolitions;
-    
+        blueScore = blueCarInput.Score.Goals + orangeCarInput.Score.OwnGoals;
+        orangeScore = orangeCarInput.Score.Goals + blueCarInput.Score.OwnGoals;
+        blueDemo = blueCarInput.Score.Demolitions;
+        orangeDemo = orangeCarInput.Score.Demolitions;
+
         ballPosition = convert(gameTickPacket.gameBall.Location);
         ballVelocity = convert(gameTickPacket.gameBall.Velocity);
 
-        orangePosition = convert(orangeCar.Location);
-        orangeVelocity = convert(orangeCar.Velocity);
-        orangeRotation = convert(orangeCar.Rotation);
-        orangeBoost = orangeCar.Boost;
+        Vector3 orangePosition = convert(orangeCarInput.Location);
+        Vector3 orangeVelocity = convert(orangeCarInput.Velocity);
+        CarRotation orangeRotation = convert(orangeCarInput.Rotation);
+        double orangeBoost = orangeCarInput.Boost;
+        orangeCar = new CarData(orangePosition, orangeVelocity, orangeRotation, null, orangeBoost, Bot.Team.ORANGE, time);
 
-        bluePosition = convert(blueCar.Location);
-        blueVelocity = convert(blueCar.Velocity);
-        blueRotation = convert(blueCar.Rotation);
-        blueBoost = blueCar.Boost;
+        Vector3 bluePosition = convert(blueCarInput.Location);
+        Vector3 blueVelocity = convert(blueCarInput.Velocity);
+        CarRotation blueRotation = convert(blueCarInput.Rotation);
+        double blueBoost = blueCarInput.Boost;
+        blueCar = new CarData(bluePosition, blueVelocity, blueRotation, null, blueBoost, Bot.Team.BLUE, time);
     }
 
+
     private CarRotation convert(PyRotator rotation) {
-        
+
         double noseX = -1 * Math.cos(rotation.Pitch * URotationToRadians) * Math.cos(rotation.Yaw * URotationToRadians);
         double noseY = Math.cos(rotation.Pitch * URotationToRadians) * Math.sin(rotation.Yaw * URotationToRadians);
         double noseZ = Math.cos(rotation.Pitch * URotationToRadians);
-        
+
         double roofX = Math.cos(rotation.Roll * URotationToRadians) * Math.sin(rotation.Pitch * URotationToRadians) * Math.cos(rotation.Yaw * URotationToRadians) + Math.sin(rotation.Roll * URotationToRadians) * Math.sin(rotation.Yaw * URotationToRadians);
         double roofY = Math.sin(rotation.Roll * URotationToRadians) * Math.cos(rotation.Pitch * URotationToRadians);
         double roofZ = Math.cos(rotation.Roll * URotationToRadians) * Math.cos(rotation.Pitch * URotationToRadians);
@@ -118,23 +122,51 @@ public class AgentInput {
         return new Vector3(-location.X, location.Y, location.Z);
     }
 
+    /**
+     * @deprecated Use getMyCarData().position instead.
+     */
+    @Deprecated
     public Vector3 getMyPosition() {
-        return team == Bot.Team.BLUE ? bluePosition : orangePosition;
+        return getMyCarData().position;
     }
 
+    /**
+     * @deprecated Use getMyCarData().velocity instead.
+     */
+    @Deprecated
     public Vector3 getMyVelocity() {
-        return team == Bot.Team.BLUE ? blueVelocity : orangeVelocity;
+        return getMyCarData().velocity;
     }
 
+    /**
+     * @deprecated Use getMyCarData().rotation instead.
+     */
+    @Deprecated
     public CarRotation getMyRotation() {
-        return team == Bot.Team.BLUE ? blueRotation : orangeRotation;
+        return getMyCarData().rotation;
     }
 
+    /**
+     * @deprecated Use getMyCarData().boost instead.
+     */
+    @Deprecated
     public double getMyBoost() {
-        return team == Bot.Team.BLUE ? blueBoost : orangeBoost;
+        return getMyCarData().boost;
     }
 
+    /**
+     * @deprecated Use getEnemyCarData().position instead.
+     */
+    @Deprecated
     public Vector3 getEnemyPosition() {
-        return team == Bot.Team.BLUE ? orangePosition : bluePosition;
+        return getEnemyCarData().position;
+    }
+
+    public CarData getMyCarData() {
+        return team == Bot.Team.BLUE ? blueCar : orangeCar;
+    }
+
+    public CarData getEnemyCarData() {
+        return team == Bot.Team.BLUE ? orangeCar : blueCar;
     }
 }

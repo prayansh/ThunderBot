@@ -4,12 +4,13 @@ import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.CarData;
 import tarehart.rlbot.math.*;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.BallPhysics;
 import tarehart.rlbot.physics.DistancePlot;
-import tarehart.rlbot.tuning.Telemetry;
+import tarehart.rlbot.tuning.BallTelemetry;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -27,11 +28,11 @@ public class SteerUtil {
     private static final double DISTANCE_NEEDED_FOR_ZERO_TO_MAX_WITH_FLIPS = 150;
     private static final double FRONT_FLIP_SECONDS = 1.5;
 
-    public static Optional<SpaceTime> getCatchOpportunity(AgentInput input, BallPath ballPath, double boostBudget) {
+    public static Optional<SpaceTime> getCatchOpportunity(CarData carData, BallPath ballPath, double boostBudget) {
 
-        LocalDateTime searchStart = input.time;
+        LocalDateTime searchStart = carData.time;
 
-        double groundBounceEnergy = BallPhysics.getGroundBounceEnergy(input);
+        double groundBounceEnergy = BallPhysics.getGroundBounceEnergy(ballPath.getStartPoint());
 
         if (groundBounceEnergy < 50) {
             return Optional.empty();
@@ -42,7 +43,7 @@ public class SteerUtil {
 
             if (landingOption.isPresent()) {
                 SpaceTime landing = landingOption.get().toSpaceTime();
-                if (canGetUnder(input, landing, boostBudget)) {
+                if (canGetUnder(carData, landing, boostBudget)) {
                     return Optional.of(landing);
                 } else {
                     searchStart = landing.time.plusSeconds(1);
@@ -55,15 +56,15 @@ public class SteerUtil {
         return Optional.empty();
     }
 
-    public static Optional<SpaceTime> getVolleyOpportunity(AgentInput input, BallPath ballPath, double boostBudget, double height) {
+    public static Optional<SpaceTime> getVolleyOpportunity(CarData carData, BallPath ballPath, double boostBudget, double height) {
 
-        LocalDateTime searchStart = input.time;
+        LocalDateTime searchStart = carData.time;
 
         Optional<SpaceTimeVelocity> landingOption = ballPath.getPlaneBreak(searchStart, new Plane(new Vector3(0, 0, height), new Vector3(0, 0, 1)), true);
 
         if (landingOption.isPresent()) {
             SpaceTime landing = landingOption.get().toSpaceTime();
-            if (canGetUnder(input, landing, boostBudget)) {
+            if (canGetUnder(carData, landing, boostBudget)) {
                 return Optional.of(landing);
             }
         }
@@ -71,27 +72,27 @@ public class SteerUtil {
         return Optional.empty();
     }
 
-    private static boolean canGetUnder(AgentInput input, SpaceTime spaceTime, double boostBudget) {
-        DistancePlot plot = AccelerationModel.simulateAcceleration(input, Duration.ofSeconds(4), boostBudget, input.getMyPosition().distance(spaceTime.space));
-        Optional<Double> travelSeconds = AccelerationModel.getTravelSeconds(input, plot, spaceTime.space);
-        double secondsAllotted = Duration.between(input.time, spaceTime.time).toMillis() / 1000.0;
+    private static boolean canGetUnder(CarData carData, SpaceTime spaceTime, double boostBudget) {
+        DistancePlot plot = AccelerationModel.simulateAcceleration(carData, Duration.ofSeconds(4), boostBudget, carData.position.distance(spaceTime.space));
+        Optional<Double> travelSeconds = AccelerationModel.getTravelSeconds(carData, plot, spaceTime.space);
+        double secondsAllotted = Duration.between(carData.time, spaceTime.time).toMillis() / 1000.0;
         return travelSeconds.filter(travel -> travel < secondsAllotted).isPresent();
     }
 
-    public static Optional<SpaceTime> getInterceptOpportunityAssumingMaxAccel(AgentInput input, BallPath ballPath, double boostBudget) {
-        DistancePlot plot = AccelerationModel.simulateAcceleration(input, Duration.ofSeconds(4), boostBudget);
+    public static Optional<SpaceTime> getInterceptOpportunityAssumingMaxAccel(CarData carData, BallPath ballPath, double boostBudget) {
+        DistancePlot plot = AccelerationModel.simulateAcceleration(carData, Duration.ofSeconds(4), boostBudget);
 
-        return getInterceptOpportunity(input, ballPath, plot);
+        return getInterceptOpportunity(carData, ballPath, plot);
     }
 
-    public static Optional<SpaceTime> getInterceptOpportunity(AgentInput input, BallPath ballPath, DistancePlot acceleration) {
-        return getFilteredInterceptOpportunity(input, ballPath, acceleration, new Vector3(), (a, b) -> true);
+    public static Optional<SpaceTime> getInterceptOpportunity(CarData carData, BallPath ballPath, DistancePlot acceleration) {
+        return getFilteredInterceptOpportunity(carData, ballPath, acceleration, new Vector3(), (a, b) -> true);
     }
 
     public static Optional<SpaceTime> getFilteredInterceptOpportunity(
-            AgentInput input, BallPath ballPath, DistancePlot acceleration, Vector3 interceptModifier, BiPredicate<AgentInput, SpaceTime> predicate) {
+            CarData carData, BallPath ballPath, DistancePlot acceleration, Vector3 interceptModifier, BiPredicate<CarData, SpaceTime> predicate) {
 
-        Vector3 myPosition = input.getMyPosition();
+        Vector3 myPosition = carData.position;
 
         for (SpaceTimeVelocity ballMoment: ballPath.getSlices()) {
             Optional<DistanceTimeSpeed> motionAt = acceleration.getMotionAt(ballMoment.getTime());
@@ -101,9 +102,9 @@ public class SteerUtil {
                 SpaceTime interceptSpaceTime = new SpaceTime(intercept, ballMoment.getTime());
                 double ballDistance = VectorUtil.flatDistance(myPosition, intercept);
                 if (dts.distance > ballDistance) {
-                    Optional<Double> travelSeconds = AccelerationModel.getTravelSeconds(input, acceleration, intercept);
-                    if (travelSeconds.isPresent() && travelSeconds.get() <= TimeUtil.secondsBetween(input.time, interceptSpaceTime.time)) {
-                        if (predicate.test(input, interceptSpaceTime)) {
+                    Optional<Double> travelSeconds = AccelerationModel.getTravelSeconds(carData, acceleration, intercept);
+                    if (travelSeconds.isPresent() && travelSeconds.get() <= TimeUtil.secondsBetween(carData.time, interceptSpaceTime.time)) {
+                        if (predicate.test(carData, interceptSpaceTime)) {
                             return Optional.of(interceptSpaceTime);
                         }
                     }
@@ -130,17 +131,20 @@ public class SteerUtil {
     }
 
     public static BallPath predictBallPath(AgentInput input, LocalDateTime startingAt, Duration duration) {
-        Telemetry telemetry = Telemetry.forTeam(input.team);
 
-        if (telemetry.getBallPath() == null) {
-            telemetry.setBallPath(arenaModel.simulateBall(new SpaceTimeVelocity(input.ballPosition, startingAt, input.ballVelocity), duration));
-            return telemetry.getBallPath();
-        }
+        Optional<BallPath> pathOption = BallTelemetry.getPath();
 
-        if (telemetry.getBallPath().getEndpoint().getTime().isBefore(startingAt.plus(duration))) {
-            arenaModel.extendSimulation(telemetry.getBallPath(), startingAt.plus(duration));
+        if (pathOption.isPresent()) {
+            BallPath ballPath = pathOption.get();
+            if (ballPath.getEndpoint().getTime().isBefore(startingAt.plus(duration))) {
+                arenaModel.extendSimulation(ballPath, startingAt.plus(duration));
+            }
+            return ballPath;
+        } else {
+            BallPath ballPath = arenaModel.simulateBall(new SpaceTimeVelocity(input.ballPosition, startingAt, input.ballVelocity), duration);
+            BallTelemetry.setPath(ballPath);
+            return ballPath;
         }
-        return telemetry.getBallPath();
     }
 
     public static double getCorrectionAngleRad(AgentInput input, Vector3 target) {

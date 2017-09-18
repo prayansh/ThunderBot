@@ -3,6 +3,7 @@ package tarehart.rlbot.planning;
 import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
+import tarehart.rlbot.CarData;
 import tarehart.rlbot.math.DistanceTimeSpeed;
 import tarehart.rlbot.math.TimeUtil;
 import tarehart.rlbot.math.VectorUtil;
@@ -26,17 +27,17 @@ public class AccelerationModel {
     private static final double BOOST_CONSUMED_PER_SECOND = 25;
 
 
-    public static Optional<Double> getTravelSeconds(AgentInput input, DistancePlot plot, Vector3 target) {
-        double distance = input.getMyPosition().distance(target);
+    public static Optional<Double> getTravelSeconds(CarData carData, DistancePlot plot, Vector3 target) {
+        double distance = carData.position.distance(target);
         Optional<Double> travelTime = plot.getTravelTime(distance);
-        double penaltySeconds = getSteerPenaltySeconds(input, target);
+        double penaltySeconds = getSteerPenaltySeconds(carData, target);
         return travelTime.map(time -> time + penaltySeconds);
     }
 
-    public static double getSteerPenaltySeconds(AgentInput input, Vector3 target) {
-        Vector3 toTarget = (Vector3) target.subCopy(input.getMyPosition());
-        double correctionAngleRad = VectorUtil.getCorrectionAngle(input.getMyRotation().noseVector, toTarget, input.getMyRotation().roofVector);
-        return Math.abs(correctionAngleRad) * input.getMyVelocity().magnitude() * .02;
+    public static double getSteerPenaltySeconds(CarData carData, Vector3 target) {
+        Vector3 toTarget = (Vector3) target.subCopy(carData.position);
+        double correctionAngleRad = VectorUtil.getCorrectionAngle(carData.rotation.noseVector, toTarget, carData.rotation.roofVector);
+        return Math.abs(correctionAngleRad) * carData.velocity.magnitude() * .02;
     }
 
     /*
@@ -72,14 +73,14 @@ public class AccelerationModel {
         return secondsSoFar + steerPenaltySeconds;
     }*/
 
-    public static DistancePlot simulateAcceleration(AgentInput input, Duration duration, double boostBudget) {
-        return simulateAcceleration(input, duration, boostBudget, Double.MAX_VALUE);
+    public static DistancePlot simulateAcceleration(CarData carData, Duration duration, double boostBudget) {
+        return simulateAcceleration(carData, duration, boostBudget, Double.MAX_VALUE);
     }
 
-    public static DistancePlot simulateAcceleration(AgentInput input, Duration duration, double boostBudget, double flipCutoffDistance) {
+    public static DistancePlot simulateAcceleration(CarData carData, Duration duration, double boostBudget, double flipCutoffDistance) {
 
-        double currentSpeed = input.getMyVelocity().magnitude();
-        DistancePlot plot = new DistancePlot(new DistanceTimeSpeed(0, input.time, currentSpeed));
+        double currentSpeed = carData.velocity.magnitude();
+        DistancePlot plot = new DistancePlot(new DistanceTimeSpeed(0, carData.time, currentSpeed));
 
         double boostRemaining = boostBudget;
 
@@ -94,7 +95,7 @@ public class AccelerationModel {
                 secondsSoFar += FRONT_FLIP_SECONDS;
                 distanceSoFar += hypotheticalFrontFlipDistance;
                 currentSpeed += FRONT_FLIP_SPEED_BOOST;
-                plot.addSlice(new DistanceTimeSpeed(distanceSoFar, input.time.plus(TimeUtil.toDuration(secondsSoFar)), currentSpeed));
+                plot.addSlice(new DistanceTimeSpeed(distanceSoFar, carData.time.plus(TimeUtil.toDuration(secondsSoFar)), currentSpeed));
                 continue;
             }
 
@@ -106,12 +107,12 @@ public class AccelerationModel {
             distanceSoFar += currentSpeed * TIME_STEP;
             secondsSoFar += TIME_STEP;
             boostRemaining -= BOOST_CONSUMED_PER_SECOND * TIME_STEP;
-            plot.addSlice(new DistanceTimeSpeed(distanceSoFar, input.time.plus(TimeUtil.toDuration(secondsSoFar)), currentSpeed));
+            plot.addSlice(new DistanceTimeSpeed(distanceSoFar, carData.time.plus(TimeUtil.toDuration(secondsSoFar)), currentSpeed));
 
             if (currentSpeed >= SUPERSONIC_SPEED) {
                 // It gets boring from now on. Put a slice at the very end.
                 double secondsRemaining = secondsToSimulate - secondsSoFar;
-                plot.addSlice(new DistanceTimeSpeed(distanceSoFar + SUPERSONIC_SPEED * secondsRemaining, input.time.plus(duration), SUPERSONIC_SPEED));
+                plot.addSlice(new DistanceTimeSpeed(distanceSoFar + SUPERSONIC_SPEED * secondsRemaining, carData.time.plus(duration), SUPERSONIC_SPEED));
                 break;
             }
         }

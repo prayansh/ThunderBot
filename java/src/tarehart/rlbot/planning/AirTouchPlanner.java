@@ -3,6 +3,7 @@ package tarehart.rlbot.planning;
 import mikera.vectorz.Vector;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
+import tarehart.rlbot.CarData;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.TimeUtil;
 
@@ -61,32 +62,32 @@ public class AirTouchPlanner {
         checklist.onTheGround = input.getMyPosition().z < CAR_BASE_HEIGHT + 0.03; // Add a little wiggle room
     }
 
-    public static boolean isVerticallyAccessible(AgentInput input, SpaceTime intercept) {
-        double secondsTillIntercept = TimeUtil.secondsBetween(input.time, intercept.time);
+    public static boolean isVerticallyAccessible(CarData carData, SpaceTime intercept) {
+        double secondsTillIntercept = TimeUtil.secondsBetween(carData.time, intercept.time);
 
         if (intercept.space.z < NEEDS_AERIAL_THRESHOLD) {
             double tMinus = getJumpLaunchCountdown(intercept.space.z, secondsTillIntercept);
             return tMinus >= -0.1;
         }
 
-        if (input.getMyBoost() > BOOST_NEEDED_FOR_AERIAL) {
+        if (carData.boost > BOOST_NEEDED_FOR_AERIAL) {
             double tMinus = getAerialLaunchCountdown(intercept.space.z, secondsTillIntercept);
             return tMinus >= -0.1;
         }
         return false;
     }
 
-    public static boolean isJumpHitAccessible(AgentInput input, SpaceTime intercept) {
+    public static boolean isJumpHitAccessible(CarData carData, SpaceTime intercept) {
         if (intercept.space.z > MAX_JUMP_HIT) {
             return false;
         }
 
-        double secondsTillIntercept = TimeUtil.secondsBetween(input.time, intercept.time);
+        double secondsTillIntercept = TimeUtil.secondsBetween(carData.time, intercept.time);
         double tMinus = getJumpLaunchCountdown(intercept.space.z, secondsTillIntercept);
         return tMinus >= -0.1;
     }
 
-    public static boolean isFlipHitAccessible(AgentInput input, SpaceTime intercept) {
+    public static boolean isFlipHitAccessible(CarData carData, SpaceTime intercept) {
         return intercept.space.z <= MAX_FLIP_HIT;
     }
 
@@ -100,7 +101,7 @@ public class AirTouchPlanner {
         return secondsTillIntercept - expectedJumpSeconds;
     }
 
-    public static double getBoostBudget(AgentInput input) {
-        return input.getMyBoost() - BOOST_NEEDED_FOR_AERIAL - 5;
+    public static double getBoostBudget(CarData carData) {
+        return carData.boost - BOOST_NEEDED_FOR_AERIAL - 5;
     }
 }

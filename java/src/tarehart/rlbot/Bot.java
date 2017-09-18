@@ -18,7 +18,7 @@ import tarehart.rlbot.steps.wall.DescendFromWallStep;
 import tarehart.rlbot.steps.wall.MountWallStep;
 import tarehart.rlbot.steps.wall.WallTouchStep;
 import tarehart.rlbot.tuning.BotLog;
-import tarehart.rlbot.tuning.Telemetry;
+import tarehart.rlbot.tuning.BallTelemetry;
 import tarehart.rlbot.ui.Readout;
 
 import javax.swing.*;
@@ -52,7 +52,7 @@ public class Bot {
 
         // Just for now, always calculate ballpath so we can learn some stuff.
         BallPath ballPath = arenaModel.simulateBall(new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity), Duration.ofSeconds(5));
-        Telemetry.forTeam(input.team).setBallPath(ballPath);
+        BallTelemetry.setPath(ballPath);
 
         //BallRecorder.recordPosition(new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity));
         //Optional<SpaceTimeVelocity> afterBounce = ballPath.getMotionAfterWallBounce(1);
@@ -67,8 +67,8 @@ public class Bot {
             BotLog.println("[Sitch] " + situation, input.team);
         }
         previousSituation = situation;
-        readout.update(input, posture, situation, BotLog.collect(input.team), Telemetry.forTeam(input.team).getBallPath());
-        Telemetry.forTeam(team).reset();
+        readout.update(input, posture, situation, BotLog.collect(input.team), BallTelemetry.getPath().get());
+        BallTelemetry.reset();
         return output;
     }
 

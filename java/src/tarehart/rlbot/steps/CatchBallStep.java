@@ -4,6 +4,7 @@ import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.CarData;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.*;
@@ -24,12 +25,14 @@ public class CatchBallStep implements Step {
 
     public Optional<AgentOutput> getOutput(AgentInput input) {
 
+        CarData carData = input.getMyCarData();
+
         if (firstFrame) {
             firstFrame = false;
             return Optional.of(playCatch(input, latestCatchLocation));
         }
 
-        double distance = input.getMyPosition().distance(input.ballPosition);
+        double distance = carData.position.distance(input.ballPosition);
 
         if (distance < 2.5 || confusionLevel > 3) {
             isComplete = true;
@@ -37,7 +40,7 @@ public class CatchBallStep implements Step {
         }
 
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(3));
-        Optional<SpaceTime> catchOpportunity = SteerUtil.getCatchOpportunity(input, ballPath, AirTouchPlanner.getBoostBudget(input));
+        Optional<SpaceTime> catchOpportunity = SteerUtil.getCatchOpportunity(carData, ballPath, AirTouchPlanner.getBoostBudget(input));
 
         // Weed out any intercepts after a catch opportunity. Should just catch it.
         if (catchOpportunity.isPresent()) {

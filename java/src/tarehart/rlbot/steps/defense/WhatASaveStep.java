@@ -4,6 +4,7 @@ import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.CarData;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.math.VectorUtil;
@@ -28,6 +29,7 @@ public class WhatASaveStep implements Step {
             return plan.getOutput(input);
         }
 
+        CarData carData = input.getMyCarData();
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(5));
         Goal goal = GoalUtil.getOwnGoal(input.team);
         Optional<SpaceTimeVelocity> currentThreat = GoalUtil.predictGoalEvent(goal, ballPath);
@@ -46,11 +48,11 @@ public class WhatASaveStep implements Step {
 
         }
 
-        double distance = VectorUtil.flatDistance(input.getMyPosition(), threat.getSpace());
-        DistancePlot plot = AccelerationModel.simulateAcceleration(input, Duration.ofSeconds(5), input.getMyBoost(), distance - 15);
+        double distance = VectorUtil.flatDistance(carData.position, threat.getSpace());
+        DistancePlot plot = AccelerationModel.simulateAcceleration(carData, Duration.ofSeconds(5), input.getMyBoost(), distance - 15);
 
 
-        Optional<SpaceTime> collisionWithBall = getCollisionWithBall(input, ballPath);
+        Optional<SpaceTime> collisionWithBall = getCollisionWithBall(carData, ballPath);
         if (collisionWithBall.isPresent() && Duration.between(collisionWithBall.get().time, threat.getTime()).toMillis() > 500) {
             // TODO: Swerve away from ball to avoid own-goaling it
             BotLog.println("I should be swerving...", input.team);
@@ -68,7 +70,7 @@ public class WhatASaveStep implements Step {
 
          */
 
-        SpaceTime intercept = SteerUtil.getInterceptOpportunityAssumingMaxAccel(input, ballPath, input.getMyBoost()).orElse(threat.toSpaceTime());
+        SpaceTime intercept = SteerUtil.getInterceptOpportunityAssumingMaxAccel(carData, ballPath, input.getMyBoost()).orElse(threat.toSpaceTime());
 
         Vector3 carToIntercept = (Vector3) intercept.space.subCopy(input.getMyPosition());
         double carApproachVsBallApproach = SteerUtil.getCorrectionAngleRad(VectorUtil.flatten(carToIntercept), VectorUtil.flatten(input.ballVelocity));
@@ -104,19 +106,19 @@ public class WhatASaveStep implements Step {
     /**
      * Assumes that the car proceeds along its nose vector without turning.
      */
-    private Optional<SpaceTime> getCollisionWithBall(AgentInput input, BallPath ballPath) {
-        Optional<SpaceTime> maxSpeedIntercept = SteerUtil.getInterceptOpportunityAssumingMaxAccel(input, ballPath, input.getMyBoost());
+    private Optional<SpaceTime> getCollisionWithBall(CarData carData, BallPath ballPath) {
+        Optional<SpaceTime> maxSpeedIntercept = SteerUtil.getInterceptOpportunityAssumingMaxAccel(carData, ballPath, carData.boost);
         if (maxSpeedIntercept.isPresent()) {
             SpaceTime intercept = maxSpeedIntercept.get();
-            Vector2 carToIntercept = VectorUtil.flatten((Vector3) intercept.space.subCopy(input.getMyPosition()));
-            Vector2 noseWithSameLength = (Vector2) VectorUtil.flatten(input.getMyRotation().noseVector).normaliseCopy().scaleCopy(carToIntercept.magnitude());
+            Vector2 carToIntercept = VectorUtil.flatten((Vector3) intercept.space.subCopy(carData.position));
+            Vector2 noseWithSameLength = (Vector2) VectorUtil.flatten(carData.rotation.noseVector).normaliseCopy().scaleCopy(carToIntercept.magnitude());
             double passingDistance = carToIntercept.distance(noseWithSameLength);
             if (passingDistance > 2.5) {
                 return Optional.empty();
             }
             Vector3 longNose = new Vector3(noseWithSameLength.x, noseWithSameLength.y, 0);
 
-            return Optional.of(new SpaceTime(input.getMyPosition().addCopy(longNose), intercept.time));
+            return Optional.of(new SpaceTime(carData.position.addCopy(longNose), intercept.time));
         }
         return Optional.empty();
     }
