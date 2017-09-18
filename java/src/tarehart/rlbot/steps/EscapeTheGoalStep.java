@@ -3,6 +3,7 @@ package tarehart.rlbot.steps;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.CarData;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.planning.SteerUtil;
 
@@ -12,12 +13,13 @@ public class EscapeTheGoalStep implements Step {
 
     public Optional<AgentOutput> getOutput(AgentInput input) {
 
-        if (!ArenaModel.isBehindGoalLine(input.getMyPosition())) {
+        CarData car = input.getMyCarData();
+        if (!ArenaModel.isBehindGoalLine(car.position)) {
             return Optional.empty();
         }
 
         Vector3 target = new Vector3(0, 0, 0);
-        return Optional.of(SteerUtil.steerTowardGroundPosition(input, target).withBoost(false));
+        return Optional.of(SteerUtil.steerTowardGroundPosition(car, target).withBoost(false));
     }
 
     @Override

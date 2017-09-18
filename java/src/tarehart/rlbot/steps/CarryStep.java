@@ -4,6 +4,7 @@ import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.CarData;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.math.TimeUtil;
@@ -64,29 +65,28 @@ public class CarryStep implements Step {
 
         LocalDateTime hurryUp = input.time.plus(TimeUtil.toDuration(leadSeconds));
 
-        AgentOutput dribble = SteerUtil.getThereOnTime(input, new SpaceTime(new Vector3(pressurePoint.x, pressurePoint.y, 0), hurryUp));
+        AgentOutput dribble = SteerUtil.getThereOnTime(input.getMyCarData(), new SpaceTime(new Vector3(pressurePoint.x, pressurePoint.y, 0), hurryUp));
         return Optional.of(dribble);
     }
 
-    private static Vector3 positionInCarCoordinates(AgentInput input, Vector3 worldPosition) {
+    private static Vector3 positionInCarCoordinates(CarData car, Vector3 worldPosition) {
         // We will assume that the car is flat on the ground.
 
-        Vector3 carPosition = input.getMyPosition();
-
         // We will treat (0, 1) as the car's natural orientation.
-        double carYaw = SteerUtil.getCorrectionAngleRad(new Vector2(0, 1), VectorUtil.flatten(input.getMyRotation().noseVector));
+        double carYaw = SteerUtil.getCorrectionAngleRad(new Vector2(0, 1), VectorUtil.flatten(car.rotation.noseVector));
 
-        Vector2 carToPosition = VectorUtil.flatten((Vector3) worldPosition.subCopy(carPosition));
+        Vector2 carToPosition = VectorUtil.flatten((Vector3) worldPosition.subCopy(car.position));
 
         Vector2 carToPositionRotated = VectorUtil.rotateVector(carToPosition, -carYaw);
 
-        double zDiff = worldPosition.z - carPosition.z;
+        double zDiff = worldPosition.z - car.position.z;
         return new Vector3(carToPositionRotated.x, carToPositionRotated.y, zDiff);
     }
 
     public static boolean canCarry(AgentInput input, boolean log) {
 
-        Vector3 ballInCarCoordinates = positionInCarCoordinates(input, input.ballPosition);
+        CarData car = input.getMyCarData();
+        Vector3 ballInCarCoordinates = positionInCarCoordinates(car, input.ballPosition);
 
         double xMag = Math.abs(ballInCarCoordinates.x);
         if (xMag > MAX_X_DIFF) {
@@ -124,7 +124,7 @@ public class CarryStep implements Step {
             return false;
         }
 
-        if (VectorUtil.flatDistance(input.getMyVelocity(), input.ballVelocity) > 10) {
+        if (VectorUtil.flatDistance(car.velocity, input.ballVelocity) > 10) {
             if (log) {
                 BotLog.println("Velocity too different to carry.", input.team);
             }

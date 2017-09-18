@@ -3,6 +3,7 @@ package tarehart.rlbot.steps.strikes;
 import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
+import tarehart.rlbot.CarData;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.planning.Goal;
@@ -21,16 +22,16 @@ public class KickInGeneralDirection implements KickStrategy {
 
     @Override
     public Vector3 getKickDirection(AgentInput input) {
-        return getDirection(input, input.ballPosition);
+        return getDirection(input.getMyCarData(), input.ballPosition);
     }
 
     @Override
     public Vector3 getKickDirection(AgentInput input, SpaceTimeVelocity ballIntercept) {
-        return getDirection(input, ballIntercept.space);
+        return getDirection(input.getMyCarData(), ballIntercept.space);
     }
 
-    private Vector3 getDirection(AgentInput input, Vector3 ballPosition) {
-        Vector2 easyKick = VectorUtil.flatten((Vector3) ballPosition.subCopy(input.getMyPosition()));
+    private Vector3 getDirection(CarData car, Vector3 ballPosition) {
+        Vector2 easyKick = VectorUtil.flatten((Vector3) ballPosition.subCopy(car.position));
 
         double correctionRad = SteerUtil.getCorrectionAngleRad(easyKick, direction);
         if (Math.abs(correctionRad) < toleranceInRadians) {

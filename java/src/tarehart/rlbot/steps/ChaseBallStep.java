@@ -25,9 +25,9 @@ public class ChaseBallStep implements Step {
             return plan.getOutput(input);
         }
 
-        CarData carData = input.getMyCarData();
+        CarData car = input.getMyCarData();
 
-        if (carData.position.z > 1 && !ArenaModel.isCarNearWall(input)) {
+        if (car.position.z > 1 && !ArenaModel.isCarNearWall(car)) {
             return Optional.empty();
         }
 
@@ -35,13 +35,13 @@ public class ChaseBallStep implements Step {
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(3));
 
         if (input.getEnemyCarData().position.distance(input.ballPosition) > 50) {
-            if (carData.boost < 10 && GetBoostStep.seesOpportunisticBoost(input)) {
+            if (car.boost < 10 && GetBoostStep.seesOpportunisticBoost(car)) {
                 plan = new Plan().withStep(new GetBoostStep());
                 plan.begin();
                 return plan.getOutput(input);
             }
 
-            Optional<SpaceTime> catchOpportunity = SteerUtil.getCatchOpportunity(carData, ballPath, AirTouchPlanner.getBoostBudget(carData));
+            Optional<SpaceTime> catchOpportunity = SteerUtil.getCatchOpportunity(car, ballPath, AirTouchPlanner.getBoostBudget(car));
             if (catchOpportunity.isPresent()) {
                 plan = new Plan().withStep(new CatchBallStep(catchOpportunity.get())).withStep(new DribbleStep());
                 plan.begin();
@@ -57,7 +57,7 @@ public class ChaseBallStep implements Step {
             return output;
         }
 
-        return Optional.of(SteerUtil.steerTowardGroundPosition(input, input.ballPosition));
+        return Optional.of(SteerUtil.steerTowardGroundPosition(car, input.ballPosition));
     }
 
     @Override

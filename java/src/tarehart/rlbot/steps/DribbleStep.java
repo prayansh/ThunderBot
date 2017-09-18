@@ -4,6 +4,7 @@ import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.CarData;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.math.TimeUtil;
@@ -32,12 +33,14 @@ public class DribbleStep implements Step {
             return plan.getOutput(input);
         }
 
+        CarData car = input.getMyCarData();
+
         if (!canDribble(input, true)) {
             return Optional.empty();
         }
 
-        Vector2 myPositonFlat = VectorUtil.flatten(input.getMyPosition());
-        Vector2 myDirectionFlat = VectorUtil.flatten(input.getMyRotation().noseVector);
+        Vector2 myPositonFlat = VectorUtil.flatten(car.position);
+        Vector2 myDirectionFlat = VectorUtil.flatten(car.rotation.noseVector);
         Vector2 ballPositionFlat = VectorUtil.flatten(input.ballPosition);
         Vector2 ballVelocityFlat = VectorUtil.flatten(input.ballVelocity);
         Vector2 toBallFlat = (Vector2) ballPositionFlat.subCopy(myPositonFlat);
@@ -94,14 +97,14 @@ public class DribbleStep implements Step {
             fallBack.normalise();
             fallBack.scale(5);
 
-            return Optional.of(SteerUtil.getThereOnTime(input, new SpaceTime(new Vector3(fallBack.x, fallBack.y, 0), hurryUp)));
+            return Optional.of(SteerUtil.getThereOnTime(car, new SpaceTime(new Vector3(fallBack.x, fallBack.y, 0), hurryUp)));
         }
 
-        AgentOutput dribble = SteerUtil.getThereOnTime(input, new SpaceTime(new Vector3(pressurePoint.x, pressurePoint.y, 0), hurryUp));
+        AgentOutput dribble = SteerUtil.getThereOnTime(car, new SpaceTime(new Vector3(pressurePoint.x, pressurePoint.y, 0), hurryUp));
         if (carToPressurePoint.normaliseCopy().dotProduct(ballToGoal.normaliseCopy()) > .80 &&
                 flatDistance > 3 && flatDistance < 5 && input.ballPosition.z < 2 && approachDistance < 2
                 && SteerUtil.getCorrectionAngleRad(myDirectionFlat, carToPressurePoint) < Math.PI / 12) {
-            if (input.getMyBoost() > 0) {
+            if (car.boost > 0) {
                 dribble.withAcceleration(1).withBoost();
             } else {
                 plan = SetPieces.frontFlip();
@@ -114,7 +117,8 @@ public class DribbleStep implements Step {
 
     public static boolean canDribble(AgentInput input, boolean log) {
 
-        Vector3 ballToMe = (Vector3) input.getMyPosition().subCopy(input.ballPosition);
+        CarData car = input.getMyCarData();
+        Vector3 ballToMe = (Vector3) car.position.subCopy(input.ballPosition);
 
         if (ballToMe.magnitude() > DRIBBLE_DISTANCE) {
             // It got away from us
@@ -124,7 +128,7 @@ public class DribbleStep implements Step {
             return false;
         }
 
-        if (input.ballPosition.subCopy(input.getMyPosition()).normaliseCopy().dotProduct(
+        if (input.ballPosition.subCopy(car.position).normaliseCopy().dotProduct(
                 GoalUtil.getOwnGoal(input.team).navigationSpline.getLocation().subCopy(input.ballPosition).normaliseCopy()) > .9) {
             // Wrong side of ball
             if (log) {
@@ -133,7 +137,7 @@ public class DribbleStep implements Step {
             return false;
         }
 
-        if (VectorUtil.flatDistance(input.getMyVelocity(), input.ballVelocity) > 30) {
+        if (VectorUtil.flatDistance(car.velocity, input.ballVelocity) > 30) {
             if (log) {
                 BotLog.println("Velocity too different to dribble.", input.team);
             }
@@ -147,14 +151,14 @@ public class DribbleStep implements Step {
 //            return false;
 //        }
 
-        if (BallPhysics.getGroundBounceEnergy(input) > 50) {
+        if (BallPhysics.getGroundBounceEnergy(new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity)) > 50) {
             if (log) {
                 BotLog.println("Ball bouncing too hard to dribble", input.team);
             }
             return false;
         }
 
-        if (input.getMyPosition().z > 5) {
+        if (car.position.z > 5) {
             if (log) {
                 BotLog.println("Car too high to dribble", input.team);
             }

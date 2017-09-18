@@ -37,7 +37,7 @@ public abstract class OrientToPlaneStep implements Step {
     public Optional<AgentOutput> getOutput(AgentInput input) {
 
         if (plan == null) {
-            plan = makeOrientationPlan(input.getMyRotation(), input.team);
+            plan = makeOrientationPlan(input.getMyCarData().rotation, input.team);
             plan.begin();
         }
 

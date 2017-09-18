@@ -122,46 +122,6 @@ public class AgentInput {
         return new Vector3(-location.X, location.Y, location.Z);
     }
 
-    /**
-     * @deprecated Use getMyCarData().position instead.
-     */
-    @Deprecated
-    public Vector3 getMyPosition() {
-        return getMyCarData().position;
-    }
-
-    /**
-     * @deprecated Use getMyCarData().velocity instead.
-     */
-    @Deprecated
-    public Vector3 getMyVelocity() {
-        return getMyCarData().velocity;
-    }
-
-    /**
-     * @deprecated Use getMyCarData().rotation instead.
-     */
-    @Deprecated
-    public CarRotation getMyRotation() {
-        return getMyCarData().rotation;
-    }
-
-    /**
-     * @deprecated Use getMyCarData().boost instead.
-     */
-    @Deprecated
-    public double getMyBoost() {
-        return getMyCarData().boost;
-    }
-
-    /**
-     * @deprecated Use getEnemyCarData().position instead.
-     */
-    @Deprecated
-    public Vector3 getEnemyPosition() {
-        return getEnemyCarData().position;
-    }
-
     public CarData getMyCarData() {
         return team == Bot.Team.BLUE ? blueCar : orangeCar;
     }

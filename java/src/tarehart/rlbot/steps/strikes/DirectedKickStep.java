@@ -4,6 +4,7 @@ import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.CarData;
 import tarehart.rlbot.math.*;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.BallPhysics;
@@ -30,7 +31,8 @@ public class DirectedKickStep implements Step {
     }
 
     public static boolean canMakeDirectedKick(AgentInput input) {
-        return BallPhysics.getGroundBounceEnergy(input) < 50;
+        return BallPhysics.getGroundBounceEnergy(
+                new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity)) < 50;
     }
 
     public Optional<AgentOutput> getOutput(AgentInput input) {
@@ -39,13 +41,13 @@ public class DirectedKickStep implements Step {
             return plan.getOutput(input);
         }
 
-
+        CarData car = input.getMyCarData();
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(4));
-        DistancePlot fullAcceleration = AccelerationModel.simulateAcceleration(input, Duration.ofSeconds(4), input.getMyBoost(), 0);
+        DistancePlot fullAcceleration = AccelerationModel.simulateAcceleration(car, Duration.ofSeconds(4), car.boost, 0);
 
         Vector3 interceptModifier = (Vector3) kickStrategy.getKickDirection(input).normaliseCopy().scaleCopy(-2);
 
-        Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(input, ballPath, fullAcceleration, interceptModifier, AirTouchPlanner::isJumpHitAccessible);
+        Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(car, ballPath, fullAcceleration, interceptModifier, AirTouchPlanner::isJumpHitAccessible);
         Optional<SpaceTimeVelocity> ballMotion = interceptOpportunity.flatMap(inter -> ballPath.getMotionAt(inter.time));
 
 
@@ -66,9 +68,9 @@ public class DirectedKickStep implements Step {
         Vector3 strikeForceVector = getStrikeForce(input, fullAcceleration, motion);
 
         Vector2 strikeForceFlat = VectorUtil.flatten(strikeForceVector);
-        Vector2 carToIntercept = VectorUtil.flatten((Vector3) motion.space.subCopy(input.getMyPosition()));
+        Vector2 carToIntercept = VectorUtil.flatten((Vector3) motion.space.subCopy(car.position));
         double approachCorrection = SteerUtil.getCorrectionAngleRad(carToIntercept, strikeForceFlat);
-        double orientationCorrection = SteerUtil.getCorrectionAngleRad(input, motion.space);
+        double orientationCorrection = SteerUtil.getCorrectionAngleRad(car, motion.space);
 
 
         Vector2 intercept = VectorUtil.flatten(motion.getSpace());
@@ -92,7 +94,7 @@ public class DirectedKickStep implements Step {
                 Vector2 waypoint = (Vector2) intercept.addCopy(VectorUtil.flatten(strikePointModifier));
 
                 // Line up for a nose hit
-                circleTurnOption = SteerUtil.getWaypointForCircleTurn(input, fullAcceleration, waypoint, (Vector2) strikeForceFlat.normaliseCopy());
+                circleTurnOption = SteerUtil.getWaypointForCircleTurn(car, fullAcceleration, waypoint, (Vector2) strikeForceFlat.normaliseCopy());
             }
 
             if (!circleTurnOption.isPresent()) {
@@ -103,11 +105,11 @@ public class DirectedKickStep implements Step {
         if (sideFlipMode) {
 
             Vector2 launchPad = getSideFlipLaunchPad(intercept, strikeForceFlat);
-            circleTurnOption = getSideFlipWaypoint(input, launchPad, carToIntercept, strikeForceFlat, fullAcceleration);
+            circleTurnOption = getSideFlipWaypoint(car, launchPad, carToIntercept, strikeForceFlat, fullAcceleration);
 
             // If we get here, we can't make the turn for a nose hit, so we'll work on side flips.
             double sideFlipSecs = 0.3;
-            Vector2 futureCarPosition = VectorUtil.flatten(input.getMyPosition().addCopy(input.getMyVelocity().scaleCopy(sideFlipSecs)));
+            Vector2 futureCarPosition = VectorUtil.flatten(car.position.addCopy(car.velocity.scaleCopy(sideFlipSecs)));
             double flipArrival = futureCarPosition.distance(launchPad);
             double flipArrivalSecs = TimeUtil.secondsBetween(input.time, motion.getTime());
             if (flipArrival < 5) {
@@ -125,9 +127,10 @@ public class DirectedKickStep implements Step {
     }
 
     private Optional<AgentOutput> getNavigation(AgentInput input, Optional<Vector2> circleTurnOption) {
+        CarData car = input.getMyCarData();
         if (circleTurnOption.isPresent()) {
             Vector2 circleTurn = circleTurnOption.get();
-            Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, circleTurn);
+            Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(car, circleTurn);
             if (sensibleFlip.isPresent()) {
                 BotLog.println("Front flip toward directed kick", input.team);
                 this.plan = sensibleFlip.get();
@@ -135,7 +138,7 @@ public class DirectedKickStep implements Step {
                 return this.plan.getOutput(input);
             }
 
-            return Optional.of(SteerUtil.steerTowardGroundPosition(input, circleTurn));
+            return Optional.of(SteerUtil.steerTowardGroundPosition(car, circleTurn));
         }
 
         BotLog.println("Failing directed kick because we have no circle turns.", input.team);
@@ -154,13 +157,13 @@ public class DirectedKickStep implements Step {
         return strikeForceVector;
     }
 
-    private Optional<Vector2> getSideFlipWaypoint(AgentInput input, Vector2 launchPad, Vector2 carToIntercept, Vector2 strikeForce, DistancePlot fullAcceleration) {
+    private Optional<Vector2> getSideFlipWaypoint(CarData car, Vector2 launchPad, Vector2 carToIntercept, Vector2 strikeForce, DistancePlot fullAcceleration) {
 
         Vector2 facingForSideFlip = VectorUtil.orthogonal(strikeForce);
         if (facingForSideFlip.dotProduct(carToIntercept) < 0) {
             facingForSideFlip.scale(-1);
         }
-        return SteerUtil.getWaypointForCircleTurn(input, fullAcceleration, launchPad, (Vector2) facingForSideFlip.normaliseCopy());
+        return SteerUtil.getWaypointForCircleTurn(car, fullAcceleration, launchPad, (Vector2) facingForSideFlip.normaliseCopy());
     }
 
     private Vector2 getSideFlipLaunchPad(Vector2 intercept, Vector2 strikeForce) {

@@ -16,6 +16,7 @@ import com.bulletphysics.linearmath.Transform;
 import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
+import tarehart.rlbot.CarData;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.planning.Goal;
@@ -286,9 +287,8 @@ public class ArenaModel {
         return body;
     }
 
-    public static boolean isCarNearWall(AgentInput input) {
-        Vector3 position = input.getMyPosition();
-        return getDistanceFromWall(position) < 2;
+    public static boolean isCarNearWall(CarData car) {
+        return getDistanceFromWall(car.position) < 2;
     }
 
     public static double getDistanceFromWall(Vector3 position) {
@@ -298,7 +298,7 @@ public class ArenaModel {
         return Math.min(Math.min(sideWall, backWall), diagonal);
     }
 
-    public static boolean isCarOnWall(AgentInput input) {
-        return isCarNearWall(input) && Math.abs(input.getMyRotation().roofVector.z) < 0.05;
+    public static boolean isCarOnWall(CarData car) {
+        return isCarNearWall(car) && Math.abs(car.rotation.roofVector.z) < 0.05;
     }
 }

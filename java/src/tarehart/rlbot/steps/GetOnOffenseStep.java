@@ -4,6 +4,7 @@ import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.CarData;
 import tarehart.rlbot.math.*;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
@@ -50,20 +51,22 @@ public class GetOnOffenseStep implements Step {
             target.sub(goalToBallNormal.scaleCopy(10));
         }
 
-        double flatDistance = VectorUtil.flatDistance(target, input.getMyPosition());
+        CarData car = input.getMyCarData();
+
+        double flatDistance = VectorUtil.flatDistance(target, car.position);
         if (flatDistance < 20 && GetOnDefenseStep.getWrongSidedness(input) < 0) {
             return Optional.empty();
         }
         Vector3 targetToBallFuture = (Vector3) futureMotion.getSpace().subCopy(target);
 
-        DistancePlot plot = AccelerationModel.simulateAcceleration(input, Duration.ofSeconds(4), 0);
+        DistancePlot plot = AccelerationModel.simulateAcceleration(car, Duration.ofSeconds(4), 0);
 
 
-        Optional<Vector2> circleTurnOption = SteerUtil.getWaypointForCircleTurn(input, plot, VectorUtil.flatten(target), (Vector2) VectorUtil.flatten(targetToBallFuture).normaliseCopy());
+        Optional<Vector2> circleTurnOption = SteerUtil.getWaypointForCircleTurn(car, plot, VectorUtil.flatten(target), (Vector2) VectorUtil.flatten(targetToBallFuture).normaliseCopy());
 
         if (circleTurnOption.isPresent()) {
             Vector2 circleTurn = circleTurnOption.get();
-            Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, circleTurn);
+            Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(car, circleTurn);
             if (sensibleFlip.isPresent()) {
                 BotLog.println("Front flip onto offense", input.team);
                 this.plan = sensibleFlip.get();
@@ -71,10 +74,10 @@ public class GetOnOffenseStep implements Step {
                 return this.plan.getOutput(input);
             }
 
-            return Optional.of(SteerUtil.steerTowardGroundPosition(input, circleTurn).withBoost(false));
+            return Optional.of(SteerUtil.steerTowardGroundPosition(car, circleTurn).withBoost(false));
         }
 
-        return Optional.of(SteerUtil.steerTowardGroundPosition(input, target).withBoost(false));
+        return Optional.of(SteerUtil.steerTowardGroundPosition(car, target).withBoost(false));
     }
 
     @Override

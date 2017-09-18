@@ -29,7 +29,7 @@ public class WhatASaveStep implements Step {
             return plan.getOutput(input);
         }
 
-        CarData carData = input.getMyCarData();
+        CarData car = input.getMyCarData();
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(5));
         Goal goal = GoalUtil.getOwnGoal(input.team);
         Optional<SpaceTimeVelocity> currentThreat = GoalUtil.predictGoalEvent(goal, ballPath);
@@ -41,18 +41,18 @@ public class WhatASaveStep implements Step {
 
         if (whichPost == null) {
 
-            Vector3 carToThreat = (Vector3) threat.space.subCopy(input.getMyPosition());
+            Vector3 carToThreat = (Vector3) threat.space.subCopy(car.position);
             double carApproachVsBallApproach = SteerUtil.getCorrectionAngleRad(VectorUtil.flatten(carToThreat), VectorUtil.flatten(input.ballVelocity));
             // When carApproachVsBallApproach < 0, car is to the right of the ball, angle wise. Right is positive X when we're on the positive Y side of the field.
             whichPost = Math.signum(-carApproachVsBallApproach * threat.space.y);
 
         }
 
-        double distance = VectorUtil.flatDistance(carData.position, threat.getSpace());
-        DistancePlot plot = AccelerationModel.simulateAcceleration(carData, Duration.ofSeconds(5), input.getMyBoost(), distance - 15);
+        double distance = VectorUtil.flatDistance(car.position, threat.getSpace());
+        DistancePlot plot = AccelerationModel.simulateAcceleration(car, Duration.ofSeconds(5), car.boost, distance - 15);
 
 
-        Optional<SpaceTime> collisionWithBall = getCollisionWithBall(carData, ballPath);
+        Optional<SpaceTime> collisionWithBall = getCollisionWithBall(car, ballPath);
         if (collisionWithBall.isPresent() && Duration.between(collisionWithBall.get().time, threat.getTime()).toMillis() > 500) {
             // TODO: Swerve away from ball to avoid own-goaling it
             BotLog.println("I should be swerving...", input.team);
@@ -70,12 +70,12 @@ public class WhatASaveStep implements Step {
 
          */
 
-        SpaceTime intercept = SteerUtil.getInterceptOpportunityAssumingMaxAccel(carData, ballPath, input.getMyBoost()).orElse(threat.toSpaceTime());
+        SpaceTime intercept = SteerUtil.getInterceptOpportunityAssumingMaxAccel(car, ballPath, car.boost).orElse(threat.toSpaceTime());
 
-        Vector3 carToIntercept = (Vector3) intercept.space.subCopy(input.getMyPosition());
+        Vector3 carToIntercept = (Vector3) intercept.space.subCopy(car.position);
         double carApproachVsBallApproach = SteerUtil.getCorrectionAngleRad(VectorUtil.flatten(carToIntercept), VectorUtil.flatten(input.ballVelocity));
         if (Math.abs(carApproachVsBallApproach) > Math.PI / 6 &&
-                Math.abs(SteerUtil.getCorrectionAngleRad(VectorUtil.flatten(input.getMyRotation().noseVector), VectorUtil.flatten(carToIntercept))) < Math.PI / 12) {
+                Math.abs(SteerUtil.getCorrectionAngleRad(VectorUtil.flatten(car.rotation.noseVector), VectorUtil.flatten(carToIntercept))) < Math.PI / 12) {
 
             plan = new Plan(Plan.Posture.SAVE).withStep(new InterceptStep(new Vector3(0, Math.signum(goal.navigationSpline.getLocation().y) * .7, 0)));
             plan.begin();
@@ -86,10 +86,10 @@ public class WhatASaveStep implements Step {
         Vector2 waypoint = VectorUtil.flatten(intercept.space);
         waypoint.sub(facing.scaleCopy(2));
 
-        Optional<Vector2> circleTurnOption = SteerUtil.getWaypointForCircleTurn(input, plot, waypoint, (Vector2) facing.normaliseCopy());
+        Optional<Vector2> circleTurnOption = SteerUtil.getWaypointForCircleTurn(car, plot, waypoint, (Vector2) facing.normaliseCopy());
         if (circleTurnOption.isPresent()) {
             Vector2 circleTurn = circleTurnOption.get();
-            Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, circleTurn);
+            Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(car, circleTurn);
             if (sensibleFlip.isPresent()) {
                 BotLog.println("Front flip for Save", input.team);
                 this.plan = sensibleFlip.get();
@@ -97,10 +97,10 @@ public class WhatASaveStep implements Step {
                 return this.plan.getOutput(input);
             }
 
-            return Optional.of(SteerUtil.steerTowardGroundPosition(input, circleTurn));
+            return Optional.of(SteerUtil.steerTowardGroundPosition(car, circleTurn));
         }
 
-        return Optional.of(SteerUtil.steerTowardGroundPosition(input, waypoint));
+        return Optional.of(SteerUtil.steerTowardGroundPosition(car, waypoint));
     }
 
     /**

@@ -55,7 +55,7 @@ public class InterceptStep implements Step {
         getFlipHitIntercept(carData, ballPath, fullAcceleration).ifPresent(interceptOptions::add);
 
         Optional<Intercept> chosenIntercept = interceptOptions.stream().sorted(Comparator.comparing(Intercept::getTime)).findFirst();
-        Optional<Plan> launchPlan = chosenIntercept.flatMap(cept -> InterceptPlanner.planImmediateLaunch(input, cept.toSpaceTime()));
+        Optional<Plan> launchPlan = chosenIntercept.flatMap(cept -> InterceptPlanner.planImmediateLaunch(input.getMyCarData(), cept.toSpaceTime()));
         if (launchPlan.isPresent()) {
             plan = launchPlan.get();
             plan.begin();
@@ -109,8 +109,9 @@ public class InterceptStep implements Step {
     private AgentOutput getThereOnTime(AgentInput input, SpaceTime groundPosition, double reservedBoost) {
 
         Optional<AgentOutput> flipOut = Optional.empty();
+        CarData car = input.getMyCarData();
 
-        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, groundPosition.space);
+        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(car, groundPosition.space);
         if (sensibleFlip.isPresent()) {
             BotLog.println("Front flip for AsapAerial", input.team);
             this.plan = sensibleFlip.get();
@@ -122,8 +123,8 @@ public class InterceptStep implements Step {
             return flipOut.get();
         }
 
-        AgentOutput output = SteerUtil.getThereOnTime(input, groundPosition);
-        if (input.getMyBoost() <= reservedBoost + 5) {
+        AgentOutput output = SteerUtil.getThereOnTime(car, groundPosition);
+        if (car.boost <= reservedBoost + 5) {
             output.withBoost(false);
         }
         return output;

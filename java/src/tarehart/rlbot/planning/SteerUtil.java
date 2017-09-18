@@ -116,13 +116,11 @@ public class SteerUtil {
         return Optional.empty();
     }
 
-    public static Optional<SpaceTime> getInterceptOpportunity(AgentInput input, BallPath ballPath, double speed) {
-
-        Vector3 myPosition = input.getMyPosition();
+    public static Optional<SpaceTime> getInterceptOpportunity(CarData car, BallPath ballPath, double speed) {
 
         for (SpaceTimeVelocity ballMoment: ballPath.getSlices()) {
-            double distanceSoFar = TimeUtil.secondsBetween(input.time, ballMoment.getTime()) * speed;
-            if (distanceSoFar > VectorUtil.flatDistance(myPosition, ballMoment.space)) {
+            double distanceSoFar = TimeUtil.secondsBetween(car.time, ballMoment.getTime()) * speed;
+            if (distanceSoFar > VectorUtil.flatDistance(car.position, ballMoment.space)) {
                 return Optional.of(ballMoment.toSpaceTime());
             }
         }
@@ -147,12 +145,12 @@ public class SteerUtil {
         }
     }
 
-    public static double getCorrectionAngleRad(AgentInput input, Vector3 target) {
-        return getCorrectionAngleRad(input, VectorUtil.flatten(target));
+    public static double getCorrectionAngleRad(CarData carData, Vector3 target) {
+        return getCorrectionAngleRad(carData, VectorUtil.flatten(target));
     }
 
-    public static double getCorrectionAngleRad(AgentInput input, Vector2 target) {
-        return getCorrectionAngleRad(VectorUtil.flatten(input.getMyRotation().noseVector), (Vector2) target.subCopy(VectorUtil.flatten(input.getMyPosition())));
+    public static double getCorrectionAngleRad(CarData carData, Vector2 target) {
+        return getCorrectionAngleRad(VectorUtil.flatten(carData.rotation.noseVector), (Vector2) target.subCopy(VectorUtil.flatten(carData.position)));
     }
 
     public static double getCorrectionAngleRad(Vector2 current, Vector2 ideal) {
@@ -172,19 +170,19 @@ public class SteerUtil {
         return idealRad - currentRad;
     }
 
-    public static AgentOutput steerTowardGroundPosition(AgentInput input, Vector2 position) {
-        double correctionAngle = getCorrectionAngleRad(input, position);
-        Vector2 myPositionFlat = VectorUtil.flatten(input.getMyPosition());
+    public static AgentOutput steerTowardGroundPosition(CarData carData, Vector2 position) {
+        double correctionAngle = getCorrectionAngleRad(carData, position);
+        Vector2 myPositionFlat = VectorUtil.flatten(carData.position);
         double distance = position.distance(myPositionFlat);
-        double speed = input.getMyVelocity().magnitude();
+        double speed = carData.velocity.magnitude();
         return getSteeringOutput(correctionAngle, distance, speed);
     }
 
-    public static AgentOutput steerTowardWallPosition(AgentInput input, Vector3 position) {
-        Vector3 toPosition = (Vector3) position.subCopy(input.getMyPosition());
-        double correctionAngle = VectorUtil.getCorrectionAngle(input.getMyRotation().noseVector, toPosition, input.getMyRotation().roofVector);
-        double speed = input.getMyVelocity().magnitude();
-        double distance = position.distance(input.getMyPosition());
+    public static AgentOutput steerTowardWallPosition(CarData carData, Vector3 position) {
+        Vector3 toPosition = (Vector3) position.subCopy(carData.position);
+        double correctionAngle = VectorUtil.getCorrectionAngle(carData.rotation.noseVector, toPosition, carData.rotation.roofVector);
+        double speed = carData.velocity.magnitude();
+        double distance = position.distance(carData.position);
         return getSteeringOutput(correctionAngle, distance, speed);
     }
 
@@ -206,45 +204,45 @@ public class SteerUtil {
                 .withBoost(shouldBoost);
     }
 
-    public static AgentOutput steerTowardGroundPosition(AgentInput input, Vector3 position) {
-        return steerTowardGroundPosition(input, VectorUtil.flatten(position));
+    public static AgentOutput steerTowardGroundPosition(CarData carData, Vector3 position) {
+        return steerTowardGroundPosition(carData, VectorUtil.flatten(position));
     }
 
-    public static AgentOutput arcTowardPosition(AgentInput input, SplineHandle position) {
-        if (position.isWithinHandleRange(input.getMyPosition())) {
-            AgentOutput steer = SteerUtil.steerTowardGroundPosition(input, position.getLocation());
+    public static AgentOutput arcTowardPosition(CarData car, SplineHandle position) {
+        if (position.isWithinHandleRange(car.position)) {
+            AgentOutput steer = SteerUtil.steerTowardGroundPosition(car, position.getLocation());
 
-            double correction = Math.abs(SteerUtil.getCorrectionAngleRad(input, position.getLocation()));
-            if (correction > Math.PI / 4 && input.getMyVelocity().magnitude() > AccelerationModel.MEDIUM_SPEED) {
+            double correction = Math.abs(SteerUtil.getCorrectionAngleRad(car, position.getLocation()));
+            if (correction > Math.PI / 4 && car.velocity.magnitude() > AccelerationModel.MEDIUM_SPEED) {
                 steer.withBoost(false).withAcceleration(0).withDeceleration(.2);
             }
             return steer;
         } else {
-            return SteerUtil.steerTowardGroundPosition(input, position.getNearestHandle(input.getMyPosition()));
+            return SteerUtil.steerTowardGroundPosition(car, position.getNearestHandle(car.position));
         }
     }
 
-    public static double getDistanceFromMe(AgentInput input, Vector3 loc) {
-        return loc.distance(input.getMyPosition());
+    public static double getDistanceFromCar(CarData car, Vector3 loc) {
+        return loc.distance(car.position);
     }
 
-    public static Optional<Plan> getSensibleFlip(AgentInput input, Vector3 target) {
-        return getSensibleFlip(input, VectorUtil.flatten(target));
+    public static Optional<Plan> getSensibleFlip(CarData car, Vector3 target) {
+        return getSensibleFlip(car, VectorUtil.flatten(target));
     }
 
-    public static Optional<Plan> getSensibleFlip(AgentInput input, Vector2 target) {
+    public static Optional<Plan> getSensibleFlip(CarData car, Vector2 target) {
 
-        double distanceCovered = AccelerationModel.getFrontFlipDistance(input.getMyVelocity().magnitude());
+        double distanceCovered = AccelerationModel.getFrontFlipDistance(car.velocity.magnitude());
 
-        double distanceToIntercept = target.distance(VectorUtil.flatten(input.getMyPosition()));
+        double distanceToIntercept = target.distance(VectorUtil.flatten(car.position));
         if (distanceToIntercept > distanceCovered + 15) {
 
-            Vector2 facing = VectorUtil.flatten(input.getMyRotation().noseVector);
+            Vector2 facing = VectorUtil.flatten(car.rotation.noseVector);
             double facingCorrection = SteerUtil.getCorrectionAngleRad(facing, target);
-            double slideAngle = SteerUtil.getCorrectionAngleRad(facing, VectorUtil.flatten(input.getMyVelocity()));
+            double slideAngle = SteerUtil.getCorrectionAngleRad(facing, VectorUtil.flatten(car.velocity));
 
             if (Math.abs(facingCorrection) < GOOD_ENOUGH_ANGLE && Math.abs(slideAngle) < GOOD_ENOUGH_ANGLE
-                    && input.getMyVelocity().magnitude() > SteerUtil.SUPERSONIC_SPEED / 4) {
+                    && car.velocity.magnitude() > SteerUtil.SUPERSONIC_SPEED / 4) {
 
                 return Optional.of(SetPieces.frontFlip());
             }
@@ -253,11 +251,11 @@ public class SteerUtil {
         return Optional.empty();
     }
 
-    public static AgentOutput getThereOnTime(AgentInput input, SpaceTime groundPositionAndTime) {
-        double flatDistance = VectorUtil.flatDistance(input.getMyPosition(), groundPositionAndTime.space);
+    public static AgentOutput getThereOnTime(CarData input, SpaceTime groundPositionAndTime) {
+        double flatDistance = VectorUtil.flatDistance(input.position, groundPositionAndTime.space);
 
         double secondsTillAppointment = Duration.between(input.time, groundPositionAndTime.time).toMillis() / 1000.0;
-        double speed = input.getMyVelocity().magnitude();
+        double speed = input.velocity.magnitude();
 
         double pace = speed * secondsTillAppointment / flatDistance; // Ideally this should be 1
 
@@ -282,24 +280,24 @@ public class SteerUtil {
         return Math.abs(speed) * .8;
     }
 
-    public static Optional<Vector2> getWaypointForCircleTurn(AgentInput input, DistancePlot distancePlot, Vector2 targetPosition, Vector2 targetFacing) {
-        Vector2 flatPosition = VectorUtil.flatten(input.getMyPosition());
+    public static Optional<Vector2> getWaypointForCircleTurn(CarData car, DistancePlot distancePlot, Vector2 targetPosition, Vector2 targetFacing) {
+        Vector2 flatPosition = VectorUtil.flatten(car.position);
         double distance = flatPosition.distance(targetPosition);
-        double currentSpeed = input.getMyVelocity().magnitude();
+        double currentSpeed = car.velocity.magnitude();
         double expectedSpeed = AccelerationModel.SUPERSONIC_SPEED;
 
         Optional<DistanceTimeSpeed> motion = distancePlot.getMotionAt(distance);
         if (motion.isPresent()) {
             expectedSpeed = motion.get().speed;
         }
-        return circleWaypoint(input, targetPosition, targetFacing, currentSpeed, expectedSpeed);
+        return circleWaypoint(car, targetPosition, targetFacing, currentSpeed, expectedSpeed);
     }
 
-    private static Optional<Vector2> circleWaypoint(AgentInput input, Vector2 targetPosition, Vector2 targetFacing, double currentSpeed, double expectedSpeed) {
+    private static Optional<Vector2> circleWaypoint(CarData car, Vector2 targetPosition, Vector2 targetFacing, double currentSpeed, double expectedSpeed) {
 
-        Vector2 flatPosition = VectorUtil.flatten(input.getMyPosition());
+        Vector2 flatPosition = VectorUtil.flatten(car.position);
         Vector2 toTarget = (Vector2) targetPosition.subCopy(flatPosition);
-        Vector2 currentFacing = VectorUtil.flatten(input.getMyRotation().noseVector);
+        Vector2 currentFacing = VectorUtil.flatten(car.rotation.noseVector);
         double approachCorrection = getCorrectionAngleRad(currentFacing, toTarget);
         if (Math.abs(approachCorrection) > Math.PI / 2) {
             return Optional.empty();
@@ -318,7 +316,7 @@ public class SteerUtil {
 
             if (distanceFromCenter < turnRadius * .8) {
                 if (currentSpeed < expectedSpeed) {
-                    return circleWaypoint(input, targetPosition, targetFacing, currentSpeed, currentSpeed);
+                    return circleWaypoint(car, targetPosition, targetFacing, currentSpeed, currentSpeed);
                 }
                 return Optional.empty();
             }

@@ -3,6 +3,7 @@ package tarehart.rlbot.steps.defense;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.CarData;
 import tarehart.rlbot.math.SplineHandle;
 import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.planning.GoalUtil;
@@ -28,28 +29,30 @@ public class GetOnDefenseStep implements Step {
             return plan.getOutput(input);
         }
 
-        double distance = SteerUtil.getDistanceFromMe(input, targetLocation.getLocation());
-        double secondsRemaining = distance / input.getMyVelocity().magnitude();
+        CarData car = input.getMyCarData();
+
+        double distance = SteerUtil.getDistanceFromCar(car, targetLocation.getLocation());
+        double secondsRemaining = distance / car.velocity.magnitude();
 
         if (!needDefense(input) || secondsRemaining < 1.5) {
             return Optional.empty();
         }
 
         Vector3 target;
-        if (targetLocation.isWithinHandleRange(input.getMyPosition())) {
+        if (targetLocation.isWithinHandleRange(car.position)) {
             target = targetLocation.getLocation();
         } else {
             target = targetLocation.getFarthestHandle(input.ballPosition);
         }
 
-        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, target);
+        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(car, target);
         if (sensibleFlip.isPresent()) {
             BotLog.println("Front flip for defense", input.team);
             plan = sensibleFlip.get();
             plan.begin();
             return plan.getOutput(input);
         } else {
-            return Optional.of(SteerUtil.steerTowardGroundPosition(input, target));
+            return Optional.of(SteerUtil.steerTowardGroundPosition(car, target));
         }
     }
 
@@ -68,9 +71,10 @@ public class GetOnDefenseStep implements Step {
 
     public static boolean needDefense(AgentInput input) {
 
+        CarData car = input.getMyCarData();
         SplineHandle myGoal = GoalUtil.getOwnGoal(input.team).navigationSpline;
 
-        boolean alreadyOnDefense = Math.abs(myGoal.getLocation().y - input.getMyPosition().y) < 10;
+        boolean alreadyOnDefense = Math.abs(myGoal.getLocation().y - car.position.y) < 10;
         if (alreadyOnDefense) {
             return false;
         }
@@ -88,7 +92,7 @@ public class GetOnDefenseStep implements Step {
 
     public static double getWrongSidedness(AgentInput input) {
         SplineHandle myGoal = GoalUtil.getOwnGoal(input.team).navigationSpline;
-        double playerToBallY = input.ballPosition.y - input.getMyPosition().y;
+        double playerToBallY = input.ballPosition.y - input.getMyCarData().position.y;
         return playerToBallY * Math.signum(myGoal.getLocation().y);
     }
 

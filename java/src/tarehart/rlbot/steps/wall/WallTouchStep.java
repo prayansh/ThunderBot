@@ -3,6 +3,7 @@ package tarehart.rlbot.steps.wall;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.CarData;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.math.TimeUtil;
@@ -23,7 +24,7 @@ public class WallTouchStep implements Step {
     public static final double WALL_DEPART_SPEED = 10;
     private Vector3 originalIntercept;
 
-    private static boolean isBallNearWall(AgentInput input, SpaceTime ballPosition) {
+    private static boolean isBallNearWall(CarData car, SpaceTime ballPosition) {
         return ArenaModel.getDistanceFromWall(ballPosition.space) <= ACCEPTABLE_WALL_DISTANCE;
     }
 
@@ -33,16 +34,17 @@ public class WallTouchStep implements Step {
 
     public Optional<AgentOutput> getOutput(AgentInput input) {
 
-        if (!ArenaModel.isCarOnWall(input)) {
+        CarData car = input.getMyCarData();
+        if (!ArenaModel.isCarOnWall(car)) {
             BotLog.println("Failed to make the wall touch because the car is not on the wall", input.team);
             return Optional.empty();
         }
 
 
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(4));
-        DistancePlot fullAcceleration = AccelerationModel.simulateAcceleration(input, Duration.ofSeconds(4), input.getMyBoost(), 0);
+        DistancePlot fullAcceleration = AccelerationModel.simulateAcceleration(car, Duration.ofSeconds(4), car.boost, 0);
 
-        Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(input, ballPath, fullAcceleration, new Vector3(), WallTouchStep::isBallNearWall);
+        Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(car, ballPath, fullAcceleration, new Vector3(), WallTouchStep::isBallNearWall);
         Optional<SpaceTimeVelocity> ballMotion = interceptOpportunity.flatMap(inter -> ballPath.getMotionAt(inter.time));
 
 
@@ -67,7 +69,7 @@ public class WallTouchStep implements Step {
             return Optional.of(new AgentOutput().withAcceleration(1).withJump());
         }
 
-        return Optional.of(SteerUtil.steerTowardWallPosition(input, motion.space));
+        return Optional.of(SteerUtil.steerTowardWallPosition(car, motion.space));
     }
 
 
@@ -76,8 +78,9 @@ public class WallTouchStep implements Step {
         if (ArenaModel.getDistanceFromWall(carPositionAtContact.space) > ArenaModel.BALL_RADIUS + .5) {
             return false; // Really close to wall, no need to jump. Just chip it.
         }
-        Vector3 toPosition = (Vector3) carPositionAtContact.space.subCopy(input.getMyPosition());
-        double correctionAngleRad = VectorUtil.getCorrectionAngle(input.getMyRotation().noseVector, toPosition, input.getMyRotation().roofVector);
+        CarData car = input.getMyCarData();
+        Vector3 toPosition = (Vector3) carPositionAtContact.space.subCopy(car.position);
+        double correctionAngleRad = VectorUtil.getCorrectionAngle(car.rotation.noseVector, toPosition, car.rotation.roofVector);
         double secondsTillIntercept = TimeUtil.secondsBetween(input.time, carPositionAtContact.time);
         double wallDistanceAtIntercept = ArenaModel.getDistanceFromWall(carPositionAtContact.space);
         double tMinus = secondsTillIntercept - wallDistanceAtIntercept / WALL_DEPART_SPEED;

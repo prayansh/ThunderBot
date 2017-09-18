@@ -22,44 +22,44 @@ public class AirTouchPlanner {
     private static final double MAX_FLIP_HIT = NEEDS_JUMP_HIT_THRESHOLD;
 
 
-    public static AerialChecklist checkAerialReadiness( AgentInput input, SpaceTime carPositionAtContact) {
+    public static AerialChecklist checkAerialReadiness(CarData car, SpaceTime carPositionAtContact) {
 
         AerialChecklist checklist = new AerialChecklist();
-        checkLaunchReadiness(checklist, input, carPositionAtContact);
+        checkLaunchReadiness(checklist, car, carPositionAtContact);
 
-        checklist.notSkidding = input.getMyVelocity().normaliseCopy().dotProduct(input.getMyRotation().noseVector) > .99;
-        checklist.hasBoost = input.getMyBoost() >= BOOST_NEEDED_FOR_AERIAL;
+        checklist.notSkidding = car.velocity.normaliseCopy().dotProduct(car.rotation.noseVector) > .99;
+        checklist.hasBoost = car.boost >= BOOST_NEEDED_FOR_AERIAL;
 
         return checklist;
     }
 
-    public static LaunchChecklist checkJumpHitReadiness(AgentInput input, SpaceTime carPositionAtContact) {
+    public static LaunchChecklist checkJumpHitReadiness(CarData car, SpaceTime carPositionAtContact) {
 
         LaunchChecklist checklist = new LaunchChecklist();
-        checkLaunchReadiness(checklist, input, carPositionAtContact);
+        checkLaunchReadiness(checklist, car, carPositionAtContact);
         return checklist;
     }
 
-    public static LaunchChecklist checkFlipHitReadiness(AgentInput input, SpaceTime intercept) {
+    public static LaunchChecklist checkFlipHitReadiness(CarData car, SpaceTime intercept) {
         LaunchChecklist checklist = new LaunchChecklist();
-        checkLaunchReadiness(checklist, input, intercept);
+        checkLaunchReadiness(checklist, car, intercept);
         checklist.notTooClose = true;
-        checklist.timeForIgnition = TimeUtil.secondsBetween(input.time, intercept.time) < .6;
+        checklist.timeForIgnition = TimeUtil.secondsBetween(car.time, intercept.time) < .6;
         return checklist;
     }
 
-    private static void checkLaunchReadiness(LaunchChecklist checklist, AgentInput input, SpaceTime carPositionAtContact) {
+    private static void checkLaunchReadiness(LaunchChecklist checklist, CarData car, SpaceTime carPositionAtContact) {
 
-        double correctionAngleRad = SteerUtil.getCorrectionAngleRad(input, carPositionAtContact.space);
-        double secondsTillIntercept = TimeUtil.secondsBetween(input.time, carPositionAtContact.time);
+        double correctionAngleRad = SteerUtil.getCorrectionAngleRad(car, carPositionAtContact.space);
+        double secondsTillIntercept = TimeUtil.secondsBetween(car.time, carPositionAtContact.time);
         double tMinus = getAerialLaunchCountdown(carPositionAtContact.space.z, secondsTillIntercept);
 
         checklist.linedUp = Math.abs(correctionAngleRad) < Math.PI / 60;
         checklist.closeEnough = secondsTillIntercept < 4;
-        checklist.notTooClose = isVerticallyAccessible(input, carPositionAtContact);
+        checklist.notTooClose = isVerticallyAccessible(car, carPositionAtContact);
         checklist.timeForIgnition = tMinus < 0.1;
-        checklist.upright = input.getMyRotation().roofVector.dotProduct(new Vector3(0, 0, 1)) > .99;
-        checklist.onTheGround = input.getMyPosition().z < CAR_BASE_HEIGHT + 0.03; // Add a little wiggle room
+        checklist.upright = car.rotation.roofVector.dotProduct(new Vector3(0, 0, 1)) > .99;
+        checklist.onTheGround = car.position.z < CAR_BASE_HEIGHT + 0.03; // Add a little wiggle room
     }
 
     public static boolean isVerticallyAccessible(CarData carData, SpaceTime intercept) {

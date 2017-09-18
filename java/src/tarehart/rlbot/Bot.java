@@ -74,6 +74,8 @@ public class Bot {
 
     private AgentOutput getOutput(AgentInput input) {
 
+        final CarData car = input.getMyCarData();
+
         // Kickoffs can happen unpredictably because the bot doesn't know about goals at the moment.
         if (VectorUtil.flatten(input.ballPosition).magnitudeSquared() == 0) {
             currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new GoForKickoffStep());
@@ -104,7 +106,7 @@ public class Bot {
                 BotLog.println("Going on defense", input.team);
                 currentPlan = new Plan(Plan.Posture.DEFENSIVE).withStep(new GetOnDefenseStep());
                 currentPlan.begin();
-            } else if (ArenaModel.isBehindGoalLine(input.getMyPosition())) {
+            } else if (ArenaModel.isBehindGoalLine(car.position)) {
                 currentPlan = new Plan(Plan.Posture.DEFENSIVE).withStep(new EscapeTheGoalStep());
                 currentPlan.begin();
             }
@@ -120,14 +122,14 @@ public class Bot {
         }
 
         if (currentPlan == null || currentPlan.isComplete()) {
-            if (input.getMyPosition().z > LandGracefullyStep.NEEDS_LANDING_HEIGHT) {
+            if (car.position.z > LandGracefullyStep.NEEDS_LANDING_HEIGHT) {
                 currentPlan = new Plan(Plan.Posture.LANDING).withStep(new LandGracefullyStep());
                 currentPlan.begin();
             } else if (DribbleStep.canDribble(input, false)) {
                 BotLog.println("Beginning dribble", input.team);
                 currentPlan = new Plan().withStep(new DribbleStep());
                 currentPlan.begin();
-            } else if (input.getMyBoost() < 30 && GetBoostStep.canRun(input)) {
+            } else if (car.boost < 30 && GetBoostStep.canRun(car)) {
                 currentPlan = new Plan().withStep(new GetBoostStep());
                 currentPlan.begin();
             } else if (WallTouchStep.hasWallTouchOpportunity(input, ballPath)) {
@@ -158,7 +160,7 @@ public class Bot {
             }
         }
 
-        return SteerUtil.steerTowardGroundPosition(input, input.ballPosition);
+        return SteerUtil.steerTowardGroundPosition(car, input.ballPosition);
     }
 
     private boolean canInterruptPlanFor(Plan.Posture posture) {

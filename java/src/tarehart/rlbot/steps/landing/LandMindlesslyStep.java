@@ -3,6 +3,7 @@ package tarehart.rlbot.steps.landing;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.CarData;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.planning.SteerUtil;
@@ -15,14 +16,15 @@ public class LandMindlesslyStep implements Step {
 
     public Optional<AgentOutput> getOutput(AgentInput input) {
 
-        if (input.getMyPosition().z < .40f || ArenaModel.isCarNearWall(input) && input.getMyPosition().z < 5) {
+        CarData car = input.getMyCarData();
+        if (car.position.z < .40f || ArenaModel.isCarNearWall(car) && car.position.z < 5) {
             return Optional.empty();
         }
 
-        if (ArenaModel.isCarOnWall(input)) {
-            Vector3 groundBeneathMe = input.getMyPosition().copy();
+        if (ArenaModel.isCarOnWall(car)) {
+            Vector3 groundBeneathMe = car.position.copy();
             groundBeneathMe.z = 0;
-            return Optional.of(SteerUtil.steerTowardWallPosition(input, groundBeneathMe));
+            return Optional.of(SteerUtil.steerTowardWallPosition(car, groundBeneathMe));
         }
 
         return Optional.of(new AgentOutput().withAcceleration(1));

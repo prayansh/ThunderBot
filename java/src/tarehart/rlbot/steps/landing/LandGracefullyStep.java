@@ -2,10 +2,7 @@ package tarehart.rlbot.steps.landing;
 
 import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
-import tarehart.rlbot.AgentInput;
-import tarehart.rlbot.AgentOutput;
-import tarehart.rlbot.Bot;
-import tarehart.rlbot.CarRotation;
+import tarehart.rlbot.*;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.steps.Step;
@@ -35,24 +32,25 @@ public class LandGracefullyStep implements Step {
 
     public Optional<AgentOutput> getOutput(AgentInput input) {
 
-        if (ArenaModel.isCarOnWall(input)) {
+        CarData car = input.getMyCarData();
+        if (ArenaModel.isCarOnWall(car)) {
             plan = new Plan().withStep(new DescendFromWallStep());
             plan.begin();
             return plan.getOutput(input);
         }
 
         if (desiredFacing == null) {
-            CarRotation rot = input.getMyRotation();
+            CarRotation rot = car.rotation;
             desiredFacing = new Vector2(rot.noseVector.x, rot.noseVector.y);
             desiredFacing.normalise();
         }
 
-        if (input.getMyPosition().z < NEEDS_LANDING_HEIGHT) {
+        if (car.position.z < NEEDS_LANDING_HEIGHT) {
             return Optional.empty();
         }
 
         if (plan == null || plan.isComplete()) {
-            plan = planRotation(input.getMyRotation(), desiredFacing, input.team);
+            plan = planRotation(car.rotation, desiredFacing, input.team);
             plan.begin();
         }
 

@@ -44,13 +44,15 @@ public class GetBoostStep implements Step {
             init(input);
         }
 
-        double distance = SteerUtil.getDistanceFromMe(input, targetLocation.getLocation());
+        CarData car = input.getMyCarData();
+
+        double distance = SteerUtil.getDistanceFromCar(car, targetLocation.getLocation());
 
         if (plan != null && !plan.isComplete()) {
             return plan.getOutput(input);
         }
 
-        if (distance < 3 || !canRun(input)) {
+        if (distance < 3 || !canRun(car)) {
             return Optional.empty();
         } else {
 
@@ -58,7 +60,7 @@ public class GetBoostStep implements Step {
             Vector3 myPosition = carData.position;
             Vector3 target = targetLocation.isWithinHandleRange(myPosition) ? targetLocation.getLocation() : targetLocation.getNearestHandle(myPosition);
 
-            Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(input, target);
+            Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(car, target);
             if (sensibleFlip.isPresent()) {
                 BotLog.println("Flipping toward boost", input.team);
                 plan = sensibleFlip.get();
@@ -67,7 +69,7 @@ public class GetBoostStep implements Step {
             }
 
             // TODO: use SteerUtil.getThereWithFacing
-            return Optional.of(SteerUtil.arcTowardPosition(input, targetLocation));
+            return Optional.of(SteerUtil.arcTowardPosition(car, targetLocation));
         }
     }
 
@@ -118,13 +120,13 @@ public class GetBoostStep implements Step {
     public void begin() {
     }
 
-    public static boolean canRun(AgentInput input) {
-        return input.getMyPosition().z < 1;
+    public static boolean canRun(CarData car) {
+        return car.position.z < 1;
     }
 
-    public static boolean seesOpportunisticBoost(AgentInput input) {
-        SplineHandle location = getNearestBoost(input.getMyPosition());
-        return location.getLocation().distance(input.getMyPosition()) < 20 &&
+    public static boolean seesOpportunisticBoost(CarData input) {
+        SplineHandle location = getNearestBoost(input.position);
+        return location.getLocation().distance(input.position) < 20 &&
                 Math.abs(SteerUtil.getCorrectionAngleRad(input, location.getLocation())) < Math.PI / 6;
 
     }

@@ -1,6 +1,7 @@
 package tarehart.rlbot.planning;
 
 import tarehart.rlbot.AgentInput;
+import tarehart.rlbot.CarData;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.tuning.BotLog;
 
@@ -8,31 +9,31 @@ import java.util.Optional;
 
 public class InterceptPlanner {
 
-    public static Optional<Plan> planImmediateLaunch(AgentInput input, SpaceTime intercept) {
+    public static Optional<Plan> planImmediateLaunch(CarData car, SpaceTime intercept) {
 
 
         if (intercept.space.z > AirTouchPlanner.NEEDS_AERIAL_THRESHOLD) {
-            AerialChecklist checklist = AirTouchPlanner.checkAerialReadiness(input, intercept);
+            AerialChecklist checklist = AirTouchPlanner.checkAerialReadiness(car, intercept);
             if (checklist.readyToLaunch()) {
-                BotLog.println("Performing Aerial!", input.team);
+                BotLog.println("Performing Aerial!", car.team);
                 return Optional.of(SetPieces.performAerial());
             }
             return Optional.empty();
         }
 
-        if (intercept.space.z > AirTouchPlanner.NEEDS_JUMP_HIT_THRESHOLD && AirTouchPlanner.isJumpHitAccessible(input, intercept)) {
-            LaunchChecklist checklist = AirTouchPlanner.checkJumpHitReadiness(input, intercept);
+        if (intercept.space.z > AirTouchPlanner.NEEDS_JUMP_HIT_THRESHOLD && AirTouchPlanner.isJumpHitAccessible(car, intercept)) {
+            LaunchChecklist checklist = AirTouchPlanner.checkJumpHitReadiness(car, intercept);
             if (checklist.readyToLaunch()) {
-                BotLog.println("Performing JumpHit!", input.team);
+                BotLog.println("Performing JumpHit!", car.team);
                 return Optional.of(SetPieces.performJumpHit(intercept.space.z));
             }
             return Optional.empty();
         }
 
-        if (intercept.space.z > AirTouchPlanner.NEEDS_FRONT_FLIP_THRESHOLD && AirTouchPlanner.isFlipHitAccessible(input, intercept)) {
-            LaunchChecklist checklist = AirTouchPlanner.checkFlipHitReadiness(input, intercept);
+        if (intercept.space.z > AirTouchPlanner.NEEDS_FRONT_FLIP_THRESHOLD && AirTouchPlanner.isFlipHitAccessible(car, intercept)) {
+            LaunchChecklist checklist = AirTouchPlanner.checkFlipHitReadiness(car, intercept);
             if (checklist.readyToLaunch()) {
-                BotLog.println("Performing FlipHit!", input.team);
+                BotLog.println("Performing FlipHit!", car.team);
                 return Optional.of(SetPieces.frontFlip());
             }
             return Optional.empty();
