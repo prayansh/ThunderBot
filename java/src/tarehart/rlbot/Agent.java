@@ -1,22 +1,23 @@
 package tarehart.rlbot;
 
+import com.google.gson.Gson;
 import tarehart.rlbot.input.PyGameTickPacket;
-import tarehart.rlbot.ui.Readout;
 
-import javax.swing.*;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 public class Agent {
 
     private Map<Bot.Team, Bot> bots = new HashMap<>();
+    private Gson gson = new Gson();
 
-    public int[] getOutputVector(PyGameTickPacket gameTickPacket, String teamString) {
+    public int[] getOutputVector(String packetJson, String teamString) {
 
         Bot.Team team = Bot.Team.valueOf(teamString.toUpperCase());
 
-        AgentInput translatedInput = new AgentInput(gameTickPacket, team);
+        PyGameTickPacket packet = gson.fromJson(packetJson, PyGameTickPacket.class);
+
+        AgentInput translatedInput = new AgentInput(packet, team);
 
         if (!bots.containsKey(team)) {
             bots.put(team, new Bot(team));

@@ -1,5 +1,6 @@
 from py4j.java_gateway import JavaGateway
 from py4j.java_gateway import GatewayParameters
+import cStructure
 
 '''
 Hi! You can use this code as a template to create your own bot.  Also if you don't mind writing a blurb
@@ -45,12 +46,14 @@ class agent:
 
 	def get_output_vector(self, sharedValue):
 		try:
+			input_json = cStructure.gameTickPacketToJson(sharedValue.GameTickPacket)
 			# Call the java process to get the output
-			listOutput = self.javaAgent.getOutputVector(sharedValue.GameTickPacket, self.team)
+			listOutput = self.javaAgent.getOutputVector(input_json, self.team)
 			# Convert to a regular python list
 			return list(listOutput)
-		except:
-			print("Exception when calling java! Will recreate gateway...")
+		except Exception as e:
+			print("Exception when calling java: " + str(e))
+			print("Will recreate gateway...")
 			self.gateway.shutdown_callback_server()
 			try:
 				self.init_py4j_stuff()

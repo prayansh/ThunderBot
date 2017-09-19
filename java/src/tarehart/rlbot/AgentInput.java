@@ -24,6 +24,7 @@ public class AgentInput {
     public final Bot.Team team;
     public LocalDateTime time;
     private static final double URotationToRadians = Math.PI / 32768;
+    private static final double PACKET_DISTANCE_TO_CLASSIC = 50;
 
 
     /**
@@ -115,10 +116,10 @@ public class AgentInput {
 
         double noseX = -1 * Math.cos(rotation.Pitch * URotationToRadians) * Math.cos(rotation.Yaw * URotationToRadians);
         double noseY = Math.cos(rotation.Pitch * URotationToRadians) * Math.sin(rotation.Yaw * URotationToRadians);
-        double noseZ = Math.cos(rotation.Pitch * URotationToRadians);
+        double noseZ = Math.sin(rotation.Pitch * URotationToRadians);
 
         double roofX = Math.cos(rotation.Roll * URotationToRadians) * Math.sin(rotation.Pitch * URotationToRadians) * Math.cos(rotation.Yaw * URotationToRadians) + Math.sin(rotation.Roll * URotationToRadians) * Math.sin(rotation.Yaw * URotationToRadians);
-        double roofY = Math.sin(rotation.Roll * URotationToRadians) * Math.cos(rotation.Pitch * URotationToRadians);
+        double roofY = Math.cos(rotation.Yaw * URotationToRadians) * Math.sin(rotation.Roll * URotationToRadians) - Math.cos(rotation.Roll * URotationToRadians) * Math.sin(rotation.Pitch * URotationToRadians) * Math.sin(rotation.Yaw * URotationToRadians);
         double roofZ = Math.cos(rotation.Roll * URotationToRadians) * Math.cos(rotation.Pitch * URotationToRadians);
 
         return new CarRotation(new Vector3(noseX, noseY, noseZ), new Vector3(roofX, roofY, roofZ));
@@ -126,7 +127,7 @@ public class AgentInput {
 
     private Vector3 convert(PyVector3 location) {
         // Invert the X value so that the axes make more sense.
-        return new Vector3(-location.X, location.Y, location.Z);
+        return new Vector3(-location.X / PACKET_DISTANCE_TO_CLASSIC, location.Y / PACKET_DISTANCE_TO_CLASSIC, location.Z / PACKET_DISTANCE_TO_CLASSIC);
     }
 
     public CarData getMyCarData() {
