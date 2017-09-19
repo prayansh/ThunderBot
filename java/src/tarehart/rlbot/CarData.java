@@ -12,17 +12,19 @@ public class CarData {
     public final CarRotation rotation;
     public final Quat4f rotationalVelocity;
     public final double boost;
+    public boolean isSupersonic;
     public final Bot.Team team;
     public final LocalDateTime time;
 
 
     public CarData(Vector3 position, Vector3 velocity, CarRotation rotation, Quat4f rotationalVelocity, double boost,
-                   Bot.Team team, LocalDateTime time) {
+                   boolean isSupersonic, Bot.Team team, LocalDateTime time) {
         this.position = position;
         this.velocity = velocity;
         this.rotation = rotation;
         this.rotationalVelocity = rotationalVelocity;
         this.boost = boost;
+        this.isSupersonic = isSupersonic;
         this.team = team;
         this.time = time;
     }

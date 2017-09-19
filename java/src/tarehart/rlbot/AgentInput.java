@@ -5,6 +5,7 @@ import tarehart.rlbot.input.PyCarInfo;
 import tarehart.rlbot.input.PyGameTickPacket;
 import tarehart.rlbot.input.PyRotator;
 import tarehart.rlbot.input.PyVector3;
+import tarehart.rlbot.planning.AccelerationModel;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -54,16 +55,20 @@ public class AgentInput {
         CarRotation orangeRotation = new CarRotation(new Vector3(-neuralInputs.get(19), neuralInputs.get(22), neuralInputs.get(25)),
                 new Vector3(-neuralInputs.get(21), neuralInputs.get(24), neuralInputs.get(27)));
         double orangeBoost = neuralInputs.get(37);
+        boolean orangeSupersonic = AccelerationModel.SUPERSONIC_SPEED - orangeVelocity.magnitude() < .01;
 
-        orangeCar = new CarData(orangePosition, orangeVelocity, orangeRotation, null, orangeBoost, Bot.Team.ORANGE, time);
+        orangeCar = new CarData(orangePosition, orangeVelocity, orangeRotation, null, orangeBoost,
+                orangeSupersonic, Bot.Team.ORANGE, time);
 
         Vector3 bluePosition = new Vector3(-neuralInputs.get(5), neuralInputs.get(1), neuralInputs.get(4));
         Vector3 blueVelocity = new Vector3(-neuralInputs.get(28), neuralInputs.get(30), neuralInputs.get(29));
         CarRotation blueRotation = new CarRotation(new Vector3(-neuralInputs.get(8), neuralInputs.get(11), neuralInputs.get(14)),
                 new Vector3(-neuralInputs.get(10), neuralInputs.get(13),  neuralInputs.get(16)));
         double blueBoost = neuralInputs.get(0);
+        boolean blueSupersonic = AccelerationModel.SUPERSONIC_SPEED - blueVelocity.magnitude() < .01;
 
-        blueCar = new CarData(bluePosition, blueVelocity, blueRotation, null, blueBoost, Bot.Team.BLUE, time);
+        blueCar = new CarData(bluePosition, blueVelocity, blueRotation, null, blueBoost,
+                blueSupersonic, Bot.Team.BLUE, time);
     }
 
 
@@ -94,13 +99,15 @@ public class AgentInput {
         Vector3 orangeVelocity = convert(orangeCarInput.Velocity);
         CarRotation orangeRotation = convert(orangeCarInput.Rotation);
         double orangeBoost = orangeCarInput.Boost;
-        orangeCar = new CarData(orangePosition, orangeVelocity, orangeRotation, null, orangeBoost, Bot.Team.ORANGE, time);
+        orangeCar = new CarData(orangePosition, orangeVelocity, orangeRotation, null, orangeBoost,
+                orangeCarInput.SuperSonic, Bot.Team.ORANGE, time);
 
         Vector3 bluePosition = convert(blueCarInput.Location);
         Vector3 blueVelocity = convert(blueCarInput.Velocity);
         CarRotation blueRotation = convert(blueCarInput.Rotation);
         double blueBoost = blueCarInput.Boost;
-        blueCar = new CarData(bluePosition, blueVelocity, blueRotation, null, blueBoost, Bot.Team.BLUE, time);
+        blueCar = new CarData(bluePosition, blueVelocity, blueRotation, null, blueBoost,
+                blueCarInput.SuperSonic, Bot.Team.BLUE, time);
     }
 
 

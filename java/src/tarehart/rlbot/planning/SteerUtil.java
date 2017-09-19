@@ -20,13 +20,8 @@ import java.util.function.BiPredicate;
 public class SteerUtil {
 
     public static final int SUPERSONIC_SPEED = 46;
-    public static final int MEDIUM_SPEED = 28;
     public static final double GOOD_ENOUGH_ANGLE = Math.PI / 40;
     private static final ArenaModel arenaModel = new ArenaModel();
-    private static final int BOOST_NEEDED_FOR_ZERO_TO_MAX = 60;
-    private static final double DISTANCE_NEEDED_FOR_ZERO_TO_MAX_WITH_BOOST = 60;
-    private static final double DISTANCE_NEEDED_FOR_ZERO_TO_MAX_WITH_FLIPS = 150;
-    private static final double FRONT_FLIP_SECONDS = 1.5;
 
     public static Optional<SpaceTime> getCatchOpportunity(CarData carData, BallPath ballPath, double boostBudget) {
 
@@ -175,7 +170,7 @@ public class SteerUtil {
         Vector2 myPositionFlat = VectorUtil.flatten(carData.position);
         double distance = position.distance(myPositionFlat);
         double speed = carData.velocity.magnitude();
-        return getSteeringOutput(correctionAngle, distance, speed);
+        return getSteeringOutput(correctionAngle, distance, speed, carData.isSupersonic);
     }
 
     public static AgentOutput steerTowardWallPosition(CarData carData, Vector3 position) {
@@ -183,17 +178,15 @@ public class SteerUtil {
         double correctionAngle = VectorUtil.getCorrectionAngle(carData.rotation.noseVector, toPosition, carData.rotation.roofVector);
         double speed = carData.velocity.magnitude();
         double distance = position.distance(carData.position);
-        return getSteeringOutput(correctionAngle, distance, speed);
+        return getSteeringOutput(correctionAngle, distance, speed, carData.isSupersonic);
     }
 
-    private static AgentOutput getSteeringOutput(double correctionAngle, double distance, double speed) {
+    private static AgentOutput getSteeringOutput(double correctionAngle, double distance, double speed, boolean isSupersonic) {
         double difference = Math.abs(correctionAngle);
         double turnSharpness = difference * 6/Math.PI + difference * speed * .1;
 
-        boolean shouldBrake = distance < 25 && difference > Math.PI / 6 && speed > SUPERSONIC_SPEED * .6;
+        boolean shouldBrake = distance < 25 && difference > Math.PI / 6 && speed > 25;
         boolean shouldSlide = shouldBrake || difference > Math.PI / 2;
-        boolean isSupersonic = SUPERSONIC_SPEED - speed < .01;
-
         boolean shouldBoost = !shouldBrake && turnSharpness < .5 && !isSupersonic;
 
         return new AgentOutput()
@@ -280,7 +273,15 @@ public class SteerUtil {
         return Math.abs(speed) * .8;
     }
 
-    public static Optional<Vector2> getWaypointForCircleTurn(CarData car, DistancePlot distancePlot, Vector2 targetPosition, Vector2 targetFacing) {
+    public static double getFacingCorrectionSeconds(Vector2 approach, Vector2 targetFacing, double expectedSpeed) {
+
+        double correction = getCorrectionAngleRad(approach, targetFacing);
+        return getTurnRadius(expectedSpeed) * Math.abs(correction) / expectedSpeed;
+    }
+
+    public static Optional<Vector2> getWaypointForCircleTurn(
+            CarData car, DistancePlot distancePlot, Vector2 targetPosition, Vector2 targetFacing) {
+
         Vector2 flatPosition = VectorUtil.flatten(car.position);
         double distance = flatPosition.distance(targetPosition);
         double currentSpeed = car.velocity.magnitude();
