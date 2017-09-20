@@ -25,7 +25,7 @@ public class SteerUtil {
     public static final double TURN_RADIUS_A = .0153;
     public static final double TURN_RADIUS_B = .16;
     public static final int TURN_RADIUS_C = 7;
-    private static final double DEAD_ZONE = .3;
+    private static final double DEAD_ZONE = .2;
 
     public static Optional<SpaceTime> getCatchOpportunity(CarData carData, BallPath ballPath, double boostBudget) {
 
