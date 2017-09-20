@@ -80,12 +80,12 @@ public class AgentInput {
         final PyCarInfo blueCarInput;
         final PyCarInfo orangeCarInput;
 
-        if (gameTickPacket.CarInfo.get(0).Team == 0) {
-            blueCarInput = gameTickPacket.CarInfo.get(0);
-            orangeCarInput = gameTickPacket.CarInfo.get(1);
+        if (gameTickPacket.gamecars.get(0).Team == 0) {
+            blueCarInput = gameTickPacket.gamecars.get(0);
+            orangeCarInput = gameTickPacket.gamecars.get(1);
         } else {
-            blueCarInput = gameTickPacket.CarInfo.get(1);
-            orangeCarInput = gameTickPacket.CarInfo.get(0);
+            blueCarInput = gameTickPacket.gamecars.get(1);
+            orangeCarInput = gameTickPacket.gamecars.get(0);
         }
 
         blueScore = blueCarInput.Score.Goals + orangeCarInput.Score.OwnGoals;
@@ -93,22 +93,22 @@ public class AgentInput {
         blueDemo = blueCarInput.Score.Demolitions;
         orangeDemo = orangeCarInput.Score.Demolitions;
 
-        ballPosition = convert(gameTickPacket.gameBall.Location);
-        ballVelocity = convert(gameTickPacket.gameBall.Velocity);
+        ballPosition = convert(gameTickPacket.gameball.Location);
+        ballVelocity = convert(gameTickPacket.gameball.Velocity);
 
         Vector3 orangePosition = convert(orangeCarInput.Location);
         Vector3 orangeVelocity = convert(orangeCarInput.Velocity);
         CarRotation orangeRotation = convert(orangeCarInput.Rotation);
         double orangeBoost = orangeCarInput.Boost;
         orangeCar = new CarData(orangePosition, orangeVelocity, orangeRotation, null, orangeBoost,
-                orangeCarInput.SuperSonic, Bot.Team.ORANGE, time);
+                orangeCarInput.bSuperSonic, Bot.Team.ORANGE, time);
 
         Vector3 bluePosition = convert(blueCarInput.Location);
         Vector3 blueVelocity = convert(blueCarInput.Velocity);
         CarRotation blueRotation = convert(blueCarInput.Rotation);
         double blueBoost = blueCarInput.Boost;
         blueCar = new CarData(bluePosition, blueVelocity, blueRotation, null, blueBoost,
-                blueCarInput.SuperSonic, Bot.Team.BLUE, time);
+                blueCarInput.bSuperSonic, Bot.Team.BLUE, time);
     }
 
 

@@ -3,9 +3,10 @@ package tarehart.rlbot.input;
 import java.util.List;
 
 public class PyGameTickPacket {
-    public List<PyCarInfo> CarInfo; // Python type: CarInfo * maxCars
+    public List<PyCarInfo> gamecars; // Python type: gamecars * maxCars
     public int numCars; // Python type: ctypes.c_int
-    public List<PyBoostInfo> BoostInfo; // Python type: BoostInfo * maxBoosts
+    public List<PyBoostInfo> gameBoosts; // Python type: BoostInfo * maxBoosts
     public int numBoosts; // Python type: ctypes.c_int
-    public PyBallInfo gameBall; // Python type: BallInfo
+    public PyBallInfo gameball; // Python type: BallInfo
+    public PyGameInfo gameInfo;
 }

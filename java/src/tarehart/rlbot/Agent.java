@@ -13,19 +13,21 @@ public class Agent {
 
     public int[] getOutputVector(String packetJson, String teamString) {
 
-        Bot.Team team = Bot.Team.valueOf(teamString.toUpperCase());
-
-        PyGameTickPacket packet = gson.fromJson(packetJson, PyGameTickPacket.class);
-
-        AgentInput translatedInput = new AgentInput(packet, team);
-
-        if (!bots.containsKey(team)) {
-            bots.put(team, new Bot(team));
-        }
-
-        Bot bot = bots.get(team);
         AgentOutput output;
+
         try {
+            Bot.Team team = Bot.Team.valueOf(teamString.toUpperCase());
+
+            PyGameTickPacket packet = gson.fromJson(packetJson, PyGameTickPacket.class);
+
+            AgentInput translatedInput = new AgentInput(packet, team);
+
+            if (!bots.containsKey(team)) {
+                bots.put(team, new Bot(team));
+            }
+
+            Bot bot = bots.get(team);
+
             output = bot.processInput(translatedInput);
         } catch (Exception e) {
             e.printStackTrace();
