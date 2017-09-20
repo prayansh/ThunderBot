@@ -125,4 +125,8 @@ public class AgentOutput {
         result = 31 * result + (slideDepressed ? 1 : 0);
         return result;
     }
+
+    public double getSteer() {
+        return steeringTilt;
+    }
 }

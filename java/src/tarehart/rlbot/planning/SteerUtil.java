@@ -20,8 +20,12 @@ import java.util.function.BiPredicate;
 public class SteerUtil {
 
     public static final int SUPERSONIC_SPEED = 46;
-    public static final double GOOD_ENOUGH_ANGLE = Math.PI / 40;
+    public static final double GOOD_ENOUGH_ANGLE = Math.PI / 20;
     private static final ArenaModel arenaModel = new ArenaModel();
+    public static final double TURN_RADIUS_A = .0153;
+    public static final double TURN_RADIUS_B = .16;
+    public static final int TURN_RADIUS_C = 7;
+    private static final double DEAD_ZONE = .3;
 
     public static Optional<SpaceTime> getCatchOpportunity(CarData carData, BallPath ballPath, double boostBudget) {
 
@@ -184,6 +188,7 @@ public class SteerUtil {
     private static AgentOutput getSteeringOutput(double correctionAngle, double distance, double speed, boolean isSupersonic) {
         double difference = Math.abs(correctionAngle);
         double turnSharpness = difference * 6/Math.PI + difference * speed * .1;
+        turnSharpness = (1 - DEAD_ZONE) * turnSharpness + Math.signum(turnSharpness) * DEAD_ZONE;
 
         boolean shouldBrake = distance < 25 && difference > Math.PI / 6 && speed > 25;
         boolean shouldSlide = shouldBrake || difference > Math.PI / 2;
@@ -270,7 +275,26 @@ public class SteerUtil {
     }
 
     private static double getTurnRadius(double speed) {
-        return Math.abs(speed) * .8;
+        return TURN_RADIUS_A * speed * speed + TURN_RADIUS_B * speed + TURN_RADIUS_C;
+    }
+
+    private static Optional<Double> getSpeedForRadius(double radius) {
+
+        if (radius == TURN_RADIUS_C) {
+            return Optional.of(0d);
+        }
+
+        if (radius < TURN_RADIUS_C) {
+            return Optional.empty();
+        }
+
+        double a = TURN_RADIUS_A;
+        double b = TURN_RADIUS_B;
+        double c = TURN_RADIUS_C - radius;
+
+        double p = -b / (2 * a);
+        double q = Math.sqrt(b * b - 4 * a * c) / (2 * a);
+        return Optional.of(p + q);
     }
 
     public static double getFacingCorrectionSeconds(Vector2 approach, Vector2 targetFacing, double expectedSpeed) {
@@ -280,6 +304,12 @@ public class SteerUtil {
     }
 
     public static Optional<Vector2> getWaypointForCircleTurn(
+            CarData car, DistancePlot distancePlot, Vector2 targetPosition, Vector2 targetFacing) {
+
+        return Optional.of(getPlanForCircleTurn(car, distancePlot, targetPosition, targetFacing).waypoint);
+    }
+
+    public static SteerPlan getPlanForCircleTurn(
             CarData car, DistancePlot distancePlot, Vector2 targetPosition, Vector2 targetFacing) {
 
         Vector2 flatPosition = VectorUtil.flatten(car.position);
@@ -294,15 +324,10 @@ public class SteerUtil {
         return circleWaypoint(car, targetPosition, targetFacing, currentSpeed, expectedSpeed);
     }
 
-    private static Optional<Vector2> circleWaypoint(CarData car, Vector2 targetPosition, Vector2 targetFacing, double currentSpeed, double expectedSpeed) {
+    private static SteerPlan circleWaypoint(CarData car, Vector2 targetPosition, Vector2 targetFacing, double currentSpeed, double expectedSpeed) {
 
         Vector2 flatPosition = VectorUtil.flatten(car.position);
         Vector2 toTarget = (Vector2) targetPosition.subCopy(flatPosition);
-        Vector2 currentFacing = VectorUtil.flatten(car.rotation.noseVector);
-        double approachCorrection = getCorrectionAngleRad(currentFacing, toTarget);
-        if (Math.abs(approachCorrection) > Math.PI / 2) {
-            return Optional.empty();
-        }
 
         double turnRadius = getTurnRadius(expectedSpeed);
         Vector2 radiusVector = (Vector2) VectorUtil.orthogonal(targetFacing).scaleCopy(turnRadius);
@@ -313,23 +338,78 @@ public class SteerUtil {
         Vector2 center = (Vector2) targetPosition.addCopy(radiusVector);
         double distanceFromCenter = flatPosition.distance(center);
 
-        if (distanceFromCenter < turnRadius * 1.1) {
-
-            if (distanceFromCenter < turnRadius * .8) {
-                if (currentSpeed < expectedSpeed) {
-                    return circleWaypoint(car, targetPosition, targetFacing, currentSpeed, currentSpeed);
-                }
-                return Optional.empty();
-            }
-
-            return Optional.of(targetPosition);
-        }
-
         Vector2 centerToTangent = (Vector2) VectorUtil.orthogonal(toTarget).normaliseCopy().scaleCopy(turnRadius);
         if (centerToTangent.dotProduct(targetFacing) > 0) {
             centerToTangent.scale(-1); // Make sure we choose the tangent point behind the target car.
         }
         Vector2 tangentPoint = (Vector2) center.addCopy(centerToTangent);
-        return Optional.of(tangentPoint);
+
+        if (distanceFromCenter < turnRadius * 1.1) {
+
+            if (currentSpeed < expectedSpeed) {
+                return circleWaypoint(car, targetPosition, targetFacing, currentSpeed, currentSpeed);
+            }
+
+            return planWithinCircle(car, targetPosition, targetFacing, currentSpeed);
+        }
+
+        return new SteerPlan(steerTowardGroundPosition(car, tangentPoint), tangentPoint);
+    }
+
+    private static SteerPlan planWithinCircle(CarData car, Vector2 targetPosition, Vector2 targetFacing, double currentSpeed) {
+
+        Vector2 targetNose = (Vector2) targetPosition.addCopy(targetFacing);
+        Vector2 targetTail = (Vector2) targetPosition.subCopy(targetFacing);
+        Vector2 facing = VectorUtil.flatten(car.rotation.noseVector);
+
+        Vector2 flatPosition = VectorUtil.flatten(car.position);
+        Circle idealCircle = Circle.getCircleFromPoints(targetTail, targetNose, flatPosition);
+
+        boolean clockwise = Circle.isClockwise(idealCircle, targetPosition, targetFacing);
+        double clockwiseSteer = clockwise ? 1 : -1;
+
+        Vector2 centerToMe = (Vector2) VectorUtil.flatten(car.position).subCopy(idealCircle.center);
+        Vector2 idealDirection = VectorUtil.orthogonal(centerToMe);
+        if (Circle.isClockwise(idealCircle, flatPosition, idealDirection) != clockwise) {
+            idealDirection.scale(-1);
+        }
+
+        if (facing.dotProduct(idealDirection) < .7) {
+            AgentOutput output = steerTowardGroundPosition(car, (Vector2) flatPosition.addCopy(idealDirection));
+            return new SteerPlan(output, targetPosition);
+        }
+
+        Optional<Double> idealSpeedOption = getSpeedForRadius(idealCircle.radius);
+
+        if (!idealSpeedOption.isPresent() || idealSpeedOption.get() < 10) {
+            // Get Loose
+            AgentOutput output = new AgentOutput().withAcceleration(1);
+            return new SteerPlan(output, targetPosition);
+        } else {
+            double idealSpeed = idealSpeedOption.get();
+            double speedRatio = currentSpeed / idealSpeed; // Ideally should be 1
+
+            double lookaheadRadians = Math.PI / 20;
+            Vector2 centerToSteerTarget = VectorUtil.rotateVector((Vector2) flatPosition.subCopy(idealCircle.center), lookaheadRadians * (clockwise ? -1 : 1));
+            Vector2 steerTarget = (Vector2) idealCircle.center.addCopy(centerToSteerTarget);
+
+//            double difference = Math.abs(getCorrectionAngleRad(facing, idealDirection));
+//            double turnSharpness = difference * 6/Math.PI + difference * currentSpeed * .1;
+            AgentOutput output = steerTowardGroundPosition(car, steerTarget).withSlide(false);
+
+            if (output.getSteer() * clockwiseSteer < 0) {
+                output.withSteer(0);
+            }
+
+            if (speedRatio < 1) {
+                output.withAcceleration(1);
+                output.withBoost(currentSpeed >= AccelerationModel.MEDIUM_SPEED);
+            } else {
+                output.withAcceleration(0).withDeceleration(Math.max(0, speedRatio - 1.5));
+            }
+
+            return new SteerPlan(output, targetPosition);
+        }
+
     }
 }

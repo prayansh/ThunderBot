@@ -10,6 +10,7 @@ import tarehart.rlbot.planning.GoalUtil;
 import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.steps.*;
+import tarehart.rlbot.steps.debug.TagAlongStep;
 import tarehart.rlbot.steps.defense.GetOnDefenseStep;
 import tarehart.rlbot.steps.defense.WhatASaveStep;
 import tarehart.rlbot.steps.landing.LandGracefullyStep;
@@ -75,6 +76,11 @@ public class Bot {
     private AgentOutput getOutput(AgentInput input) {
 
         final CarData car = input.getMyCarData();
+
+//        if (canInterruptPlanFor(Plan.Posture.OVERRIDE)) {
+//            currentPlan = new Plan(Plan.Posture.OVERRIDE).withStep(new TagAlongStep());
+//            currentPlan.begin();
+//        }
 
         // Kickoffs can happen unpredictably because the bot doesn't know about goals at the moment.
         if (VectorUtil.flatten(input.ballPosition).magnitudeSquared() == 0) {

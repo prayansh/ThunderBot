@@ -31,7 +31,8 @@ public class Plan {
         DEFENSIVE(5),
         CLEAR(8),
         SAVE(10),
-        LANDING(15);
+        LANDING(15),
+        OVERRIDE(100);
 
         private int urgency;
 
