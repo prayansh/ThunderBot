@@ -1,10 +1,10 @@
 package tarehart.rlbot;
 
 import mikera.vectorz.Vector3;
-import tarehart.rlbot.input.PyCarInfo;
-import tarehart.rlbot.input.PyGameTickPacket;
-import tarehart.rlbot.input.PyRotator;
-import tarehart.rlbot.input.PyVector3;
+import rlbot.input.PyCarInfo;
+import rlbot.input.PyGameTickPacket;
+import rlbot.input.PyRotator;
+import rlbot.input.PyVector3;
 import tarehart.rlbot.planning.AccelerationModel;
 
 import java.time.LocalDateTime;

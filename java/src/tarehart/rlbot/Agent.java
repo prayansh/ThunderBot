@@ -1,7 +1,7 @@
 package tarehart.rlbot;
 
 import com.google.gson.Gson;
-import tarehart.rlbot.input.PyGameTickPacket;
+import rlbot.input.PyGameTickPacket;
 
 import java.util.HashMap;
 import java.util.Map;
