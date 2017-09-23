@@ -3,11 +3,9 @@ package tarehart.rlbot.steps.strikes;
 import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
-import tarehart.rlbot.CarData;
+import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.math.VectorUtil;
-import tarehart.rlbot.planning.Goal;
-import tarehart.rlbot.planning.GoalUtil;
 import tarehart.rlbot.planning.SteerUtil;
 
 public class KickInGeneralDirection implements KickStrategy {

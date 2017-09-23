@@ -3,12 +3,10 @@ package tarehart.rlbot.steps.landing;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
-import tarehart.rlbot.CarData;
+import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.physics.ArenaModel;
-import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.steps.Step;
-import tarehart.rlbot.steps.wall.DescendFromWallStep;
 
 import java.util.Optional;
 

@@ -3,7 +3,7 @@ package tarehart.rlbot.steps.defense;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
-import tarehart.rlbot.CarData;
+import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.SplineHandle;
 import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.planning.GoalUtil;

@@ -2,7 +2,11 @@ package tarehart.rlbot.steps.landing;
 
 import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
-import tarehart.rlbot.*;
+import tarehart.rlbot.AgentInput;
+import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.Bot;
+import tarehart.rlbot.input.CarData;
+import tarehart.rlbot.input.CarOrientation;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.steps.Step;
@@ -40,7 +44,7 @@ public class LandGracefullyStep implements Step {
         }
 
         if (desiredFacing == null) {
-            CarRotation rot = car.rotation;
+            CarOrientation rot = car.rotation;
             desiredFacing = new Vector2(rot.noseVector.x, rot.noseVector.y);
             desiredFacing.normalise();
         }
@@ -57,7 +61,7 @@ public class LandGracefullyStep implements Step {
         return plan.getOutput(input);
     }
 
-    private static Plan planRotation(CarRotation current, Vector2 desiredFacing, Bot.Team team) {
+    private static Plan planRotation(CarOrientation current, Vector2 desiredFacing, Bot.Team team) {
 
         // Step 1: get a clean axis
         // If front has no Z, we can roll flat

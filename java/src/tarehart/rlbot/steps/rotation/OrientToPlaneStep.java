@@ -4,7 +4,7 @@ import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.Bot;
-import tarehart.rlbot.CarRotation;
+import tarehart.rlbot.input.CarOrientation;
 import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.steps.Step;
@@ -26,7 +26,7 @@ public abstract class OrientToPlaneStep implements Step {
         this.allowUpsideDown = allowUpsideDown;
     }
 
-    protected abstract Plan makeOrientationPlan(CarRotation current, Bot.Team team);
+    protected abstract Plan makeOrientationPlan(CarOrientation current, Bot.Team team);
 
     protected double getCorrectionRadians(Vector3 vectorNeedingCorrection, Vector3 axisOfRotation) {
         Vector3 planeError = VectorUtil.project(vectorNeedingCorrection, planeNormal);

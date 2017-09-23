@@ -3,15 +3,13 @@ package tarehart.rlbot.steps.wall;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
-import tarehart.rlbot.CarData;
+import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
-import tarehart.rlbot.physics.BallPhysics;
 import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.steps.Step;
 import tarehart.rlbot.tuning.BallTelemetry;
 
-import java.time.Duration;
 import java.util.Optional;
 
 public class MountWallStep implements Step {

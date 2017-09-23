@@ -1,17 +1,13 @@
 package tarehart.rlbot.planning;
 
-import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
-import tarehart.rlbot.AgentInput;
-import tarehart.rlbot.CarData;
+import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.DistanceTimeSpeed;
 import tarehart.rlbot.math.TimeUtil;
 import tarehart.rlbot.math.VectorUtil;
-import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.DistancePlot;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 public class AccelerationModel {

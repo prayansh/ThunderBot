@@ -1,7 +1,6 @@
 package tarehart.rlbot.tuning;
 
 import com.google.gson.Gson;
-import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.physics.BallPath;
 

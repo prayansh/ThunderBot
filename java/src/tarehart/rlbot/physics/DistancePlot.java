@@ -1,9 +1,5 @@
 package tarehart.rlbot.physics;
 
-import mikera.vectorz.Vector2;
-import mikera.vectorz.Vector3;
-import tarehart.rlbot.math.DistanceTimeSpeed;
-import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.DistanceTimeSpeed;
 import tarehart.rlbot.math.TimeUtil;
 

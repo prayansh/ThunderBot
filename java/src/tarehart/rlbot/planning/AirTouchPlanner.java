@@ -1,13 +1,9 @@
 package tarehart.rlbot.planning;
 
-import mikera.vectorz.Vector;
 import mikera.vectorz.Vector3;
-import tarehart.rlbot.AgentInput;
-import tarehart.rlbot.CarData;
+import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.TimeUtil;
-
-import java.time.Duration;
 
 public class AirTouchPlanner {
 

@@ -2,6 +2,7 @@ package tarehart.rlbot;
 
 import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
+import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.ArenaModel;
@@ -10,7 +11,6 @@ import tarehart.rlbot.planning.GoalUtil;
 import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.steps.*;
-import tarehart.rlbot.steps.debug.TagAlongStep;
 import tarehart.rlbot.steps.defense.GetOnDefenseStep;
 import tarehart.rlbot.steps.defense.WhatASaveStep;
 import tarehart.rlbot.steps.landing.LandGracefullyStep;
@@ -18,8 +18,8 @@ import tarehart.rlbot.steps.strikes.*;
 import tarehart.rlbot.steps.wall.DescendFromWallStep;
 import tarehart.rlbot.steps.wall.MountWallStep;
 import tarehart.rlbot.steps.wall.WallTouchStep;
-import tarehart.rlbot.tuning.BotLog;
 import tarehart.rlbot.tuning.BallTelemetry;
+import tarehart.rlbot.tuning.BotLog;
 import tarehart.rlbot.ui.Readout;
 
 import javax.swing.*;

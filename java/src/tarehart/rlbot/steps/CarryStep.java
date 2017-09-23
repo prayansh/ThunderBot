@@ -4,15 +4,13 @@ import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
-import tarehart.rlbot.CarData;
+import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.math.TimeUtil;
 import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.BallPath;
-import tarehart.rlbot.physics.BallPhysics;
 import tarehart.rlbot.planning.GoalUtil;
-import tarehart.rlbot.planning.SetPieces;
 import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.tuning.BotLog;
 

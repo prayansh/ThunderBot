@@ -4,7 +4,7 @@ import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
-import tarehart.rlbot.CarData;
+import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.*;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.BallPhysics;
@@ -82,14 +82,14 @@ public class DirectedKickStep implements Step {
             Vector3 strikePointModifier = (Vector3) strikeForceVector.normaliseCopy();
             strikePointModifier.scale(-1.4);
 
-            if (Math.abs(approachCorrection) < Math.PI / 8 && Math.abs(orientationCorrection) < Math.PI / 8) {
+            if (Math.abs(approachCorrection) < Math.PI / 12 && Math.abs(orientationCorrection) < Math.PI / 12) {
 
                 plan = new Plan().withStep(new InterceptStep(strikePointModifier));
                 plan.begin();
                 return plan.getOutput(input);
             }
 
-            if (Math.abs(approachCorrection) < Math.PI / 3) {
+            if (Math.abs(approachCorrection) < Math.PI / 2) {
 
                 Vector2 waypoint = (Vector2) intercept.addCopy(VectorUtil.flatten(strikePointModifier));
 

@@ -1,7 +1,6 @@
 package tarehart.rlbot.math;
 
 import mikera.vectorz.Vector2;
-import mikera.vectorz.Vector3;
 import tarehart.rlbot.planning.SteerUtil;
 
 public class Circle {

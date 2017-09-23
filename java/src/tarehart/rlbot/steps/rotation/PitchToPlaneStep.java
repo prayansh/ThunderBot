@@ -3,7 +3,7 @@ package tarehart.rlbot.steps.rotation;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.Bot;
-import tarehart.rlbot.CarRotation;
+import tarehart.rlbot.input.CarOrientation;
 import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.steps.BlindStep;
 import tarehart.rlbot.tuning.BotLog;
@@ -19,7 +19,7 @@ public class PitchToPlaneStep extends OrientToPlaneStep {
     }
 
     @Override
-    protected Plan makeOrientationPlan(CarRotation current, Bot.Team team) {
+    protected Plan makeOrientationPlan(CarOrientation current, Bot.Team team) {
 
         Vector3 vectorNeedingCorrection = current.noseVector;
         Vector3 axisOfRotation = current.sideVector;

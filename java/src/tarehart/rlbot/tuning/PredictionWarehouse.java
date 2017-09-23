@@ -8,14 +8,12 @@ public class PredictionWarehouse {
 
     private LinkedList<BallPrediction> ballPredictions = new LinkedList<>();
 
-    public Optional<BallPrediction> getPredictionOfNow() {
+    public Optional<BallPrediction> getPredictionOfMoment(LocalDateTime moment) {
         if (ballPredictions.isEmpty()) {
             return Optional.empty();
         }
 
-        LocalDateTime now = LocalDateTime.now();
-
-        if (now.isBefore(ballPredictions.getFirst().predictedMoment)) {
+        if (moment.isBefore(ballPredictions.getFirst().predictedMoment)) {
             return Optional.empty();
         }
 
@@ -27,7 +25,7 @@ public class PredictionWarehouse {
             }
 
             oldest = ballPredictions.removeFirst();
-        } while (now.isAfter(oldest.predictedMoment));
+        } while (moment.isAfter(oldest.predictedMoment));
 
         return Optional.of(oldest);
     }

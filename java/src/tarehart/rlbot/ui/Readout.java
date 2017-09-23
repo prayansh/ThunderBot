@@ -38,6 +38,8 @@ public class Readout {
 
     private PredictionWarehouse warehouse = new PredictionWarehouse();
 
+    private LocalDateTime previousTime = null;
+
 
     public Readout() {
         DefaultCaret caret = (DefaultCaret)logViewer.getCaret();
@@ -55,17 +57,19 @@ public class Readout {
         ballHeightActual.setValue((int) (input.ballPosition.z * HEIGHT_BAR_MULTIPLIER));
 
         int predictionMillis = predictionTime.getValue();
-        LocalDateTime predictionTime = LocalDateTime.now().plus(Duration.ofMillis(predictionMillis));
+        LocalDateTime predictionTime = input.time.plus(Duration.ofMillis(predictionMillis));
 
-        if (ballPath != null) {
-            Optional<SpaceTimeVelocity> predictionSpace = ballPath.getMotionAt(predictionTime);
-            if (predictionSpace.isPresent()) {
-                BallPrediction prediction = new BallPrediction(predictionSpace.get().getSpace(), predictionTime);
-                warehouse.addPrediction(prediction);
+        if (previousTime == null || !previousTime.equals(input.time)) {
+            if (ballPath != null) {
+                Optional<SpaceTimeVelocity> predictionSpace = ballPath.getMotionAt(predictionTime);
+                if (predictionSpace.isPresent()) {
+                    BallPrediction prediction = new BallPrediction(predictionSpace.get().getSpace(), predictionTime);
+                    warehouse.addPrediction(prediction);
+                }
             }
         }
 
-        Optional<BallPrediction> predictionOfNow = warehouse.getPredictionOfNow();
+        Optional<BallPrediction> predictionOfNow = warehouse.getPredictionOfMoment(input.time);
         if (predictionOfNow.isPresent()) {
             Vector3 predictedLocation = predictionOfNow.get().predictedLocation;
             ballHeightPredicted.setValue((int) (predictedLocation.z * HEIGHT_BAR_MULTIPLIER));
