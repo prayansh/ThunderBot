@@ -6,6 +6,8 @@ public class AgentOutput {
 
     // 0 is straight, -1 is hard left, 1 is hard right.
     private double steeringTilt;
+
+    // -1 for front flip, 1 for back flip
     private double pitchTilt;
 
     // 0 is none, 1 is full

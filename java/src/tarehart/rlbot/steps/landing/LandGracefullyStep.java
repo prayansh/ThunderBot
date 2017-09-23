@@ -44,7 +44,7 @@ public class LandGracefullyStep implements Step {
         }
 
         if (desiredFacing == null) {
-            CarOrientation rot = car.rotation;
+            CarOrientation rot = car.orientation;
             desiredFacing = new Vector2(rot.noseVector.x, rot.noseVector.y);
             desiredFacing.normalise();
         }
@@ -54,7 +54,7 @@ public class LandGracefullyStep implements Step {
         }
 
         if (plan == null || plan.isComplete()) {
-            plan = planRotation(car.rotation, desiredFacing, input.team);
+            plan = planRotation(car.orientation, desiredFacing, input.team);
             plan.begin();
         }
 
@@ -68,10 +68,10 @@ public class LandGracefullyStep implements Step {
         // If roof has no Z, we can pitch nose toward desired direction, then roll
         // If side has no Z, we can pitch flat, in direction closest to desired, then roll
 
-        BotLog.println("Nose: " + current.noseVector + " Roof: " + current.roofVector + " Side: " + current.sideVector, team);
+        BotLog.println("Nose: " + current.noseVector + " Roof: " + current.roofVector + " Side: " + current.rightVector, team);
 
         // What's closest to being true?
-        Vector3 minZ = Stream.of(current.noseVector, current.roofVector, current.sideVector).min(Comparator.comparingDouble(a -> Math.abs(a.z))).get();
+        Vector3 minZ = Stream.of(current.noseVector, current.roofVector, current.rightVector).min(Comparator.comparingDouble(a -> Math.abs(a.z))).get();
 
         if (minZ == current.noseVector) {
             BotLog.println("Nose points to horizon", team);

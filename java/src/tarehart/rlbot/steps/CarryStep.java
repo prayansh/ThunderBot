@@ -71,7 +71,7 @@ public class CarryStep implements Step {
         // We will assume that the car is flat on the ground.
 
         // We will treat (0, 1) as the car's natural orientation.
-        double carYaw = SteerUtil.getCorrectionAngleRad(new Vector2(0, 1), VectorUtil.flatten(car.rotation.noseVector));
+        double carYaw = SteerUtil.getCorrectionAngleRad(new Vector2(0, 1), VectorUtil.flatten(car.orientation.noseVector));
 
         Vector2 carToPosition = VectorUtil.flatten((Vector3) worldPosition.subCopy(car.position));
 

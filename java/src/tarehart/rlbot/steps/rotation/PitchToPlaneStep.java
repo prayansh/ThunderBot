@@ -22,7 +22,7 @@ public class PitchToPlaneStep extends OrientToPlaneStep {
     protected Plan makeOrientationPlan(CarOrientation current, Bot.Team team) {
 
         Vector3 vectorNeedingCorrection = current.noseVector;
-        Vector3 axisOfRotation = current.sideVector;
+        Vector3 axisOfRotation = current.rightVector;
 
         double radians = getCorrectionRadians(vectorNeedingCorrection, axisOfRotation);
 

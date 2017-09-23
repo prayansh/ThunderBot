@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 public class CarData {
     public final Vector3 position;
     public final Vector3 velocity;
-    public final CarOrientation rotation;
+    public final CarOrientation orientation;
     public final CarSpin spin;
     public final double boost;
     public boolean isSupersonic;
@@ -20,7 +20,7 @@ public class CarData {
                    boolean isSupersonic, Bot.Team team, LocalDateTime time) {
         this.position = position;
         this.velocity = velocity;
-        this.rotation = orientation;
+        this.orientation = orientation;
         this.spin = spin;
         this.boost = boost;
         this.isSupersonic = isSupersonic;

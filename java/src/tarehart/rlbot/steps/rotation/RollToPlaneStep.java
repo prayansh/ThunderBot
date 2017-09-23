@@ -21,7 +21,7 @@ public class RollToPlaneStep extends OrientToPlaneStep {
     @Override
     protected Plan makeOrientationPlan(CarOrientation current, Bot.Team team) {
 
-        double radians = getCorrectionRadians(current.sideVector, current.noseVector);
+        double radians = getCorrectionRadians(current.rightVector, current.noseVector);
 
         if (!allowUpsideDown && current.roofVector.dotProduct(planeNormal) < 0) {
             radians += Math.PI;

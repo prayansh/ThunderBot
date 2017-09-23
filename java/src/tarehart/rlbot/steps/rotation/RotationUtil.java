@@ -14,8 +14,10 @@ public class RotationUtil {
         return Duration.ofMillis((long) (radians * 100));
     }
 
-    public static double inclination(Vector3 axisOfRotation, Vector3 planeNormal) {
-        return projectOntoPlane(axisOfRotation, planeNormal).magnitude();
+    public static double maxOrbitHeightAbovePlane(Vector3 axisOfRotation, Vector3 planeNormal) {
+        double xVal = projectOntoPlane(axisOfRotation, planeNormal).magnitude();
+        double angleAbovePlane = Math.acos(xVal);
+        return Math.sin(angleAbovePlane);
     }
 
     private static Vector3 projectOntoPlane(Vector3 vec, Vector3 planeNormal) {

@@ -23,7 +23,7 @@ public class AirTouchPlanner {
         AerialChecklist checklist = new AerialChecklist();
         checkLaunchReadiness(checklist, car, carPositionAtContact);
 
-        checklist.notSkidding = car.velocity.normaliseCopy().dotProduct(car.rotation.noseVector) > .99;
+        checklist.notSkidding = car.velocity.normaliseCopy().dotProduct(car.orientation.noseVector) > .99;
         checklist.hasBoost = car.boost >= BOOST_NEEDED_FOR_AERIAL;
 
         return checklist;
@@ -54,7 +54,7 @@ public class AirTouchPlanner {
         checklist.closeEnough = secondsTillIntercept < 4;
         checklist.notTooClose = isVerticallyAccessible(car, carPositionAtContact);
         checklist.timeForIgnition = tMinus < 0.1;
-        checklist.upright = car.rotation.roofVector.dotProduct(new Vector3(0, 0, 1)) > .99;
+        checklist.upright = car.orientation.roofVector.dotProduct(new Vector3(0, 0, 1)) > .99;
         checklist.onTheGround = car.position.z < CAR_BASE_HEIGHT + 0.03; // Add a little wiggle room
     }
 

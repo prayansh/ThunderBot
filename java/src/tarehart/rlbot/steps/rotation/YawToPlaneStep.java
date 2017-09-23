@@ -23,7 +23,7 @@ public class YawToPlaneStep extends OrientToPlaneStep {
 
         double radians = getCorrectionRadians(current.noseVector, current.roofVector);
 
-        if (!allowUpsideDown && current.sideVector.dotProduct(planeNormal) < 0) {
+        if (!allowUpsideDown && current.rightVector.dotProduct(planeNormal) < 0) {
             radians += Math.PI;
         }
         radians = RotationUtil.shortWay(radians);

@@ -75,7 +75,7 @@ public class WhatASaveStep implements Step {
         Vector3 carToIntercept = (Vector3) intercept.space.subCopy(car.position);
         double carApproachVsBallApproach = SteerUtil.getCorrectionAngleRad(VectorUtil.flatten(carToIntercept), VectorUtil.flatten(input.ballVelocity));
         if (Math.abs(carApproachVsBallApproach) > Math.PI / 6 &&
-                Math.abs(SteerUtil.getCorrectionAngleRad(VectorUtil.flatten(car.rotation.noseVector), VectorUtil.flatten(carToIntercept))) < Math.PI / 12) {
+                Math.abs(SteerUtil.getCorrectionAngleRad(VectorUtil.flatten(car.orientation.noseVector), VectorUtil.flatten(carToIntercept))) < Math.PI / 12) {
 
             plan = new Plan(Plan.Posture.SAVE).withStep(new InterceptStep(new Vector3(0, Math.signum(goal.navigationSpline.getLocation().y) * .7, 0)));
             plan.begin();
@@ -111,7 +111,7 @@ public class WhatASaveStep implements Step {
         if (maxSpeedIntercept.isPresent()) {
             SpaceTime intercept = maxSpeedIntercept.get();
             Vector2 carToIntercept = VectorUtil.flatten((Vector3) intercept.space.subCopy(carData.position));
-            Vector2 noseWithSameLength = (Vector2) VectorUtil.flatten(carData.rotation.noseVector).normaliseCopy().scaleCopy(carToIntercept.magnitude());
+            Vector2 noseWithSameLength = (Vector2) VectorUtil.flatten(carData.orientation.noseVector).normaliseCopy().scaleCopy(carToIntercept.magnitude());
             double passingDistance = carToIntercept.distance(noseWithSameLength);
             if (passingDistance > 2.5) {
                 return Optional.empty();

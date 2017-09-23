@@ -296,6 +296,6 @@ public class ArenaModel {
     }
 
     public static boolean isCarOnWall(CarData car) {
-        return isCarNearWall(car) && Math.abs(car.rotation.roofVector.z) < 0.05;
+        return isCarNearWall(car) && Math.abs(car.orientation.roofVector.z) < 0.05;
     }
 }

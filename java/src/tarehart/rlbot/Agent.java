@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import rlbot.input.PyGameTickPacket;
 import tarehart.rlbot.input.Chronometer;
 import tarehart.rlbot.input.SpinTracker;
-import tarehart.rlbot.math.TimeUtil;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,13 +24,7 @@ public class Agent {
 
             PyGameTickPacket packet = gson.fromJson(packetJson, PyGameTickPacket.class);
 
-            chronometer.readInput(packet.gameInfo);
-            double elapsedSeconds = TimeUtil.toSeconds(chronometer.getTimeDiff());
-            if (elapsedSeconds > 0) {
-                spinTracker.readInput(packet, elapsedSeconds);
-            }
-
-            AgentInput translatedInput = new AgentInput(packet, team, chronometer.getGameTime(), spinTracker.getSpinList());
+            AgentInput translatedInput = new AgentInput(packet, team, chronometer, spinTracker);
 
             if (!bots.containsKey(team)) {
                 bots.put(team, new Bot(team));

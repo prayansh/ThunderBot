@@ -1,49 +1,50 @@
 package tarehart.rlbot.input;
 
-import rlbot.input.PyCarInfo;
-import rlbot.input.PyGameTickPacket;
-import rlbot.input.PyRotator;
-import tarehart.rlbot.AgentInput;
-import tarehart.rlbot.math.TimeUtil;
+import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.VectorUtil;
 
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.function.Function;
 
 public class SpinTracker {
 
-    PyGameTickPacket previousInput;
-    private List<CarSpin> spinList;
+    private CarOrientation previousBlue;
+    private CarOrientation previousOrange;
+    private CarSpin blueSpin = new CarSpin(0, 0, 0);
+    private CarSpin orangeSpin = new CarSpin(0, 0, 0);
 
-    public void readInput(PyGameTickPacket input, double secondsElapsed) {
-        spinList = new ArrayList<>(input.gamecars.size());
+    public void readInput(CarOrientation blueOrientation, CarOrientation orangeOrientation, double secondsElapsed) {
 
-        for (int i = 0; i < input.gamecars.size(); i++) {
-            PyCarInfo carInfo = input.gamecars.get(i);
-            if (previousInput != null) {
-                PyRotator previousRotation = previousInput.gamecars.get(i).Rotation;
-                CarSpin calculatedSpin = calculateSpin(previousRotation, carInfo.Rotation, secondsElapsed);
-                spinList.add(calculatedSpin);
-            } else {
-                spinList.add(new CarSpin(0, 0, 0));
+        if (secondsElapsed > 0) {
+            if (previousBlue != null && previousOrange != null) {
+                blueSpin = getCarSpin(previousBlue, blueOrientation, secondsElapsed);
+                orangeSpin = getCarSpin(previousOrange, orangeOrientation, secondsElapsed);
             }
+            previousBlue = blueOrientation;
+            previousOrange = orangeOrientation;
         }
-
-        previousInput = input;
     }
 
-    private CarSpin calculateSpin(PyRotator prevRotation, PyRotator currRotation, double secondsElapsed) {
+    private CarSpin getCarSpin(CarOrientation prevData, CarOrientation currData, double secondsElapsed) {
 
-        double rateConversion = AgentInput.RADIANS_PER_UROT / secondsElapsed;
+        double rateConversion = 1 / secondsElapsed;
 
-        double pitchRate = (currRotation.Pitch - prevRotation.Pitch) * rateConversion;
-        double yawRate = (currRotation.Yaw - prevRotation.Yaw) * rateConversion;
-        double rollRate = (currRotation.Roll - prevRotation.Roll) * rateConversion;
+        double pitchAmount = getRotationAmount(currData.noseVector, prevData.roofVector);
+        double yawAmount = getRotationAmount(currData.noseVector, prevData.rightVector);
+        double rollAmount = getRotationAmount(currData.roofVector, prevData.rightVector);
 
-        return new CarSpin(pitchRate, yawRate, rollRate);
+        return new CarSpin(pitchAmount * rateConversion, yawAmount * rateConversion, rollAmount * rateConversion);
     }
 
-    public List<CarSpin> getSpinList() {
-        return spinList;
+    private double getRotationAmount(Vector3 currentMoving, Vector3 previousOrthogonal) {
+        Vector3 projection = VectorUtil.project(currentMoving, previousOrthogonal);
+        return Math.asin(projection.magnitude() * Math.signum(projection.dotProduct(previousOrthogonal)));
+    }
+
+    public CarSpin getOrangeSpin() {
+        return orangeSpin;
+    }
+
+    public CarSpin getBlueSpin() {
+        return blueSpin;
     }
 }

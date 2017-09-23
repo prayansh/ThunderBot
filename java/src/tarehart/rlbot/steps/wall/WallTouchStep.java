@@ -81,7 +81,7 @@ public class WallTouchStep implements Step {
         }
         CarData car = input.getMyCarData();
         Vector3 toPosition = (Vector3) carPositionAtContact.space.subCopy(car.position);
-        double correctionAngleRad = VectorUtil.getCorrectionAngle(car.rotation.noseVector, toPosition, car.rotation.roofVector);
+        double correctionAngleRad = VectorUtil.getCorrectionAngle(car.orientation.noseVector, toPosition, car.orientation.roofVector);
         double secondsTillIntercept = TimeUtil.secondsBetween(input.time, carPositionAtContact.time);
         double wallDistanceAtIntercept = ArenaModel.getDistanceFromWall(carPositionAtContact.space);
         double tMinus = secondsTillIntercept - wallDistanceAtIntercept / WALL_DEPART_SPEED;

@@ -32,7 +32,7 @@ public class AccelerationModel {
 
     public static double getSteerPenaltySeconds(CarData carData, Vector3 target) {
         Vector3 toTarget = (Vector3) target.subCopy(carData.position);
-        double correctionAngleRad = VectorUtil.getCorrectionAngle(carData.rotation.noseVector, toTarget, carData.rotation.roofVector);
+        double correctionAngleRad = VectorUtil.getCorrectionAngle(carData.orientation.noseVector, toTarget, carData.orientation.roofVector);
         return Math.abs(correctionAngleRad) * carData.velocity.magnitude() * .02;
     }
 

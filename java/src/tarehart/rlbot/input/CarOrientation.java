@@ -6,14 +6,14 @@ public class CarOrientation {
 
     public Vector3 noseVector;
     public Vector3 roofVector;
-    public Vector3 sideVector;
+    public Vector3 rightVector;
 
     public CarOrientation(Vector3 noseVector, Vector3 roofVector) {
 
         this.noseVector = noseVector;
         this.roofVector = roofVector;
 
-        this.sideVector = noseVector.copy();
-        this.sideVector.crossProduct(roofVector);
+        this.rightVector = noseVector.copy();
+        this.rightVector.crossProduct(roofVector);
     }
 }

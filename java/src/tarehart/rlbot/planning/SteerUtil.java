@@ -149,7 +149,7 @@ public class SteerUtil {
     }
 
     public static double getCorrectionAngleRad(CarData carData, Vector2 target) {
-        return getCorrectionAngleRad(VectorUtil.flatten(carData.rotation.noseVector), (Vector2) target.subCopy(VectorUtil.flatten(carData.position)));
+        return getCorrectionAngleRad(VectorUtil.flatten(carData.orientation.noseVector), (Vector2) target.subCopy(VectorUtil.flatten(carData.position)));
     }
 
     public static double getCorrectionAngleRad(Vector2 current, Vector2 ideal) {
@@ -179,7 +179,7 @@ public class SteerUtil {
 
     public static AgentOutput steerTowardWallPosition(CarData carData, Vector3 position) {
         Vector3 toPosition = (Vector3) position.subCopy(carData.position);
-        double correctionAngle = VectorUtil.getCorrectionAngle(carData.rotation.noseVector, toPosition, carData.rotation.roofVector);
+        double correctionAngle = VectorUtil.getCorrectionAngle(carData.orientation.noseVector, toPosition, carData.orientation.roofVector);
         double speed = carData.velocity.magnitude();
         double distance = position.distance(carData.position);
         return getSteeringOutput(correctionAngle, distance, speed, carData.isSupersonic);
@@ -235,7 +235,7 @@ public class SteerUtil {
         double distanceToIntercept = target.distance(VectorUtil.flatten(car.position));
         if (distanceToIntercept > distanceCovered + 15) {
 
-            Vector2 facing = VectorUtil.flatten(car.rotation.noseVector);
+            Vector2 facing = VectorUtil.flatten(car.orientation.noseVector);
             double facingCorrection = SteerUtil.getCorrectionAngleRad(facing, target);
             double slideAngle = SteerUtil.getCorrectionAngleRad(facing, VectorUtil.flatten(car.velocity));
 
@@ -360,7 +360,7 @@ public class SteerUtil {
 
         Vector2 targetNose = (Vector2) targetPosition.addCopy(targetFacing);
         Vector2 targetTail = (Vector2) targetPosition.subCopy(targetFacing);
-        Vector2 facing = VectorUtil.flatten(car.rotation.noseVector);
+        Vector2 facing = VectorUtil.flatten(car.orientation.noseVector);
 
         Vector2 flatPosition = VectorUtil.flatten(car.position);
         Circle idealCircle = Circle.getCircleFromPoints(targetTail, targetNose, flatPosition);

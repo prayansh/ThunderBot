@@ -29,15 +29,21 @@ public abstract class OrientToPlaneStep implements Step {
     protected abstract Plan makeOrientationPlan(CarOrientation current, Bot.Team team);
 
     protected double getCorrectionRadians(Vector3 vectorNeedingCorrection, Vector3 axisOfRotation) {
+        // We want vectorNeedingCorrection to be resting on the plane. If it's lined up with the planeNormal, then it's
+        // doing a very poor job of that.
         Vector3 planeError = VectorUtil.project(vectorNeedingCorrection, planeNormal);
-        return -Math.asin(planeError.magnitude() * Math.signum(planeError.dotProduct(planeNormal)) / RotationUtil.inclination(axisOfRotation, planeNormal));
+
+        double distanceAbovePlane = planeError.magnitude() * Math.signum(planeError.dotProduct(planeNormal));
+
+        double maxOrbitHeightAbovePlane = RotationUtil.maxOrbitHeightAbovePlane(axisOfRotation, planeNormal);
+        return -Math.asin(distanceAbovePlane / maxOrbitHeightAbovePlane);
     }
 
     @Override
     public Optional<AgentOutput> getOutput(AgentInput input) {
 
         if (plan == null) {
-            plan = makeOrientationPlan(input.getMyCarData().rotation, input.team);
+            plan = makeOrientationPlan(input.getMyCarData().orientation, input.team);
             plan.begin();
         }
 

@@ -89,7 +89,7 @@ public class MidairStrikeStep implements Step {
 
         Vector3 idealDirection = (Vector3) carToIntercept.normaliseCopy();
         Vector3 currentMotion = (Vector3) car.velocity.normaliseCopy();
-        Vector3 currentPitch = car.rotation.noseVector;
+        Vector3 currentPitch = car.orientation.noseVector;
 
         Vector2 sidescrollerCurrentVelocity = getPitchVector(currentMotion);
         Vector2 sidescrollerIdealVelocity = getPitchVector(idealDirection);

@@ -40,7 +40,7 @@ public class DribbleStep implements Step {
         }
 
         Vector2 myPositonFlat = VectorUtil.flatten(car.position);
-        Vector2 myDirectionFlat = VectorUtil.flatten(car.rotation.noseVector);
+        Vector2 myDirectionFlat = VectorUtil.flatten(car.orientation.noseVector);
         Vector2 ballPositionFlat = VectorUtil.flatten(input.ballPosition);
         Vector2 ballVelocityFlat = VectorUtil.flatten(input.ballVelocity);
         Vector2 toBallFlat = (Vector2) ballPositionFlat.subCopy(myPositonFlat);
