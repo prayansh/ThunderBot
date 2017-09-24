@@ -26,8 +26,10 @@ public class Agent {
 
             AgentInput translatedInput = new AgentInput(packet, team, chronometer, spinTracker);
 
-            if (!bots.containsKey(team)) {
-                bots.put(team, new Bot(team));
+            synchronized (this) {
+                if (!bots.containsKey(team)) {
+                    bots.put(team, new Bot(team));
+                }
             }
 
             Bot bot = bots.get(team);

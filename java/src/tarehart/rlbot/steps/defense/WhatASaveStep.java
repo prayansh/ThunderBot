@@ -8,13 +8,12 @@ import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.math.VectorUtil;
+import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.DistancePlot;
 import tarehart.rlbot.planning.*;
 import tarehart.rlbot.steps.Step;
-import tarehart.rlbot.steps.strikes.DirectedKickStep;
 import tarehart.rlbot.steps.strikes.InterceptStep;
-import tarehart.rlbot.steps.strikes.KickAwayFromOwnGoal;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
@@ -32,7 +31,7 @@ public class WhatASaveStep implements Step {
         }
 
         CarData car = input.getMyCarData();
-        BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(5));
+        BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(5));
         Goal goal = GoalUtil.getOwnGoal(input.team);
         Optional<SpaceTimeVelocity> currentThreat = GoalUtil.predictGoalEvent(goal, ballPath);
         if (!currentThreat.isPresent()) {

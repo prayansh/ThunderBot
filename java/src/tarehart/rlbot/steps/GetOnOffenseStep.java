@@ -30,7 +30,7 @@ public class GetOnOffenseStep implements Step {
         Goal enemyGoal = GoalUtil.getEnemyGoal(input.team);
         Goal ownGoal = GoalUtil.getOwnGoal(input.team);
 
-        BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(2));
+        BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(2));
 
         Vector3 target = input.ballPosition.copy();
         SpaceTimeVelocity futureMotion = ballPath.getMotionAt(input.time.plusSeconds(2)).get();

@@ -5,6 +5,7 @@ import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.SpaceTime;
+import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.DistancePlot;
 import tarehart.rlbot.planning.*;
@@ -46,7 +47,7 @@ public class InterceptStep implements Step {
             doneMoment = input.time.plus(Duration.ofMillis(1000));
         }
 
-        BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(4));
+        BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(4));
         DistancePlot fullAcceleration = AccelerationModel.simulateAcceleration(carData, Duration.ofSeconds(4), carData.boost, 0);
 
         List<Intercept> interceptOptions = new ArrayList<>();

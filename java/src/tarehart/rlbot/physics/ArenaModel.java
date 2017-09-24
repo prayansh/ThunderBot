@@ -15,15 +15,21 @@ import com.bulletphysics.dynamics.RigidBodyConstructionInfo;
 import com.bulletphysics.dynamics.constraintsolver.SequentialImpulseConstraintSolver;
 import com.bulletphysics.linearmath.Transform;
 import mikera.vectorz.Vector3;
+import tarehart.rlbot.AgentInput;
+import tarehart.rlbot.Bot;
 import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.planning.Goal;
+import tarehart.rlbot.tuning.BallTelemetry;
 
 import javax.vecmath.Quat4f;
 import javax.vecmath.Vector2f;
 import javax.vecmath.Vector3f;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 
 public class ArenaModel {
@@ -54,6 +60,8 @@ public class ArenaModel {
     private DynamicsWorld world;
     private RigidBody ball;
 
+    private static Map<Bot.Team, ArenaModel> modelMap = new HashMap<>();
+
 
     public ArenaModel() {
         world = initPhysics();
@@ -68,6 +76,29 @@ public class ArenaModel {
 
     public static boolean isBehindGoalLine(Vector3 position) {
         return Math.abs(position.y) > BACK_WALL;
+    }
+
+    public static BallPath predictBallPath(AgentInput input, LocalDateTime startingAt, Duration duration) {
+
+        if (!modelMap.containsKey(input.team)) {
+            modelMap.put(input.team, new ArenaModel());
+        }
+
+        ArenaModel arenaModel = modelMap.get(input.team);
+
+        Optional<BallPath> pathOption = BallTelemetry.getPath(input.team);
+
+        if (pathOption.isPresent()) {
+            BallPath ballPath = pathOption.get();
+            if (ballPath.getEndpoint().getTime().isBefore(startingAt.plus(duration))) {
+                arenaModel.extendSimulation(ballPath, startingAt.plus(duration));
+            }
+            return ballPath;
+        } else {
+            BallPath ballPath = arenaModel.simulateBall(new SpaceTimeVelocity(input.ballPosition, startingAt, input.ballVelocity), duration);
+            BallTelemetry.setPath(ballPath, input.team);
+            return ballPath;
+        }
     }
 
     private void setupWalls() {

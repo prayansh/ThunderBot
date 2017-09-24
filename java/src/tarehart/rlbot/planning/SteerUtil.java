@@ -21,7 +21,6 @@ public class SteerUtil {
 
     public static final int SUPERSONIC_SPEED = 46;
     public static final double GOOD_ENOUGH_ANGLE = Math.PI / 12;
-    private static final ArenaModel arenaModel = new ArenaModel();
     public static final double TURN_RADIUS_A = .0153;
     public static final double TURN_RADIUS_B = .16;
     public static final int TURN_RADIUS_C = 7;
@@ -130,23 +129,6 @@ public class SteerUtil {
         }
 
         return Optional.empty();
-    }
-
-    public static BallPath predictBallPath(AgentInput input, LocalDateTime startingAt, Duration duration) {
-
-        Optional<BallPath> pathOption = BallTelemetry.getPath();
-
-        if (pathOption.isPresent()) {
-            BallPath ballPath = pathOption.get();
-            if (ballPath.getEndpoint().getTime().isBefore(startingAt.plus(duration))) {
-                arenaModel.extendSimulation(ballPath, startingAt.plus(duration));
-            }
-            return ballPath;
-        } else {
-            BallPath ballPath = arenaModel.simulateBall(new SpaceTimeVelocity(input.ballPosition, startingAt, input.ballVelocity), duration);
-            BallTelemetry.setPath(ballPath);
-            return ballPath;
-        }
     }
 
     public static double getCorrectionAngleRad(CarData carData, Vector3 target) {

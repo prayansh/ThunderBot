@@ -1,40 +1,28 @@
 package tarehart.rlbot.steps;
 
+import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
-import tarehart.rlbot.math.SplineHandle;
+import tarehart.rlbot.input.FullBoost;
+import tarehart.rlbot.math.TimeUtil;
+import tarehart.rlbot.math.VectorUtil;
+import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.DistancePlot;
 import tarehart.rlbot.planning.AccelerationModel;
 import tarehart.rlbot.planning.Plan;
+import tarehart.rlbot.planning.SteerPlan;
 import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 public class GetBoostStep implements Step {
-    private SplineHandle targetLocation = null;
-
-    private static final float MIDFIELD_BOOST_WIDTH = 71.5f;
-    private static final float CORNER_BOOST_WIDTH = 61.5f;
-    private static final float CORNER_BOOST_DEPTH = 82;
-
-    private static final float S_HNDL = 40;
-    private static final float C_HNDL = 20;
-
-    private static final List<SplineHandle> boostLocations = Arrays.asList(
-            new SplineHandle(new Vector3(MIDFIELD_BOOST_WIDTH, 0, 0), new Vector3(0, S_HNDL, 0), new Vector3(0, -S_HNDL, 0)),
-            new SplineHandle(new Vector3(-MIDFIELD_BOOST_WIDTH, 0, 0), new Vector3(0, S_HNDL, 0), new Vector3(0, -S_HNDL, 0)),
-            new SplineHandle(new Vector3(-CORNER_BOOST_WIDTH, -CORNER_BOOST_DEPTH, 0), new Vector3(-C_HNDL, C_HNDL, 0), new Vector3(C_HNDL, -C_HNDL, 0)),
-            new SplineHandle(new Vector3(-CORNER_BOOST_WIDTH, CORNER_BOOST_DEPTH, 0), new Vector3(-C_HNDL, -C_HNDL, 0), new Vector3(C_HNDL, C_HNDL, 0)),
-            new SplineHandle(new Vector3(CORNER_BOOST_WIDTH, -CORNER_BOOST_DEPTH, 0), new Vector3(C_HNDL, C_HNDL, 0), new Vector3(-C_HNDL, -C_HNDL, 0)),
-            new SplineHandle(new Vector3(CORNER_BOOST_WIDTH, CORNER_BOOST_DEPTH, 0), new Vector3(C_HNDL, -C_HNDL, 0), new Vector3(-C_HNDL, -C_HNDL, 0))
-    );
+    private FullBoost targetLocation = null;
 
     private Plan plan;
 
@@ -44,9 +32,20 @@ public class GetBoostStep implements Step {
             init(input);
         }
 
+        Optional<FullBoost> matchingBoost = input.fullBoosts.stream().filter(b -> b.location.distance(targetLocation.location) < 1).findFirst();
+        if (!matchingBoost.isPresent()) {
+            return Optional.empty();
+        }
+
+        targetLocation = matchingBoost.get();
+
+        if (!targetLocation.isActive) {
+            return Optional.empty();
+        }
+
         CarData car = input.getMyCarData();
 
-        double distance = SteerUtil.getDistanceFromCar(car, targetLocation.getLocation());
+        double distance = SteerUtil.getDistanceFromCar(car, targetLocation.location);
 
         if (plan != null && !plan.isComplete()) {
             return plan.getOutput(input);
@@ -57,10 +56,21 @@ public class GetBoostStep implements Step {
         } else {
 
             CarData carData = input.getMyCarData();
-            Vector3 myPosition = carData.position;
-            Vector3 target = targetLocation.isWithinHandleRange(myPosition) ? targetLocation.getLocation() : targetLocation.getNearestHandle(myPosition);
+            Vector2 myPosition = VectorUtil.flatten(carData.position);
+            Vector3 target = targetLocation.location;
+            Vector2 toBoost = (Vector2) VectorUtil.flatten(target).subCopy(myPosition);
 
-            Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(car, target);
+
+
+            DistancePlot distancePlot = AccelerationModel.simulateAcceleration(car, Duration.ofSeconds(4), car.boost);
+            Vector2 facing = VectorUtil.orthogonal((Vector2) VectorUtil.flatten(target).normaliseCopy());
+            if (facing.dotProduct(toBoost) < 0) {
+                facing.scale(-1);
+            }
+
+            SteerPlan planForCircleTurn = SteerUtil.getPlanForCircleTurn(car, distancePlot, VectorUtil.flatten(target), facing);
+
+            Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(car, planForCircleTurn.waypoint);
             if (sensibleFlip.isPresent()) {
                 BotLog.println("Flipping toward boost", input.team);
                 plan = sensibleFlip.get();
@@ -68,8 +78,7 @@ public class GetBoostStep implements Step {
                 return plan.getOutput(input);
             }
 
-            // TODO: use SteerUtil.getThereWithFacing
-            return Optional.of(SteerUtil.arcTowardPosition(car, targetLocation));
+            return Optional.of(planForCircleTurn.immediateSteer);
         }
     }
 
@@ -77,34 +86,38 @@ public class GetBoostStep implements Step {
         targetLocation = getTacticalBoostLocation(input);
     }
 
-    private static SplineHandle getTacticalBoostLocation(AgentInput input) {
-        SplineHandle nearestLocation = null;
+    private static FullBoost getTacticalBoostLocation(AgentInput input) {
+        FullBoost nearestLocation = null;
         double minTime = Double.MAX_VALUE;
         CarData carData = input.getMyCarData();
         DistancePlot distancePlot = AccelerationModel.simulateAcceleration(carData, Duration.ofSeconds(4), carData.boost);
-        for (SplineHandle loc: boostLocations) {
-            Optional<Double> travelSeconds = AccelerationModel.getTravelSeconds(carData, distancePlot, loc.getLocation());
-            if (travelSeconds.isPresent() && travelSeconds.get() < minTime) {
+        for (FullBoost boost: input.fullBoosts) {
+            Optional<Double> travelSeconds = AccelerationModel.getTravelSeconds(carData, distancePlot, boost.location);
+            if (travelSeconds.isPresent() && travelSeconds.get() < minTime &&
+                    (boost.isActive || travelSeconds.get() - TimeUtil.secondsBetween(input.time, boost.activeTime) > 1)) {
+
                 minTime = travelSeconds.get();
-                nearestLocation = loc;
+                nearestLocation = boost;
             }
         }
-        if (minTime < .5) {
+        if (minTime < 2) {
             return nearestLocation;
         }
 
-        BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(3));
-        return getNearestBoost(ballPath.getEndpoint().space);
+        BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(3));
+        return getNearestBoost(input.fullBoosts, ballPath.getEndpoint().space);
     }
 
-    private static SplineHandle getNearestBoost(Vector3 position) {
-        SplineHandle location = null;
+    private static FullBoost getNearestBoost(List<FullBoost> boosts, Vector3 position) {
+        FullBoost location = null;
         double minDistance = Double.MAX_VALUE;
-        for (SplineHandle loc: boostLocations) {
-            double distance = position.distance(loc.getLocation());
-            if (distance < minDistance) {
-                minDistance = distance;
-                location = loc;
+        for (FullBoost boost: boosts) {
+            if (boost.isActive) {
+                double distance = position.distance(boost.location);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    location = boost;
+                }
             }
         }
         return location;
@@ -124,10 +137,10 @@ public class GetBoostStep implements Step {
         return car.position.z < 1;
     }
 
-    public static boolean seesOpportunisticBoost(CarData input) {
-        SplineHandle location = getNearestBoost(input.position);
-        return location.getLocation().distance(input.position) < 20 &&
-                Math.abs(SteerUtil.getCorrectionAngleRad(input, location.getLocation())) < Math.PI / 6;
+    public static boolean seesOpportunisticBoost(CarData carData, List<FullBoost> boosts) {
+        FullBoost boost = getNearestBoost(boosts, carData.position);
+        return boost.location.distance(carData.position) < 20 &&
+                Math.abs(SteerUtil.getCorrectionAngleRad(carData, boost.location)) < Math.PI / 6;
 
     }
 

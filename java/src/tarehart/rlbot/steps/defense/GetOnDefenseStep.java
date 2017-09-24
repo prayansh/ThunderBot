@@ -15,9 +15,15 @@ import tarehart.rlbot.tuning.BotLog;
 import java.util.Optional;
 
 public class GetOnDefenseStep implements Step {
+    private static final double NEEDS_DEFENSE_THRESHOLD = 10;
     private SplineHandle targetLocation = null;
-
     private Plan plan;
+
+    private ThreatAssessor threatAssessor;
+
+    public GetOnDefenseStep(ThreatAssessor threatAssessor) {
+        this.threatAssessor = threatAssessor;
+    }
 
     public Optional<AgentOutput> getOutput(AgentInput input) {
 
@@ -34,7 +40,7 @@ public class GetOnDefenseStep implements Step {
         double distance = SteerUtil.getDistanceFromCar(car, targetLocation.getLocation());
         double secondsRemaining = distance / car.velocity.magnitude();
 
-        if (!needDefense(input) || secondsRemaining < 1.5) {
+        if (!needDefense(input, threatAssessor) || secondsRemaining < 1.5) {
             return Optional.empty();
         }
 
@@ -74,25 +80,9 @@ public class GetOnDefenseStep implements Step {
         return plan == null || plan.canInterrupt();
     }
 
-    public static boolean needDefense(AgentInput input) {
-
-        CarData car = input.getMyCarData();
-        SplineHandle myGoal = GoalUtil.getOwnGoal(input.team).navigationSpline;
-
-        boolean alreadyOnDefense = Math.abs(myGoal.getLocation().y - car.position.y) < 10;
-        if (alreadyOnDefense) {
-            return false;
-        }
-
-        Vector3 ballToGoal = (Vector3) myGoal.getLocation().subCopy(input.ballPosition);
-        Vector3 ballVelocityTowardGoal = VectorUtil.project(input.ballVelocity, ballToGoal);
-
-        double ballSpeedTowardGoal = ballVelocityTowardGoal.magnitude() * Math.signum(ballVelocityTowardGoal.dotProduct(ballToGoal));
-        double wrongSidedness = getWrongSidedness(input);
-
-        boolean needDefense = ballSpeedTowardGoal > 30 && wrongSidedness > 0 || ballSpeedTowardGoal > 10 && wrongSidedness > 10;
-        return needDefense;
-
+    public static boolean needDefense(AgentInput input, ThreatAssessor threatAssessor) {
+        double threat = threatAssessor.measureThreat(input);
+        return threat > NEEDS_DEFENSE_THRESHOLD;
     }
 
     public static double getWrongSidedness(AgentInput input) {

@@ -9,7 +9,7 @@ import tarehart.rlbot.physics.ArenaModel;
 public class Goal {
 
     private static final double GOAL_DISTANCE = 102;
-    public static final double GOAL_HEIGHT = 12.8555;
+    public static final double GOAL_HEIGHT = 12;
     private static final double HANDLE_LENGTH = 40;
 
     public static final double EXTENT = 17.8555;

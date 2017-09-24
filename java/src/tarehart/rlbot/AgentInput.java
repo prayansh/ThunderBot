@@ -1,14 +1,15 @@
 package tarehart.rlbot;
 
 import mikera.vectorz.Vector3;
-import rlbot.input.PyCarInfo;
-import rlbot.input.PyGameTickPacket;
-import rlbot.input.PyRotator;
-import rlbot.input.PyVector3;
+import rlbot.input.*;
 import tarehart.rlbot.input.*;
 import tarehart.rlbot.math.TimeUtil;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 public class AgentInput {
 
@@ -23,6 +24,8 @@ public class AgentInput {
     public final Vector3 ballVelocity;
     public final Bot.Team team;
     public LocalDateTime time;
+    public List<FullBoost> fullBoosts = new ArrayList<>(6);
+
     public static final int UROT_IN_SEMICIRCLE = 32768;
     public static final double RADIANS_PER_UROT = Math.PI / UROT_IN_SEMICIRCLE;
     private static final double PACKET_DISTANCE_TO_CLASSIC = 50;
@@ -82,6 +85,13 @@ public class AgentInput {
 
         blueCar = new CarData(bluePosition, blueVelocity, blueOrientation, blueSpin, blueBoost,
                 blueCarInput.bSuperSonic, Bot.Team.BLUE, time);
+
+        for (PyBoostInfo boostInfo: gameTickPacket.gameBoosts) {
+            Vector3 location = convert(boostInfo.Location);
+            Optional<Vector3> confirmedLocation = FullBoost.getFullBoostLocation(location);
+            confirmedLocation.ifPresent(loc -> fullBoosts.add(new FullBoost(loc, boostInfo.bActive,
+                    boostInfo.bActive ? LocalDateTime.from(time) : time.plus(Duration.ofMillis(boostInfo.Timer)))));
+        }
 
     }
 

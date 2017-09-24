@@ -1,23 +1,25 @@
 package tarehart.rlbot.tuning;
 
+import mikera.vectorz.Vector3;
+import tarehart.rlbot.Bot;
 import tarehart.rlbot.physics.BallPath;
 
-import java.util.Optional;
+import java.util.*;
 
 public class BallTelemetry {
 
-    private static BallPath ballPath;
+    private static Map<Bot.Team, BallPath> ballPaths = new HashMap<>();
 
-    public static void setPath(BallPath ballPath) {
-        BallTelemetry.ballPath = ballPath;
+    public static void setPath(BallPath ballPath, Bot.Team team) {
+        ballPaths.put(team, ballPath);
     }
 
-    public static void reset() {
-        ballPath = null;
+    public static void reset(Bot.Team team) {
+        ballPaths.remove(team);
     }
 
 
-    public static Optional<BallPath> getPath() {
-        return Optional.ofNullable(ballPath);
+    public static Optional<BallPath> getPath(Bot.Team team) {
+        return Optional.ofNullable(ballPaths.get(team));
     }
 }

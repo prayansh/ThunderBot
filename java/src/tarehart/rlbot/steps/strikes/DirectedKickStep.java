@@ -15,6 +15,7 @@ import tarehart.rlbot.steps.Step;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public class DirectedKickStep implements Step {
@@ -24,13 +25,12 @@ public class DirectedKickStep implements Step {
     private static final double MANEUVER_SECONDS_PER_RADIAN = .1;
     private Plan plan;
 
-    private Vector3 originalIntercept;
+    private LocalDateTime doneMoment;
     private boolean sideFlipMode = false;
     private KickStrategy kickStrategy;
     private Vector3 interceptModifier = null;
-    private Vector3 strikeForceVector = null;
     private double maneuverSeconds = 0;
-    private double circleBackoff = 0;
+    private Double circleBackoff = null;
 
     public DirectedKickStep(KickStrategy kickStrategy) {
         this.kickStrategy = kickStrategy;
@@ -43,17 +43,26 @@ public class DirectedKickStep implements Step {
 
     public Optional<AgentOutput> getOutput(AgentInput input) {
 
-        if (plan != null && !plan.isComplete()) {
-            return plan.getOutput(input);
+        if (doneMoment != null && input.time.isAfter(doneMoment) && (plan == null || plan.isComplete())) {
+            return Optional.empty();
         }
 
         CarData car = input.getMyCarData();
+
+        if (doneMoment == null && car.position.distance(input.ballPosition) < 4.5) {
+            // You get a tiny bit more time
+            doneMoment = input.time.plus(Duration.ofMillis(1000));
+        }
+
+        if (plan != null && !plan.isComplete()) {
+            return plan.getOutput(input);
+        }
 
         if (ArenaModel.isCarOnWall(car)) {
             return Optional.empty();
         }
 
-        BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(4));
+        BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(4));
         DistancePlot fullAcceleration = AccelerationModel.simulateAcceleration(car, Duration.ofSeconds(4), car.boost, 0);
 
         Vector3 tempInterceptModifier = interceptModifier;
@@ -66,25 +75,16 @@ public class DirectedKickStep implements Step {
 
 
         if (!ballMotion.isPresent() || !interceptOpportunity.isPresent()) {
-            return Optional.empty();
+            return Optional.of(SteerUtil.steerTowardGroundPosition(car, ballPath.getEndpoint().space));
         }
         SpaceTimeVelocity motion = ballMotion.get();
         SpaceTime interceptMoment = interceptOpportunity.get();
 
-        if (originalIntercept == null) {
-            originalIntercept = motion.getSpace();
-        } else {
-            if (originalIntercept.distance(motion.getSpace()) > 30) {
-                BotLog.println("Failed to make the directed kick", input.team);
-                return Optional.empty(); // Failed to kick it soon enough, new stuff has happened.
-            }
-        }
-
-        if (strikeForceVector == null) {
-            strikeForceVector = getStrikeForce(input, fullAcceleration, motion);
+        if (circleBackoff == null) {
             circleBackoff = car.position.distance(interceptMoment.space) * .2 - 4;
         }
 
+        Vector3 strikeForceVector = getStrikeForce(input, fullAcceleration, motion);
         Vector2 strikeForceFlat = (Vector2) VectorUtil.flatten(strikeForceVector).normaliseCopy();
         Vector2 carToIntercept = VectorUtil.flatten((Vector3) interceptMoment.space.subCopy(car.position));
         double strikeForceCorrection = SteerUtil.getCorrectionAngleRad(carToIntercept, strikeForceFlat);
@@ -145,13 +145,12 @@ public class DirectedKickStep implements Step {
             SpaceTimeVelocity ballDuringSideFlip = ballPath.getMotionAt(car.time.plus(TimeUtil.toDuration(sideFlipSecs))).get();
             Vector2 futureCarPositionToBall = (Vector2) VectorUtil.flatten(ballDuringSideFlip.getSpace()).subCopy(futureCarPosition);
             double projectedSideFlipError = Math.abs(SteerUtil.getCorrectionAngleRad(futureCarPositionToBall, strikeForceFlat));
-            double projectedDistance = futureCarPosition.distance(steerTarget);
             double timeTillLaunchPad = TimeUtil.secondsBetween(input.time, interceptMoment.time);
-            if (projectedDistance < 5) {
-                BotLog.println(String.format("Side flip soon. ProjectedDistance: %.2f FlipArrivalTime: %.2f SideFlipError: %.2f",
-                        projectedDistance, timeTillLaunchPad - sideFlipSecs, projectedSideFlipError), input.team);
+            if (timeTillLaunchPad < .8) {
+                BotLog.println(String.format("Side flip soon. TimeTillAdjacent: %.2f SideFlipError: %.2f",
+                        timeTillLaunchPad, projectedSideFlipError), input.team);
             }
-            if (projectedDistance < 4 && Math.abs(timeTillLaunchPad - sideFlipSecs) < .3 && projectedSideFlipError < Math.PI / 10) {
+            if (timeTillLaunchPad < .5 && projectedSideFlipError < Math.PI / 6) {
                 plan = SetPieces.sideFlip(strikeForceCorrection > 0);
                 plan.begin();
                 return plan.getOutput(input);

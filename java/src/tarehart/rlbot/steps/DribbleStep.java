@@ -9,6 +9,7 @@ import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.math.TimeUtil;
 import tarehart.rlbot.math.VectorUtil;
+import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.BallPhysics;
 import tarehart.rlbot.planning.GoalUtil;
@@ -49,7 +50,7 @@ public class DribbleStep implements Step {
         double ballSpeed = ballVelocityFlat.magnitude();
         double leadSeconds = .2;
 
-        BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(2));
+        BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(2));
 
         Optional<SpaceTimeVelocity> motionAfterWallBounce = ballPath.getMotionAfterWallBounce(1);
         if (motionAfterWallBounce.isPresent() && Duration.between(input.time, motionAfterWallBounce.get().getTime()).toMillis() < 1000) {

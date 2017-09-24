@@ -1,6 +1,5 @@
 package tarehart.rlbot;
 
-import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.SpaceTimeVelocity;
@@ -12,7 +11,7 @@ import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.steps.*;
 import tarehart.rlbot.steps.defense.GetOnDefenseStep;
-import tarehart.rlbot.steps.defense.WhatASaveStep;
+import tarehart.rlbot.steps.defense.ThreatAssessor;
 import tarehart.rlbot.steps.landing.LandGracefullyStep;
 import tarehart.rlbot.steps.strikes.*;
 import tarehart.rlbot.steps.wall.DescendFromWallStep;
@@ -53,7 +52,7 @@ public class Bot {
 
         // Just for now, always calculate ballpath so we can learn some stuff.
         BallPath ballPath = arenaModel.simulateBall(new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity), Duration.ofSeconds(5));
-        BallTelemetry.setPath(ballPath);
+        BallTelemetry.setPath(ballPath, input.team);
 
         //BallRecorder.recordPosition(new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity));
         //Optional<SpaceTimeVelocity> afterBounce = ballPath.getMotionAfterWallBounce(1);
@@ -68,8 +67,8 @@ public class Bot {
             BotLog.println("[Sitch] " + situation, input.team);
         }
         previousSituation = situation;
-        readout.update(input, posture, situation, BotLog.collect(input.team), BallTelemetry.getPath().get());
-        BallTelemetry.reset();
+        readout.update(input, posture, situation, BotLog.collect(input.team), BallTelemetry.getPath(input.team).get());
+        BallTelemetry.reset(input.team);
         return output;
     }
 
@@ -88,7 +87,7 @@ public class Bot {
             currentPlan.begin();
         }
 
-        BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(5));
+        BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(5));
         if (canInterruptPlanFor(Plan.Posture.SAVE)) {
             Optional<SpaceTimeVelocity> scoredOn = GoalUtil.predictGoalEvent(GoalUtil.getOwnGoal(input.team), ballPath);
             if (scoredOn.isPresent()) {
@@ -108,9 +107,9 @@ public class Bot {
         }
 
         if (canInterruptPlanFor(Plan.Posture.DEFENSIVE)) {
-            if (GetOnDefenseStep.needDefense(input)) {
+            if (GetOnDefenseStep.needDefense(input, new ThreatAssessor())) {
                 BotLog.println("Going on defense", input.team);
-                currentPlan = new Plan(Plan.Posture.DEFENSIVE).withStep(new GetOnDefenseStep());
+                currentPlan = new Plan(Plan.Posture.DEFENSIVE).withStep(new GetOnDefenseStep(new ThreatAssessor()));
                 currentPlan.begin();
             } else if (ArenaModel.isBehindGoalLine(car.position)) {
                 currentPlan = new Plan(Plan.Posture.DEFENSIVE).withStep(new EscapeTheGoalStep());
@@ -120,7 +119,7 @@ public class Bot {
 
         if (canInterruptPlanFor(Plan.Posture.SHOT)) {
             boolean ballEntersEnemyBox = GoalUtil.ballEntersBox(GoalUtil.getEnemyGoal(input.team), ballPath, Duration.ofSeconds(2));
-            if (ballEntersEnemyBox) {
+            if (ballEntersEnemyBox && car.position.distance(input.ballPosition) < 80) {
                 BotLog.println("Going for shot", input.team);
                 currentPlan = new Plan(Plan.Posture.SHOT).withStep(new DirectedKickStep(new KickAtEnemyGoal()));
                 currentPlan.begin();

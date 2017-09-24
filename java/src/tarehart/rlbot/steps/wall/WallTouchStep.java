@@ -23,7 +23,7 @@ public class WallTouchStep implements Step {
 
     public static final double ACCEPTABLE_WALL_DISTANCE = ArenaModel.BALL_RADIUS + 5;
     public static final double WALL_DEPART_SPEED = 10;
-    private static final double MIN_HEIGHT = 5;
+    private static final double MIN_HEIGHT = 10;
     private Vector3 originalIntercept;
 
     private static boolean isBallOnWall(CarData car, SpaceTime ballPosition) {
@@ -43,7 +43,7 @@ public class WallTouchStep implements Step {
         }
 
 
-        BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(4));
+        BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(4));
         DistancePlot fullAcceleration = AccelerationModel.simulateAcceleration(car, Duration.ofSeconds(4), car.boost, 0);
 
         Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(car, ballPath, fullAcceleration, new Vector3(), WallTouchStep::isBallOnWall);

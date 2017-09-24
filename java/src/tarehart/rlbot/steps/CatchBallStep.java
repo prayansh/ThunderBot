@@ -5,6 +5,7 @@ import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.SpaceTime;
+import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.AirTouchPlanner;
 import tarehart.rlbot.planning.GoalUtil;
@@ -40,7 +41,7 @@ public class CatchBallStep implements Step {
             // We'll still get one last frame out output though
         }
 
-        BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(3));
+        BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(3));
         Optional<SpaceTime> catchOpportunity = SteerUtil.getCatchOpportunity(car, ballPath, AirTouchPlanner.getBoostBudget(car));
 
         // Weed out any intercepts after a catch opportunity. Should just catch it.

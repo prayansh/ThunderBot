@@ -23,7 +23,7 @@ public class MountWallStep implements Step {
             return Optional.empty();
         }
 
-        Optional<BallPath> ballPath = BallTelemetry.getPath();
+        Optional<BallPath> ballPath = BallTelemetry.getPath(input.team);
         if (!ballPath.isPresent() || !WallTouchStep.hasWallTouchOpportunity(input, ballPath.get())) {
             // Failed to mount the wall in time.
             return Optional.empty();
