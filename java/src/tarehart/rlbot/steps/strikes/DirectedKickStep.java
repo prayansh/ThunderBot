@@ -6,6 +6,7 @@ import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.*;
+import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.BallPhysics;
 import tarehart.rlbot.physics.DistancePlot;
@@ -19,14 +20,17 @@ import java.util.Optional;
 public class DirectedKickStep implements Step {
 
     private static final double BALL_VELOCITY_INFLUENCE = .7;
+    public static final double MAX_NOSE_HIT_ANGLE = Math.PI / 18;
+    private static final double MANEUVER_SECONDS_PER_RADIAN = .1;
     private Plan plan;
-    private boolean isComplete;
 
     private Vector3 originalIntercept;
     private boolean sideFlipMode = false;
     private KickStrategy kickStrategy;
-    private Vector3 ballToSteerGoal = null;
+    private Vector3 interceptModifier = null;
     private Vector3 strikeForceVector = null;
+    private double maneuverSeconds = 0;
+    private double circleBackoff = 0;
 
     public DirectedKickStep(KickStrategy kickStrategy) {
         this.kickStrategy = kickStrategy;
@@ -44,15 +48,20 @@ public class DirectedKickStep implements Step {
         }
 
         CarData car = input.getMyCarData();
+
+        if (ArenaModel.isCarOnWall(car)) {
+            return Optional.empty();
+        }
+
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(4));
         DistancePlot fullAcceleration = AccelerationModel.simulateAcceleration(car, Duration.ofSeconds(4), car.boost, 0);
 
-        Vector3 interceptModifier = (Vector3) kickStrategy.getKickDirection(input).normaliseCopy().scaleCopy(-2);
-        if (ballToSteerGoal != null) {
-            interceptModifier = ballToSteerGoal;
+        Vector3 tempInterceptModifier = interceptModifier;
+        if (tempInterceptModifier == null) {
+            tempInterceptModifier = (Vector3) kickStrategy.getKickDirection(input).normaliseCopy().scaleCopy(-2);
         }
 
-        Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(car, ballPath, fullAcceleration, interceptModifier, AirTouchPlanner::isJumpHitAccessible);
+        Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(car, ballPath, fullAcceleration, tempInterceptModifier, AirTouchPlanner::isJumpHitAccessible, maneuverSeconds);
         Optional<SpaceTimeVelocity> ballMotion = interceptOpportunity.flatMap(inter -> ballPath.getMotionAt(inter.time));
 
 
@@ -65,7 +74,7 @@ public class DirectedKickStep implements Step {
         if (originalIntercept == null) {
             originalIntercept = motion.getSpace();
         } else {
-            if (originalIntercept.distance(motion.getSpace()) > 20) {
+            if (originalIntercept.distance(motion.getSpace()) > 30) {
                 BotLog.println("Failed to make the directed kick", input.team);
                 return Optional.empty(); // Failed to kick it soon enough, new stuff has happened.
             }
@@ -73,63 +82,83 @@ public class DirectedKickStep implements Step {
 
         if (strikeForceVector == null) {
             strikeForceVector = getStrikeForce(input, fullAcceleration, motion);
+            circleBackoff = car.position.distance(interceptMoment.space) * .2 - 4;
         }
 
-        Vector2 strikeForceFlat = VectorUtil.flatten(strikeForceVector);
+        Vector2 strikeForceFlat = (Vector2) VectorUtil.flatten(strikeForceVector).normaliseCopy();
         Vector2 carToIntercept = VectorUtil.flatten((Vector3) interceptMoment.space.subCopy(car.position));
         double strikeForceCorrection = SteerUtil.getCorrectionAngleRad(carToIntercept, strikeForceFlat);
         double rendezvousCorrection = SteerUtil.getCorrectionAngleRad(car, interceptMoment.space);
 
-
-        Vector2 intercept = VectorUtil.flatten(interceptMoment.space);
-        SteerPlan circleTurnOption = null;
+        Vector2 steerTarget = VectorUtil.flatten(interceptMoment.space);
+        SteerPlan circleTurnPlan = null;
 
 
         if (!sideFlipMode) {
 
-            if (ballToSteerGoal == null) {
-                ballToSteerGoal = (Vector3) strikeForceVector.normaliseCopy();
-                ballToSteerGoal.scale(-1.4);
+            if (interceptModifier == null) {
+                interceptModifier = (Vector3) strikeForceVector.normaliseCopy();
+                interceptModifier.scale(-1.4);
             }
 
             if (Math.abs(strikeForceCorrection) < Math.PI / 12 && Math.abs(rendezvousCorrection) < Math.PI / 12) {
 
-                plan = new Plan().withStep(new InterceptStep(ballToSteerGoal));
+                plan = new Plan().withStep(new InterceptStep(interceptModifier));
                 plan.begin();
                 return plan.getOutput(input);
             }
 
             if (Math.abs(strikeForceCorrection) < Math.PI / 2) {
 
-                // Line up for a nose hit
-                circleTurnOption = SteerUtil.getPlanForCircleTurn(car, fullAcceleration, intercept, (Vector2) strikeForceFlat.normaliseCopy());
+                if (Math.abs(strikeForceCorrection) < MAX_NOSE_HIT_ANGLE) {
+                    maneuverSeconds = 0;
+                    circleTurnPlan = new SteerPlan(SteerUtil.steerTowardGroundPosition(car, steerTarget), steerTarget);
+                } else {
+
+                    Vector2 circleTerminus = (Vector2) steerTarget.subCopy(strikeForceFlat.scaleCopy(circleBackoff));
+                    double correctionNeeded = strikeForceCorrection - (MAX_NOSE_HIT_ANGLE * Math.signum(strikeForceCorrection));
+                    maneuverSeconds = correctionNeeded * MANEUVER_SECONDS_PER_RADIAN;
+                    Vector2 terminusFacing = (Vector2) VectorUtil.rotateVector(carToIntercept, correctionNeeded).normaliseCopy();
+
+                    // Line up for a nose hit
+                    circleTurnPlan = SteerUtil.getPlanForCircleTurn(car, fullAcceleration, circleTerminus, terminusFacing);
+                }
+
             } else {
-                ballToSteerGoal.scale(2); // Back off a little so we have space to side flip.
+                interceptModifier.scale(2); // Back off a little so we have space to side flip.
                 sideFlipMode = true;
             }
         }
 
         if (sideFlipMode) {
 
-            circleTurnOption = getSideFlipWaypoint(car, intercept, carToIntercept, strikeForceFlat, fullAcceleration);
+            if (VectorUtil.flatten(car.position).distance(steerTarget) < circleBackoff) {
+                maneuverSeconds = 0;
+                circleTurnPlan = new SteerPlan(SteerUtil.steerTowardGroundPosition(car, steerTarget), steerTarget);
+            } else {
+                circleTurnPlan = getSideFlipWaypoint(car, steerTarget, carToIntercept, strikeForceFlat, fullAcceleration);
+            }
 
             // If we get here, we can't make the turn for a nose hit, so we'll work on side flips.
-            double sideFlipSecs = 0.18;
+            double sideFlipSecs = 0.10;
             Vector2 futureCarPosition = VectorUtil.flatten(car.position.addCopy(car.velocity.scaleCopy(sideFlipSecs)));
-            double projectedDistance = futureCarPosition.distance(intercept);
+            SpaceTimeVelocity ballDuringSideFlip = ballPath.getMotionAt(car.time.plus(TimeUtil.toDuration(sideFlipSecs))).get();
+            Vector2 futureCarPositionToBall = (Vector2) VectorUtil.flatten(ballDuringSideFlip.getSpace()).subCopy(futureCarPosition);
+            double projectedSideFlipError = Math.abs(SteerUtil.getCorrectionAngleRad(futureCarPositionToBall, strikeForceFlat));
+            double projectedDistance = futureCarPosition.distance(steerTarget);
             double timeTillLaunchPad = TimeUtil.secondsBetween(input.time, interceptMoment.time);
             if (projectedDistance < 5) {
-                BotLog.println(String.format("Side flip soon. ProjectedDistance: %s FlipArrivalTime: %s", projectedDistance, timeTillLaunchPad - sideFlipSecs), input.team);
+                BotLog.println(String.format("Side flip soon. ProjectedDistance: %.2f FlipArrivalTime: %.2f SideFlipError: %.2f",
+                        projectedDistance, timeTillLaunchPad - sideFlipSecs, projectedSideFlipError), input.team);
             }
-            if (projectedDistance < 1.5 && Math.abs(timeTillLaunchPad - sideFlipSecs) < .25) {
+            if (projectedDistance < 4 && Math.abs(timeTillLaunchPad - sideFlipSecs) < .3 && projectedSideFlipError < Math.PI / 10) {
                 plan = SetPieces.sideFlip(strikeForceCorrection > 0);
                 plan.begin();
                 return plan.getOutput(input);
             }
         }
 
-
-        return getNavigation(input, circleTurnOption);
+        return getNavigation(input, circleTurnPlan);
     }
 
     private Optional<AgentOutput> getNavigation(AgentInput input, SteerPlan circleTurnOption) {
@@ -164,7 +193,11 @@ public class DirectedKickStep implements Step {
         if (facingForSideFlip.dotProduct(carToIntercept) < 0) {
             facingForSideFlip.scale(-1);
         }
-        return SteerUtil.getPlanForCircleTurn(car, fullAcceleration, launchPad, (Vector2) facingForSideFlip.normaliseCopy());
+        double angleCorrection = SteerUtil.getCorrectionAngleRad(car, facingForSideFlip);
+        maneuverSeconds = angleCorrection * MANEUVER_SECONDS_PER_RADIAN;
+
+        Vector2 circleTerminus = (Vector2) launchPad.subCopy(facingForSideFlip.scaleCopy(circleBackoff));
+        return SteerUtil.getPlanForCircleTurn(car, fullAcceleration, circleTerminus, (Vector2) facingForSideFlip.normaliseCopy());
     }
 
     @Override

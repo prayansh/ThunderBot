@@ -54,8 +54,15 @@ public class Goal {
      * From shooter's perspective
      */
     public Vector3 getLeftPost() {
+        return getLeftPost(0);
+    }
+
+    /**
+     * From shooter's perspective
+     */
+    public Vector3 getLeftPost(double padding) {
         Vector3 post = getCenter().copy();
-        post.x -= EXTENT * Math.signum(post.y);
+        post.x -= (EXTENT - padding) * Math.signum(post.y);
         return post;
     }
 
@@ -63,8 +70,15 @@ public class Goal {
      * From shooter's perspective
      */
     public Vector3 getRightPost() {
+        return getRightPost(0);
+    }
+
+    /**
+     * From shooter's perspective
+     */
+    public Vector3 getRightPost(double padding) {
         Vector3 post = getCenter().copy();
-        post.x += EXTENT * Math.signum(post.y);
+        post.x += (EXTENT - padding) * Math.signum(post.y);
         return post;
     }
 

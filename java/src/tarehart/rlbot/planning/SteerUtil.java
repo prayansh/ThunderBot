@@ -90,6 +90,11 @@ public class SteerUtil {
 
     public static Optional<SpaceTime> getFilteredInterceptOpportunity(
             CarData carData, BallPath ballPath, DistancePlot acceleration, Vector3 interceptModifier, BiPredicate<CarData, SpaceTime> predicate) {
+        return getFilteredInterceptOpportunity(carData, ballPath, acceleration, interceptModifier, predicate, 0);
+    }
+
+    public static Optional<SpaceTime> getFilteredInterceptOpportunity(
+            CarData carData, BallPath ballPath, DistancePlot acceleration, Vector3 interceptModifier, BiPredicate<CarData, SpaceTime> predicate, double maneuverSeconds) {
 
         Vector3 myPosition = carData.position;
 
@@ -101,8 +106,8 @@ public class SteerUtil {
                 SpaceTime interceptSpaceTime = new SpaceTime(intercept, ballMoment.getTime());
                 double ballDistance = VectorUtil.flatDistance(myPosition, intercept);
                 if (dts.distance > ballDistance) {
-                    Optional<Double> travelSeconds = AccelerationModel.getTravelSeconds(carData, acceleration, intercept);
-                    if (travelSeconds.isPresent() && travelSeconds.get() <= TimeUtil.secondsBetween(carData.time, interceptSpaceTime.time)) {
+                    double travelSeconds = maneuverSeconds + AccelerationModel.getTravelSeconds(carData, acceleration, intercept).orElse(0d);
+                    if (travelSeconds <= TimeUtil.secondsBetween(carData.time, interceptSpaceTime.time)) {
                         if (predicate.test(carData, interceptSpaceTime)) {
                             return Optional.of(interceptSpaceTime);
                         }
