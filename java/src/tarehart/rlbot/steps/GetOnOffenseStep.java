@@ -91,6 +91,11 @@ public class GetOnOffenseStep implements Step {
     }
 
     @Override
+    public boolean canInterrupt() {
+        return plan == null || plan.canInterrupt();
+    }
+
+    @Override
     public String getSituation() {
         return "Getting on offense";
     }

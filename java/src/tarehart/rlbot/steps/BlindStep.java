@@ -41,4 +41,9 @@ public class BlindStep implements Step {
     public String getSituation() {
         return "Muscle memory";
     }
+
+    @Override
+    public boolean canInterrupt() {
+        return false;
+    }
 }

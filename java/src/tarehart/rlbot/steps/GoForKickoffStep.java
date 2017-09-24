@@ -31,6 +31,11 @@ public class GoForKickoffStep implements Step {
     }
 
     @Override
+    public boolean canInterrupt() {
+        return false;
+    }
+
+    @Override
     public String getSituation() {
         return "Going for kickoff!";
     }

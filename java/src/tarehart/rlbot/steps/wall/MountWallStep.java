@@ -44,6 +44,11 @@ public class MountWallStep implements Step {
     }
 
     @Override
+    public boolean canInterrupt() {
+        return true;
+    }
+
+    @Override
     public String getSituation() {
         return "Mounting the wall";
     }

@@ -38,6 +38,11 @@ public class LandMindlesslyStep implements Step {
     }
 
     @Override
+    public boolean canInterrupt() {
+        return false;
+    }
+
+    @Override
     public String getSituation() {
         return "Waiting to land";
     }

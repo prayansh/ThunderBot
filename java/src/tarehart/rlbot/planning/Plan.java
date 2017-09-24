@@ -21,7 +21,7 @@ public class Plan {
     }
 
     public boolean canInterrupt() {
-        return isComplete() || !unstoppable;
+        return isComplete() || !(unstoppable && steps.get(currentStepIndex).canInterrupt());
     }
 
     public enum Posture {

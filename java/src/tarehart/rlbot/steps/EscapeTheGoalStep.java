@@ -32,6 +32,11 @@ public class EscapeTheGoalStep implements Step {
     }
 
     @Override
+    public boolean canInterrupt() {
+        return true;
+    }
+
+    @Override
     public String getSituation() {
         return "Escaping the goal";
     }

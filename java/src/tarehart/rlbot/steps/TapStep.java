@@ -37,6 +37,11 @@ public class TapStep implements Step {
     }
 
     @Override
+    public boolean canInterrupt() {
+        return false;
+    }
+
+    @Override
     public String getSituation() {
         return "Muscle memory";
     }

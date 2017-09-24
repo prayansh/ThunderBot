@@ -134,6 +134,11 @@ public class CarryStep implements Step {
     }
 
     @Override
+    public boolean canInterrupt() {
+        return true;
+    }
+
+    @Override
     public boolean isBlindlyComplete() {
         return false;
     }

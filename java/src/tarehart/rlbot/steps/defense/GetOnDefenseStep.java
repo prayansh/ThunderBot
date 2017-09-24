@@ -69,6 +69,11 @@ public class GetOnDefenseStep implements Step {
     public void begin() {
     }
 
+    @Override
+    public boolean canInterrupt() {
+        return plan == null || plan.canInterrupt();
+    }
+
     public static boolean needDefense(AgentInput input) {
 
         CarData car = input.getMyCarData();

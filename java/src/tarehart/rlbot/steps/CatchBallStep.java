@@ -78,4 +78,9 @@ public class CatchBallStep implements Step {
     public String getSituation() {
         return "Catching ball";
     }
+
+    @Override
+    public boolean canInterrupt() {
+        return true;
+    }
 }

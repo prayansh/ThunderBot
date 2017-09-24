@@ -57,6 +57,11 @@ public class TagAlongStep implements Step {
     }
 
     @Override
+    public boolean canInterrupt() {
+        return false;
+    }
+
+    @Override
     public String getSituation() {
         return Plan.concatSituation("Tagging along", plan);
     }

@@ -70,6 +70,11 @@ public class ChaseBallStep implements Step {
     }
 
     @Override
+    public boolean canInterrupt() {
+        return plan == null || plan.canInterrupt();
+    }
+
+    @Override
     public String getSituation() {
         return Plan.concatSituation("Chasing ball", plan);
     }

@@ -36,6 +36,11 @@ public class DescendFromWallStep implements Step {
     }
 
     @Override
+    public boolean canInterrupt() {
+        return false;
+    }
+
+    @Override
     public String getSituation() {
         return "Descending wall.";
     }

@@ -87,7 +87,7 @@ public class Goal {
             return false; // Wrong side of field
         }
 
-        if (Math.abs(position.y) < 80) {
+        if (Math.abs(position.y) < 70) {
             return false; // Too much toward center
         }
 

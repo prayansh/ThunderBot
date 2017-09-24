@@ -132,6 +132,11 @@ public class GetBoostStep implements Step {
     }
 
     @Override
+    public boolean canInterrupt() {
+        return plan == null || plan.canInterrupt();
+    }
+
+    @Override
     public String getSituation() {
         return "Going for boost";
     }

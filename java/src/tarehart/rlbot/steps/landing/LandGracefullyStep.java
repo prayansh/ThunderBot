@@ -114,6 +114,11 @@ public class LandGracefullyStep implements Step {
     }
 
     @Override
+    public boolean canInterrupt() {
+        return false;
+    }
+
+    @Override
     public String getSituation() {
         return "Landing gracefully " + (plan != null ? "(" + plan.getSituation() + ")" : "");
     }

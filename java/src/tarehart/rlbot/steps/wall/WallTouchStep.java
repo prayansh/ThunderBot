@@ -106,6 +106,11 @@ public class WallTouchStep implements Step {
     }
 
     @Override
+    public boolean canInterrupt() {
+        return true;
+    }
+
+    @Override
     public String getSituation() {
         return "Making a wall touch.";
     }

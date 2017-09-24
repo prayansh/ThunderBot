@@ -136,6 +136,11 @@ public class WhatASaveStep implements Step {
     }
 
     @Override
+    public boolean canInterrupt() {
+        return plan == null || plan.canInterrupt();
+    }
+
+    @Override
     public String getSituation() {
         return Plan.concatSituation("Making a save", plan);
     }

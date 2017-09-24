@@ -57,6 +57,10 @@ public abstract class OrientToPlaneStep implements Step {
 
     @Override
     public void begin() {
+    }
 
+    @Override
+    public boolean canInterrupt() {
+        return false;
     }
 }

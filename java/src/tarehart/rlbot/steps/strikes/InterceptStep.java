@@ -58,6 +58,7 @@ public class InterceptStep implements Step {
         Optional<Plan> launchPlan = chosenIntercept.flatMap(cept -> InterceptPlanner.planImmediateLaunch(input.getMyCarData(), cept.toSpaceTime()));
         if (launchPlan.isPresent()) {
             plan = launchPlan.get();
+            plan.unstoppable();
             plan.begin();
             return plan.getOutput(input);
         }
@@ -138,6 +139,11 @@ public class InterceptStep implements Step {
     @Override
     public void begin() {
 
+    }
+
+    @Override
+    public boolean canInterrupt() {
+        return plan == null || plan.canInterrupt();
     }
 
     @Override
