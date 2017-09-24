@@ -23,14 +23,15 @@ public class WallTouchStep implements Step {
 
     public static final double ACCEPTABLE_WALL_DISTANCE = ArenaModel.BALL_RADIUS + 5;
     public static final double WALL_DEPART_SPEED = 10;
+    private static final double MIN_HEIGHT = 5;
     private Vector3 originalIntercept;
 
-    private static boolean isBallNearWall(CarData car, SpaceTime ballPosition) {
-        return ArenaModel.getDistanceFromWall(ballPosition.space) <= ACCEPTABLE_WALL_DISTANCE;
+    private static boolean isBallOnWall(CarData car, SpaceTime ballPosition) {
+        return ballPosition.space.z > MIN_HEIGHT && ArenaModel.getDistanceFromWall(ballPosition.space) <= ACCEPTABLE_WALL_DISTANCE;
     }
 
-    private static boolean isBallNearWall(SpaceTimeVelocity ballPosition) {
-        return ArenaModel.getDistanceFromWall(ballPosition.space) <= ACCEPTABLE_WALL_DISTANCE;
+    private static boolean isBallOnWall(SpaceTimeVelocity ballPosition) {
+        return ballPosition.space.z > MIN_HEIGHT && ArenaModel.getDistanceFromWall(ballPosition.space) <= ACCEPTABLE_WALL_DISTANCE;
     }
 
     public Optional<AgentOutput> getOutput(AgentInput input) {
@@ -45,7 +46,7 @@ public class WallTouchStep implements Step {
         BallPath ballPath = SteerUtil.predictBallPath(input, input.time, Duration.ofSeconds(4));
         DistancePlot fullAcceleration = AccelerationModel.simulateAcceleration(car, Duration.ofSeconds(4), car.boost, 0);
 
-        Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(car, ballPath, fullAcceleration, new Vector3(), WallTouchStep::isBallNearWall);
+        Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(car, ballPath, fullAcceleration, new Vector3(), WallTouchStep::isBallOnWall);
         Optional<SpaceTimeVelocity> ballMotion = interceptOpportunity.flatMap(inter -> ballPath.getMotionAt(inter.time));
 
 
@@ -111,7 +112,7 @@ public class WallTouchStep implements Step {
 
     public static boolean hasWallTouchOpportunity(AgentInput input, BallPath ballPath) {
 
-        Optional<SpaceTimeVelocity> nearWallOption = ballPath.findSlice(WallTouchStep::isBallNearWall);
+        Optional<SpaceTimeVelocity> nearWallOption = ballPath.findSlice(WallTouchStep::isBallOnWall);
         if (nearWallOption.isPresent()) {
             SpaceTimeVelocity nearWall = nearWallOption.get();
             if (TimeUtil.secondsBetween(input.time, nearWall.getTime()) > 3) {

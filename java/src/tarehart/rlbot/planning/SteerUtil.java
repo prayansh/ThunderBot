@@ -20,7 +20,7 @@ import java.util.function.BiPredicate;
 public class SteerUtil {
 
     public static final int SUPERSONIC_SPEED = 46;
-    public static final double GOOD_ENOUGH_ANGLE = Math.PI / 20;
+    public static final double GOOD_ENOUGH_ANGLE = Math.PI / 12;
     private static final ArenaModel arenaModel = new ArenaModel();
     public static final double TURN_RADIUS_A = .0153;
     public static final double TURN_RADIUS_B = .16;
@@ -369,7 +369,7 @@ public class SteerUtil {
         double clockwiseSteer = clockwise ? 1 : -1;
 
         Vector2 centerToMe = (Vector2) VectorUtil.flatten(car.position).subCopy(idealCircle.center);
-        Vector2 idealDirection = VectorUtil.orthogonal(centerToMe);
+        Vector2 idealDirection = (Vector2) VectorUtil.orthogonal(centerToMe).normaliseCopy();
         if (Circle.isClockwise(idealCircle, flatPosition, idealDirection) != clockwise) {
             idealDirection.scale(-1);
         }
@@ -397,9 +397,9 @@ public class SteerUtil {
 //            double turnSharpness = difference * 6/Math.PI + difference * currentSpeed * .1;
             AgentOutput output = steerTowardGroundPosition(car, steerTarget).withSlide(false);
 
-            if (output.getSteer() * clockwiseSteer < 0) {
-                output.withSteer(0);
-            }
+//            if (output.getSteer() * clockwiseSteer < 0) {
+//                output.withSteer(0);
+//            }
 
             if (speedRatio < 1) {
                 output.withAcceleration(1);

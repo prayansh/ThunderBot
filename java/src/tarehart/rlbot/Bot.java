@@ -92,7 +92,8 @@ public class Bot {
         if (canInterruptPlanFor(Plan.Posture.SAVE)) {
             Optional<SpaceTimeVelocity> scoredOn = GoalUtil.predictGoalEvent(GoalUtil.getOwnGoal(input.team), ballPath);
             if (scoredOn.isPresent()) {
-                currentPlan = new Plan(Plan.Posture.SAVE).withStep(new WhatASaveStep());
+                BotLog.println("Going for save", input.team);
+                currentPlan = new Plan(Plan.Posture.SAVE).withStep(new DirectedKickStep(new KickAwayFromOwnGoal()));
                 currentPlan.begin();
             }
         }
@@ -101,8 +102,7 @@ public class Bot {
             boolean ballEntersOurBox = GoalUtil.ballEntersBox(GoalUtil.getOwnGoal(input.team), ballPath, Duration.ofSeconds(5));
             if (ballEntersOurBox) {
                 BotLog.println("Going for clear", input.team);
-                KickStrategy awayFromGoal = new KickInGeneralDirection(new Vector2(0, -GoalUtil.getOwnGoal(input.team).getCenter().y), Math.PI / 2);
-                currentPlan = new Plan(Plan.Posture.CLEAR).withStep(new DirectedKickStep(awayFromGoal));
+                currentPlan = new Plan(Plan.Posture.CLEAR).withStep(new DirectedKickStep(new KickAwayFromOwnGoal()));
                 currentPlan.begin();
             }
         }

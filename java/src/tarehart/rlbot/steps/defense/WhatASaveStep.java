@@ -12,7 +12,9 @@ import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.DistancePlot;
 import tarehart.rlbot.planning.*;
 import tarehart.rlbot.steps.Step;
+import tarehart.rlbot.steps.strikes.DirectedKickStep;
 import tarehart.rlbot.steps.strikes.InterceptStep;
+import tarehart.rlbot.steps.strikes.KickAwayFromOwnGoal;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;

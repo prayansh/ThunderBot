@@ -77,15 +77,11 @@ public class AgentInput {
         final CarSpin blueSpin = spinTracker.getBlueSpin();
         final CarSpin orangeSpin = spinTracker.getOrangeSpin();
 
-        System.out.println(String.format("%.2f\t%.2f\t%.2f\t%.4f", blueSpin.pitchRate, blueSpin.yawRate, blueSpin.rollRate, elapsedSeconds));
-
-
         orangeCar = new CarData(orangePosition, orangeVelocity, orangeOrientation, orangeSpin, orangeBoost,
                 orangeCarInput.bSuperSonic, Bot.Team.ORANGE, time);
 
         blueCar = new CarData(bluePosition, blueVelocity, blueOrientation, blueSpin, blueBoost,
                 blueCarInput.bSuperSonic, Bot.Team.BLUE, time);
-
 
     }
 

@@ -50,6 +50,24 @@ public class Goal {
         return navigationSpline.getLocation();
     }
 
+    /**
+     * From shooter's perspective
+     */
+    public Vector3 getLeftPost() {
+        Vector3 post = getCenter().copy();
+        post.x -= EXTENT * Math.signum(post.y);
+        return post;
+    }
+
+    /**
+     * From shooter's perspective
+     */
+    public Vector3 getRightPost() {
+        Vector3 post = getCenter().copy();
+        post.x += EXTENT * Math.signum(post.y);
+        return post;
+    }
+
     public boolean isInBox(Vector3 position) {
         if (getCenter().y * position.y < 0) {
             return false; // Wrong side of field

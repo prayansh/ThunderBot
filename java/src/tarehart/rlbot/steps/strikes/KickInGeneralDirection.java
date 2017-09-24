@@ -24,8 +24,8 @@ public class KickInGeneralDirection implements KickStrategy {
     }
 
     @Override
-    public Vector3 getKickDirection(AgentInput input, SpaceTimeVelocity ballIntercept) {
-        return getDirection(input.getMyCarData(), ballIntercept.space);
+    public Vector3 getKickDirection(AgentInput input, Vector3 ballPosition) {
+        return getDirection(input.getMyCarData(), ballPosition);
     }
 
     private Vector3 getDirection(CarData car, Vector3 ballPosition) {
