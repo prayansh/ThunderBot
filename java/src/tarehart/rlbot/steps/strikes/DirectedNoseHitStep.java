@@ -1,0 +1,171 @@
+package tarehart.rlbot.steps.strikes;
+
+import mikera.vectorz.Vector2;
+import mikera.vectorz.Vector3;
+import tarehart.rlbot.AgentInput;
+import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.input.CarData;
+import tarehart.rlbot.math.*;
+import tarehart.rlbot.physics.ArenaModel;
+import tarehart.rlbot.physics.BallPhysics;
+import tarehart.rlbot.physics.DistancePlot;
+import tarehart.rlbot.planning.*;
+import tarehart.rlbot.steps.Step;
+import tarehart.rlbot.tuning.BotLog;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+public class DirectedNoseHitStep implements Step {
+
+    public static final double MAX_NOSE_HIT_ANGLE = Math.PI / 18;
+    private static final double MANEUVER_SECONDS_PER_RADIAN = .1;
+    private Plan plan;
+
+    private Vector3 originalIntercept;
+    private LocalDateTime doneMoment;
+    private KickStrategy kickStrategy;
+    private Vector3 interceptModifier = null;
+    private double maneuverSeconds = 0;
+    private Double circleBackoff = null;
+
+    private double estimatedAngleOfKickFromApproach;
+
+    public DirectedNoseHitStep(KickStrategy kickStrategy) {
+        this.kickStrategy = kickStrategy;
+    }
+
+    public static boolean canMakeDirectedKick(AgentInput input) {
+        return BallPhysics.getGroundBounceEnergy(
+                new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity)) < 50;
+    }
+
+    public double getEstimatedAngleOfKickFromApproach() {
+        return estimatedAngleOfKickFromApproach;
+    }
+
+    public Optional<AgentOutput> getOutput(AgentInput input) {
+
+        final Optional<DirectedKickPlan> kickPlanOption;
+        if (interceptModifier != null) {
+            kickPlanOption = DirectedKickUtil.planKick(input, kickStrategy, false, interceptModifier, maneuverSeconds);
+        } else {
+            kickPlanOption = DirectedKickUtil.planKick(input, kickStrategy, false);
+        }
+
+        if (!kickPlanOption.isPresent()) {
+            return Optional.of(SteerUtil.steerTowardGroundPosition(input.getMyCarData(), input.ballPosition));
+        }
+
+        return getOutput(input, kickPlanOption.get());
+    }
+
+    public Optional<AgentOutput> getOutput(AgentInput input, DirectedKickPlan kickPlan) {
+
+        if (doneMoment != null && input.time.isAfter(doneMoment) && (plan == null || plan.isComplete())) {
+            return Optional.empty();
+        }
+
+        CarData car = input.getMyCarData();
+
+        if (doneMoment == null && car.position.distance(input.ballPosition) < 4.5) {
+            // You get a tiny bit more time
+            doneMoment = input.time.plus(Duration.ofMillis(1000));
+        }
+
+        if (plan != null && !plan.isComplete()) {
+            return plan.getOutput(input);
+        }
+
+        if (ArenaModel.isCarOnWall(car)) {
+            return Optional.empty();
+        }
+
+        if (originalIntercept == null) {
+            originalIntercept = kickPlan.ballAtIntercept.getSpace();
+        } else {
+            if (originalIntercept.distance(kickPlan.ballAtIntercept.getSpace()) > 30) {
+                BotLog.println("Failed to make the nose hit", input.team);
+                return Optional.empty(); // Failed to kick it soon enough, new stuff has happened.
+            }
+        }
+
+        if (circleBackoff == null) {
+            circleBackoff = car.position.distance(kickPlan.ballAtIntercept.getSpace()) > 60 ? 5.0 : 1.0;
+        }
+
+        Vector2 strikeForceFlat = (Vector2) VectorUtil.flatten(kickPlan.plannedKickForce).normaliseCopy();
+        Vector3 carPositionAtIntercept = kickPlan.getCarPositionAtIntercept();
+        Vector2 carToIntercept = VectorUtil.flatten((Vector3) carPositionAtIntercept.subCopy(car.position));
+        estimatedAngleOfKickFromApproach = DirectedKickUtil.getAngleOfKickFromApproach(car, kickPlan);
+        double rendezvousCorrection = SteerUtil.getCorrectionAngleRad(car, carPositionAtIntercept);
+
+        Vector2 steerTarget = VectorUtil.flatten(carPositionAtIntercept);
+        SteerPlan circleTurnPlan = null;
+
+
+
+        if (interceptModifier == null) {
+            interceptModifier = (Vector3) kickPlan.plannedKickForce.normaliseCopy();
+            interceptModifier.scale(-1.4);
+        }
+
+        if (Math.abs(estimatedAngleOfKickFromApproach) < Math.PI / 12 && Math.abs(rendezvousCorrection) < Math.PI / 12) {
+
+            plan = new Plan().withStep(new InterceptStep(interceptModifier));
+            plan.begin();
+            return plan.getOutput(input);
+        }
+
+        if (Math.abs(estimatedAngleOfKickFromApproach) < MAX_NOSE_HIT_ANGLE) {
+            maneuverSeconds = 0;
+            circleTurnPlan = new SteerPlan(SteerUtil.steerTowardGroundPosition(car, steerTarget), steerTarget);
+        } else {
+
+            Vector2 circleTerminus = (Vector2) steerTarget.subCopy(strikeForceFlat.scaleCopy(circleBackoff));
+            double correctionNeeded = estimatedAngleOfKickFromApproach - (MAX_NOSE_HIT_ANGLE * Math.signum(estimatedAngleOfKickFromApproach));
+            maneuverSeconds = correctionNeeded * MANEUVER_SECONDS_PER_RADIAN;
+            Vector2 terminusFacing = (Vector2) VectorUtil.rotateVector(carToIntercept, correctionNeeded).normaliseCopy();
+
+            // Line up for a nose hit
+            circleTurnPlan = SteerUtil.getPlanForCircleTurn(car, kickPlan.distancePlot, circleTerminus, terminusFacing);
+        }
+
+        return getNavigation(input, circleTurnPlan);
+    }
+
+    private Optional<AgentOutput> getNavigation(AgentInput input, SteerPlan circleTurnOption) {
+        CarData car = input.getMyCarData();
+
+        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(car, circleTurnOption.waypoint);
+        if (sensibleFlip.isPresent()) {
+            BotLog.println("Front flip toward nose hit", input.team);
+            this.plan = sensibleFlip.get();
+            this.plan.begin();
+            return this.plan.getOutput(input);
+        }
+
+        return Optional.of(circleTurnOption.immediateSteer);
+    }
+
+    @Override
+    public boolean isBlindlyComplete() {
+        return false;
+    }
+
+    @Override
+    public void begin() {
+
+    }
+
+    @Override
+    public boolean canInterrupt() {
+        return plan == null || plan.canInterrupt();
+    }
+
+    @Override
+    public String getSituation() {
+        return Plan.concatSituation("Directed nose hit", plan);
+    }
+}

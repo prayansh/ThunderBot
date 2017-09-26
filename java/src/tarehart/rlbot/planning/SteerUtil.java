@@ -219,11 +219,12 @@ public class SteerUtil {
 
         double distanceCovered = AccelerationModel.getFrontFlipDistance(car.velocity.magnitude());
 
-        double distanceToIntercept = target.distance(VectorUtil.flatten(car.position));
-        if (distanceToIntercept > distanceCovered + 15) {
+        Vector2 toTarget = (Vector2) target.subCopy(VectorUtil.flatten(car.position));
+        double distanceToIntercept = toTarget.magnitude();
+        if (distanceToIntercept > distanceCovered + 10) {
 
             Vector2 facing = VectorUtil.flatten(car.orientation.noseVector);
-            double facingCorrection = SteerUtil.getCorrectionAngleRad(facing, target);
+            double facingCorrection = SteerUtil.getCorrectionAngleRad(facing, toTarget);
             double slideAngle = SteerUtil.getCorrectionAngleRad(facing, VectorUtil.flatten(car.velocity));
 
             if (Math.abs(facingCorrection) < GOOD_ENOUGH_ANGLE && Math.abs(slideAngle) < GOOD_ENOUGH_ANGLE

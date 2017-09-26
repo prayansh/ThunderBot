@@ -12,6 +12,7 @@ import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.steps.*;
 import tarehart.rlbot.steps.defense.GetOnDefenseStep;
 import tarehart.rlbot.steps.defense.ThreatAssessor;
+import tarehart.rlbot.steps.defense.WhatASaveStep;
 import tarehart.rlbot.steps.landing.LandGracefullyStep;
 import tarehart.rlbot.steps.strikes.*;
 import tarehart.rlbot.steps.wall.DescendFromWallStep;
@@ -92,7 +93,7 @@ public class Bot {
             Optional<SpaceTimeVelocity> scoredOn = GoalUtil.predictGoalEvent(GoalUtil.getOwnGoal(input.team), ballPath);
             if (scoredOn.isPresent()) {
                 BotLog.println("Going for save", input.team);
-                currentPlan = new Plan(Plan.Posture.SAVE).withStep(new DirectedKickStep(new KickAwayFromOwnGoal()));
+                currentPlan = new Plan(Plan.Posture.SAVE).withStep(new WhatASaveStep());
                 currentPlan.begin();
             }
         }
@@ -101,7 +102,7 @@ public class Bot {
             boolean ballEntersOurBox = GoalUtil.ballEntersBox(GoalUtil.getOwnGoal(input.team), ballPath, Duration.ofSeconds(5));
             if (ballEntersOurBox) {
                 BotLog.println("Going for clear", input.team);
-                currentPlan = new Plan(Plan.Posture.CLEAR).withStep(new DirectedKickStep(new KickAwayFromOwnGoal()));
+                currentPlan = new Plan(Plan.Posture.CLEAR).withStep(new IdealDirectedHitStep(new KickAwayFromOwnGoal()));
                 currentPlan.begin();
             }
         }
@@ -121,7 +122,7 @@ public class Bot {
             boolean ballEntersEnemyBox = GoalUtil.ballEntersBox(GoalUtil.getEnemyGoal(input.team), ballPath, Duration.ofSeconds(2));
             if (ballEntersEnemyBox && car.position.distance(input.ballPosition) < 80) {
                 BotLog.println("Going for shot", input.team);
-                currentPlan = new Plan(Plan.Posture.SHOT).withStep(new DirectedKickStep(new KickAtEnemyGoal()));
+                currentPlan = new Plan(Plan.Posture.SHOT).withStep(new IdealDirectedHitStep(new KickAtEnemyGoal()));
                 currentPlan.begin();
             }
         }
@@ -140,8 +141,8 @@ public class Bot {
             } else if (WallTouchStep.hasWallTouchOpportunity(input, ballPath)) {
                 currentPlan = new Plan().withStep(new MountWallStep()).withStep(new WallTouchStep()).withStep(new DescendFromWallStep());
                 currentPlan.begin();
-            } else if (DirectedKickStep.canMakeDirectedKick(input)) {
-                currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new DirectedKickStep(new KickAtEnemyGoal()));
+            } else if (DirectedNoseHitStep.canMakeDirectedKick(input)) {
+                currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new DirectedNoseHitStep(new KickAtEnemyGoal()));
                 currentPlan.begin();
             }
             else if (GetOnDefenseStep.getWrongSidedness(input) > 0) {
