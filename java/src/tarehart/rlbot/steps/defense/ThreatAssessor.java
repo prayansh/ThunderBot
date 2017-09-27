@@ -22,7 +22,7 @@ public class ThreatAssessor {
 
         double enemyPosture = measureEnemyPosture(input);
         double enemyInitiative = measureEnemyInitiative(input);
-        double ballThreat = measureBallThreat(input) *  .4;
+        double ballThreat = measureBallThreat(input) *  .3;
 
         double enemyThreat = enemyPosture > 0 && enemyInitiative > .2 ? 10 : 0;
 

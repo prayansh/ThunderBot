@@ -18,14 +18,18 @@ public class IdealDirectedHitStep implements Step {
 
     @Override
     public Optional<AgentOutput> getOutput(AgentInput input) {
+
+        Optional<AgentOutput> output = proxyStep.getOutput(input);
+
         if (proxyStep instanceof DirectedNoseHitStep) {
             double estimatedAngleOfKickFromApproach = ((DirectedNoseHitStep) proxyStep).getEstimatedAngleOfKickFromApproach();
             if (Math.abs(estimatedAngleOfKickFromApproach) > Math.PI / 2) {
                 proxyStep = new DirectedSideHitStep(kickStrategy);
+                return proxyStep.getOutput(input);
             }
         }
 
-        return proxyStep.getOutput(input);
+        return output;
     }
 
     @Override

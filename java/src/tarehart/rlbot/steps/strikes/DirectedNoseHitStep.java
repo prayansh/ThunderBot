@@ -47,26 +47,6 @@ public class DirectedNoseHitStep implements Step {
 
     public Optional<AgentOutput> getOutput(AgentInput input) {
 
-        final Optional<DirectedKickPlan> kickPlanOption;
-        if (interceptModifier != null) {
-            kickPlanOption = DirectedKickUtil.planKick(input, kickStrategy, false, interceptModifier, maneuverSeconds);
-        } else {
-            kickPlanOption = DirectedKickUtil.planKick(input, kickStrategy, false);
-        }
-
-        if (!kickPlanOption.isPresent()) {
-            return Optional.of(SteerUtil.steerTowardGroundPosition(input.getMyCarData(), input.ballPosition));
-        }
-
-        return getOutput(input, kickPlanOption.get());
-    }
-
-    public Optional<AgentOutput> getOutput(AgentInput input, DirectedKickPlan kickPlan) {
-
-        if (doneMoment != null && input.time.isAfter(doneMoment) && (plan == null || plan.isComplete())) {
-            return Optional.empty();
-        }
-
         CarData car = input.getMyCarData();
 
         if (doneMoment == null && car.position.distance(input.ballPosition) < 4.5) {
@@ -78,9 +58,26 @@ public class DirectedNoseHitStep implements Step {
             return plan.getOutput(input);
         }
 
+        if (doneMoment != null && input.time.isAfter(doneMoment)) {
+            return Optional.empty();
+        }
+
         if (ArenaModel.isCarOnWall(car)) {
             return Optional.empty();
         }
+
+        final Optional<DirectedKickPlan> kickPlanOption;
+        if (interceptModifier != null) {
+            kickPlanOption = DirectedKickUtil.planKick(input, kickStrategy, false, interceptModifier, maneuverSeconds);
+        } else {
+            kickPlanOption = DirectedKickUtil.planKick(input, kickStrategy, false);
+        }
+
+        if (!kickPlanOption.isPresent()) {
+            return Optional.of(SteerUtil.steerTowardGroundPosition(input.getMyCarData(), input.ballPosition));
+        }
+
+        DirectedKickPlan kickPlan = kickPlanOption.get();
 
         if (originalIntercept == null) {
             originalIntercept = kickPlan.ballAtIntercept.getSpace();
@@ -130,6 +127,10 @@ public class DirectedNoseHitStep implements Step {
 
             // Line up for a nose hit
             circleTurnPlan = SteerUtil.getPlanForCircleTurn(car, kickPlan.distancePlot, circleTerminus, terminusFacing);
+            if (ArenaModel.getDistanceFromWall(new Vector3(circleTurnPlan.waypoint.x, circleTurnPlan.waypoint.y, 0)) < -1) {
+                BotLog.println("Failing nose hit because waypoint is out of bounds", input.team);
+                return Optional.empty();
+            }
         }
 
         return getNavigation(input, circleTurnPlan);

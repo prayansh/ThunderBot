@@ -4,6 +4,7 @@ import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
+import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.SteerUtil;
@@ -29,7 +30,8 @@ public class MountWallStep implements Step {
             return Optional.empty();
         }
 
-        Vector3 ballPositionExaggerated = (Vector3) input.ballPosition.scaleCopy(1.1); // This assumes the ball is close to the wall
+        SpaceTimeVelocity ballMotion = ballPath.get().getMotionAt(input.time.plusSeconds(3)).orElse(ballPath.get().getEndpoint());
+        Vector3 ballPositionExaggerated = (Vector3) ballMotion.getSpace().scaleCopy(1.04); // This assumes the ball is close to the wall
 
         return Optional.of(SteerUtil.steerTowardGroundPosition(car, ballPositionExaggerated));
     }

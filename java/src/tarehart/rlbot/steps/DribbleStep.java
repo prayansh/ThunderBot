@@ -145,13 +145,6 @@ public class DribbleStep implements Step {
             return false;
         }
 
-//        if (ballToMe.dotProduct(input.ballVelocity) > 0) {
-//            if (log) {
-//                BotLog.println("Ball is rolling toward us, can't dribble.", input.team);
-//            }
-//            return false;
-//        }
-
         if (BallPhysics.getGroundBounceEnergy(new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity)) > 50) {
             if (log) {
                 BotLog.println("Ball bouncing too hard to dribble", input.team);

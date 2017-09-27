@@ -25,8 +25,9 @@ public class GoalUtil {
         return ballPath.getPlaneBreak(ballPath.getStartPoint().time, goal.getScorePlane(), true);
     }
 
-    public static boolean ballEntersBox(Goal goal, BallPath ballPath, Duration limit) {
-        LocalDateTime lastMoment = ballPath.getStartPoint().getTime().plus(limit);
-        return ballPath.findSlice(slice -> goal.isInBox(slice.getSpace()), lastMoment).isPresent();
+    public static boolean ballLingersInBox(Goal goal, BallPath ballPath) {
+        Optional<SpaceTimeVelocity> firstSlice = ballPath.findSlice(slice -> goal.isInBox(slice.getSpace()));
+        Optional<SpaceTimeVelocity> secondSlice = firstSlice.flatMap(stv -> ballPath.getMotionAt(stv.getTime().plusSeconds(2)));
+        return secondSlice.isPresent() && goal.isInBox(secondSlice.get().getSpace());
     }
 }

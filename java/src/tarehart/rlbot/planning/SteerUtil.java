@@ -369,35 +369,26 @@ public class SteerUtil {
 
         Optional<Double> idealSpeedOption = getSpeedForRadius(idealCircle.radius);
 
-        if (!idealSpeedOption.isPresent() || idealSpeedOption.get() < 10) {
-            // Get Loose
-            AgentOutput output = new AgentOutput().withAcceleration(1);
-            return new SteerPlan(output, targetPosition);
-        } else {
-            double idealSpeed = idealSpeedOption.get();
-            double speedRatio = currentSpeed / idealSpeed; // Ideally should be 1
+        double idealSpeed = idealSpeedOption.orElse(5.0);
 
-            double lookaheadRadians = Math.PI / 20;
-            Vector2 centerToSteerTarget = VectorUtil.rotateVector((Vector2) flatPosition.subCopy(idealCircle.center), lookaheadRadians * (clockwise ? -1 : 1));
-            Vector2 steerTarget = (Vector2) idealCircle.center.addCopy(centerToSteerTarget);
+        double speedRatio = currentSpeed / idealSpeed; // Ideally should be 1
 
-//            double difference = Math.abs(getCorrectionAngleRad(facing, idealDirection));
-//            double turnSharpness = difference * 6/Math.PI + difference * currentSpeed * .1;
-            AgentOutput output = steerTowardGroundPosition(car, steerTarget).withSlide(false);
+        double lookaheadRadians = Math.PI / 20;
+        Vector2 centerToSteerTarget = VectorUtil.rotateVector((Vector2) flatPosition.subCopy(idealCircle.center), lookaheadRadians * (clockwise ? -1 : 1));
+        Vector2 steerTarget = (Vector2) idealCircle.center.addCopy(centerToSteerTarget);
 
-//            if (output.getSteer() * clockwiseSteer < 0) {
-//                output.withSteer(0);
-//            }
+        AgentOutput output = steerTowardGroundPosition(car, steerTarget).withSlide(false);
 
-            if (speedRatio < 1) {
-                output.withAcceleration(1);
-                output.withBoost(currentSpeed >= AccelerationModel.MEDIUM_SPEED);
-            } else {
-                output.withAcceleration(0).withDeceleration(Math.max(0, speedRatio - 1.5));
+        if (speedRatio < 1) {
+            output.withAcceleration(1);
+            output.withBoost(currentSpeed >= AccelerationModel.MEDIUM_SPEED || speedRatio < .8);
+        } else  {
+            output.withAcceleration(0).withDeceleration(Math.max(0, speedRatio - 1.5));
+            if (speedRatio > 1.5) {
+                output.withSlide();
             }
-
-            return new SteerPlan(output, targetPosition);
         }
 
+        return new SteerPlan(output, targetPosition);
     }
 }

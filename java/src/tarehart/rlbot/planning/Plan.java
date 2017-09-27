@@ -21,13 +21,12 @@ public class Plan {
     }
 
     public boolean canInterrupt() {
-        return isComplete() || !(unstoppable && steps.get(currentStepIndex).canInterrupt());
+        return isComplete() || !unstoppable && steps.get(currentStepIndex).canInterrupt();
     }
 
     public enum Posture {
         NEUTRAL(0),
         OFFENSIVE(1),
-        SHOT(3),
         DEFENSIVE(5),
         CLEAR(8),
         SAVE(10),

@@ -18,6 +18,7 @@ import java.util.Optional;
 
 public class DirectedKickUtil {
     private static final double BALL_VELOCITY_INFLUENCE = .7;
+    private static final double SIDE_HIT_SPEED = 20;
 
     public static Optional<DirectedKickPlan> planKick(AgentInput input, KickStrategy kickStrategy, boolean isSideHit) {
         Vector3 interceptModifier = (Vector3) kickStrategy.getKickDirection(input).normaliseCopy().scaleCopy(-2);
@@ -41,30 +42,59 @@ public class DirectedKickUtil {
         }
         kickPlan.ballAtIntercept = ballMotion.get();
 
-        Vector3 kickDirection;
-        if (isSideHit) {
+        double impactSpeed = isSideHit ? SIDE_HIT_SPEED : kickPlan.distancePlot.getMotionAt(kickPlan.ballAtIntercept.getTime()).get().speed;
 
+        Vector3 easyForce;
+        if (isSideHit) {
             Vector2 carToIntercept = VectorUtil.flatten((Vector3) interceptOpportunity.get().space.subCopy(car.position));
             Vector2 sideHit = VectorUtil.orthogonal(carToIntercept);
             if (sideHit.dotProduct(VectorUtil.flatten(interceptModifier)) > 0) {
                 sideHit.scale(-1);
             }
-
-            kickDirection = kickStrategy.getKickDirection(input, kickPlan.ballAtIntercept.getSpace(), new Vector3(sideHit.x, sideHit.y, 0));
+            easyForce = new Vector3(sideHit.x, sideHit.y, 0);
         } else {
-            kickDirection = kickStrategy.getKickDirection(input, kickPlan.ballAtIntercept.getSpace());
+            easyForce = (Vector3) kickPlan.ballAtIntercept.getSpace().subCopy(car.position);
         }
 
-        DistanceTimeSpeed carMotion = kickPlan.distancePlot.getMotionAt(kickPlan.ballAtIntercept.getTime()).get();
-        kickPlan.desiredBallVelocity = (Vector3) kickDirection.normaliseCopy().scaleCopy(carMotion.speed);
-        Vector2 orthogonal = VectorUtil.orthogonal(VectorUtil.flatten(kickDirection));
-        Vector2 transverseBallVelocity = VectorUtil.project(VectorUtil.flatten(kickPlan.ballAtIntercept.getVelocity()), orthogonal);
-        kickPlan.plannedKickForce = kickPlan.desiredBallVelocity.copy();
-        kickPlan.plannedKickForce.x -= transverseBallVelocity.x * BALL_VELOCITY_INFLUENCE;
-        kickPlan.plannedKickForce.y -= transverseBallVelocity.y * BALL_VELOCITY_INFLUENCE;
+        easyForce.scaleToMagnitude(impactSpeed);
+
+        Vector3 easyKick = bump(kickPlan.ballAtIntercept.getVelocity(), easyForce);
+        Vector3 kickDirection = kickStrategy.getKickDirection(input, kickPlan.ballAtIntercept.getSpace(), easyKick);
+
+        if (easyKick.x == kickDirection.x && easyKick.y == kickDirection.y) {
+            // The kick strategy is fine with the easy kick.
+            kickPlan.plannedKickForce = easyForce;
+            kickPlan.desiredBallVelocity = easyKick;
+        } else {
+
+            // TODO: this is a rough approximation.
+            Vector2 orthogonal = VectorUtil.orthogonal(VectorUtil.flatten(kickDirection));
+            Vector2 transverseBallVelocity = VectorUtil.project(VectorUtil.flatten(kickPlan.ballAtIntercept.getVelocity()), orthogonal);
+            kickPlan.desiredBallVelocity = (Vector3) kickDirection.normaliseCopy().scaleCopy(impactSpeed + transverseBallVelocity.magnitude() * .7);
+            kickPlan.plannedKickForce = kickPlan.desiredBallVelocity.copy();
+            kickPlan.plannedKickForce.x -= transverseBallVelocity.x * BALL_VELOCITY_INFLUENCE;
+            kickPlan.plannedKickForce.y -= transverseBallVelocity.y * BALL_VELOCITY_INFLUENCE;
+        }
 
         return Optional.of(kickPlan);
     }
+
+
+    /**
+     * https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector
+     */
+    private static Vector3 reflect(Vector3 incident, Vector3 normal) {
+        normal = (Vector3) normal.normaliseCopy();
+        return (Vector3) incident.subCopy(normal.scaleCopy(2 * incident.dotProduct(normal)));
+    }
+
+    private static Vector3 bump(Vector3 incident, Vector3 movingWall) {
+        // Move into reference frame of moving wall
+        Vector3 incidentAccordingToWall = (Vector3) incident.subCopy(movingWall);
+        Vector3 reflectionAccordingToWall = reflect(incidentAccordingToWall, movingWall);
+        return reflectionAccordingToWall.addCopy(movingWall);
+    }
+
 
     static double getAngleOfKickFromApproach(CarData car, DirectedKickPlan kickPlan) {
         Vector2 strikeForceFlat = VectorUtil.flatten(kickPlan.plannedKickForce);

@@ -99,7 +99,7 @@ public class Bot {
         }
 
         if (canInterruptPlanFor(Plan.Posture.CLEAR)) {
-            boolean ballEntersOurBox = GoalUtil.ballEntersBox(GoalUtil.getOwnGoal(input.team), ballPath, Duration.ofSeconds(5));
+            boolean ballEntersOurBox = GoalUtil.ballLingersInBox(GoalUtil.getOwnGoal(input.team), ballPath);
             if (ballEntersOurBox) {
                 BotLog.println("Going for clear", input.team);
                 currentPlan = new Plan(Plan.Posture.CLEAR).withStep(new IdealDirectedHitStep(new KickAwayFromOwnGoal()));
@@ -118,11 +118,11 @@ public class Bot {
             }
         }
 
-        if (canInterruptPlanFor(Plan.Posture.SHOT)) {
-            boolean ballEntersEnemyBox = GoalUtil.ballEntersBox(GoalUtil.getEnemyGoal(input.team), ballPath, Duration.ofSeconds(2));
+        if (canInterruptPlanFor(Plan.Posture.OFFENSIVE)) {
+            boolean ballEntersEnemyBox = GoalUtil.ballLingersInBox(GoalUtil.getEnemyGoal(input.team), ballPath);
             if (ballEntersEnemyBox && car.position.distance(input.ballPosition) < 80) {
                 BotLog.println("Going for shot", input.team);
-                currentPlan = new Plan(Plan.Posture.SHOT).withStep(new IdealDirectedHitStep(new KickAtEnemyGoal()));
+                currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new IdealDirectedHitStep(new KickAtEnemyGoal()));
                 currentPlan.begin();
             }
         }
@@ -131,18 +131,18 @@ public class Bot {
             if (car.position.z > LandGracefullyStep.NEEDS_LANDING_HEIGHT) {
                 currentPlan = new Plan(Plan.Posture.LANDING).withStep(new LandGracefullyStep());
                 currentPlan.begin();
-            } else if (DribbleStep.canDribble(input, false)) {
+            } else if (DribbleStep.canDribble(input, false) && input.ballVelocity.magnitude() > 15) {
                 BotLog.println("Beginning dribble", input.team);
-                currentPlan = new Plan().withStep(new DribbleStep());
+                currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new DribbleStep());
                 currentPlan.begin();
             } else if (car.boost < 30 && GetBoostStep.canRun(car)) {
                 currentPlan = new Plan().withStep(new GetBoostStep());
                 currentPlan.begin();
             } else if (WallTouchStep.hasWallTouchOpportunity(input, ballPath)) {
-                currentPlan = new Plan().withStep(new MountWallStep()).withStep(new WallTouchStep()).withStep(new DescendFromWallStep());
+                currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new MountWallStep()).withStep(new WallTouchStep()).withStep(new DescendFromWallStep());
                 currentPlan.begin();
             } else if (DirectedNoseHitStep.canMakeDirectedKick(input)) {
-                currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new DirectedNoseHitStep(new KickAtEnemyGoal()));
+                currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new IdealDirectedHitStep(new KickAtEnemyGoal()));
                 currentPlan.begin();
             }
             else if (GetOnDefenseStep.getWrongSidedness(input) > 0) {
