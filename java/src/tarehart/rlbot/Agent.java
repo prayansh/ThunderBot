@@ -28,7 +28,7 @@ public class Agent {
 
             synchronized (this) {
                 if (!bots.containsKey(team)) {
-                    bots.put(team, new Bot(team));
+                    bots.put(team, new ReliefBot(team));
                 }
             }
 
