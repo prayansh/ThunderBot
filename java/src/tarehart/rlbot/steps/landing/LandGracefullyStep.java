@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 public class LandGracefullyStep implements Step {
     private static final double SIN_45 = Math.sin(Math.PI / 4);
     public static final Vector3 UP_VECTOR = new Vector3(0, 0, 1);
-    public static final int NEEDS_LANDING_HEIGHT = 5;
+    public static final int NEEDS_LANDING_HEIGHT = 1;
     private Plan plan = null;
     private Vector2 desiredFacing;
 
@@ -49,7 +49,7 @@ public class LandGracefullyStep implements Step {
             desiredFacing.normalise();
         }
 
-        if (car.position.z < NEEDS_LANDING_HEIGHT) {
+        if (car.position.z < NEEDS_LANDING_HEIGHT || ArenaModel.isBehindGoalLine(car.position)) {
             return Optional.empty();
         }
 
@@ -63,41 +63,10 @@ public class LandGracefullyStep implements Step {
 
     private static Plan planRotation(CarOrientation current, Vector2 desiredFacing, Bot.Team team) {
 
-        // Step 1: get a clean axis
-        // If front has no Z, we can roll flat
-        // If roof has no Z, we can pitch nose toward desired direction, then roll
-        // If side has no Z, we can pitch flat, in direction closest to desired, then roll
-
-        BotLog.println("Nose: " + current.noseVector + " Roof: " + current.roofVector + " Side: " + current.rightVector, team);
-
-        // What's closest to being true?
-        Vector3 minZ = Stream.of(current.noseVector, current.roofVector, current.rightVector).min(Comparator.comparingDouble(a -> Math.abs(a.z))).get();
-
-        if (minZ == current.noseVector) {
-            BotLog.println("Nose points to horizon", team);
-            // Pitch or yaw nose vector to zero
-            return new Plan()
-                    .withStep(Math.abs(current.roofVector.z) > SIN_45 ? new PitchToPlaneStep(UP_VECTOR, true) : new YawToPlaneStep(UP_VECTOR, true))
-                    .withStep(new RollToPlaneStep(UP_VECTOR))
-                    .withStep(new YawToPlaneStep(getFacingPlane(desiredFacing)));
-
-        } else if (minZ == current.roofVector) {
-            BotLog.println("Roof points to horizon", team);
-            // Roll or pitch roof vector to zero
-            return new Plan()
-                    .withStep(new RollToPlaneStep(UP_VECTOR, true))
-                    .withStep(new PitchToPlaneStep(getFacingPlane(desiredFacing)))
-                    .withStep(new RollToPlaneStep(UP_VECTOR));
-
-        } else {
-            BotLog.println("Side points to horizon", team);
-            // Roll or yaw side vector to zero
-            return new Plan()
-                    .withStep(new RollToPlaneStep(UP_VECTOR, true))
-                    .withStep(new PitchToPlaneStep(UP_VECTOR))
-                    .withStep(new YawToPlaneStep(getFacingPlane(desiredFacing)));
-
-        }
+        return new Plan()
+                .withStep(Math.abs(current.roofVector.z) > SIN_45 ? new PitchToPlaneStep(UP_VECTOR, true) : new YawToPlaneStep(UP_VECTOR, true))
+                .withStep(new RollToPlaneStep(UP_VECTOR))
+                .withStep(new YawToPlaneStep(getFacingPlane(desiredFacing)));
     }
 
     private static Vector3 getFacingPlane(Vector2 desiredFacing) {

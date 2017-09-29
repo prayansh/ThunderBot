@@ -2,12 +2,7 @@ package tarehart.rlbot.steps.rotation;
 
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentOutput;
-import tarehart.rlbot.Bot;
 import tarehart.rlbot.input.CarData;
-import tarehart.rlbot.input.CarOrientation;
-import tarehart.rlbot.planning.Plan;
-import tarehart.rlbot.steps.BlindStep;
-import tarehart.rlbot.tuning.BotLog;
 
 public class PitchToPlaneStep extends OrientToPlaneStep {
 
@@ -20,15 +15,20 @@ public class PitchToPlaneStep extends OrientToPlaneStep {
     }
 
     @Override
-    protected double getCorrectionRadians(CarData car) {
+    protected double getOrientationCorrection(CarData car) {
         Vector3 vectorNeedingCorrection = car.orientation.noseVector;
         Vector3 axisOfRotation = car.orientation.rightVector;
-        double radians = getCorrectionRadians(vectorNeedingCorrection, axisOfRotation);
+        double correction = getMinimalCorrectionRadiansToPlane(vectorNeedingCorrection, axisOfRotation);
 
-        if (!allowUpsideDown && car.orientation.roofVector.dotProduct(planeNormal) < 0) {
-            radians += Math.PI;
+        boolean upsideDown = car.orientation.roofVector.dotProduct(planeNormal) < 0;
+
+        if (upsideDown) {
+            correction *= -1; // When upside down, need to rotate the opposite direction to converge on plane.
+            if (!allowUpsideDown) {
+                correction += Math.PI; // Turn all the way around
+            }
         }
-        return RotationUtil.shortWay(radians);
+        return RotationUtil.shortWay(correction);
     }
 
     @Override
@@ -39,6 +39,11 @@ public class PitchToPlaneStep extends OrientToPlaneStep {
     @Override
     protected AgentOutput accelerate(boolean positiveRadians) {
         return  new AgentOutput().withPitch(positiveRadians ? 1 : -1);
+    }
+
+    @Override
+    protected double getSpinDeceleration() {
+        return 6;
     }
 
 

@@ -1,6 +1,8 @@
 package tarehart.rlbot.steps.rotation;
 
+import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.VectorUtil;
 
 import java.time.Duration;
 
@@ -17,7 +19,7 @@ public class RotationUtil {
     public static double maxOrbitHeightAbovePlane(Vector3 axisOfRotation, Vector3 planeNormal) {
         double xVal = projectOntoPlane(axisOfRotation, planeNormal).magnitude();
         double angleAbovePlane = Math.acos(xVal);
-        return Math.sin(angleAbovePlane);
+        return Math.cos(angleAbovePlane);
     }
 
     private static Vector3 projectOntoPlane(Vector3 vec, Vector3 planeNormal) {

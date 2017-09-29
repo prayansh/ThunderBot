@@ -50,6 +50,13 @@ public class ReliefBot extends Bot {
             currentPlan.begin();
         }
 
+        if (canInterruptPlanFor(Plan.Posture.LANDING) && !ArenaModel.isCarOnWall(car) &&
+                car.position.z > LandGracefullyStep.NEEDS_LANDING_HEIGHT &&
+                !ArenaModel.isBehindGoalLine(car.position)) {
+            currentPlan = new Plan(Plan.Posture.LANDING).withStep(new LandGracefullyStep());
+            currentPlan.begin();
+        }
+
         BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(5));
         if (canInterruptPlanFor(Plan.Posture.SAVE)) {
             Optional<SpaceTimeVelocity> scoredOn = GoalUtil.predictGoalEvent(GoalUtil.getOwnGoal(input.team), ballPath);
@@ -90,10 +97,7 @@ public class ReliefBot extends Bot {
         }
 
         if (currentPlan == null || currentPlan.isComplete()) {
-            if (car.position.z > LandGracefullyStep.NEEDS_LANDING_HEIGHT) {
-                currentPlan = new Plan(Plan.Posture.LANDING).withStep(new LandGracefullyStep());
-                currentPlan.begin();
-            } else if (DribbleStep.canDribble(input, false) && input.ballVelocity.magnitude() > 15) {
+            if (DribbleStep.canDribble(input, false) && input.ballVelocity.magnitude() > 15) {
                 BotLog.println("Beginning dribble", input.team);
                 currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new DribbleStep());
                 currentPlan.begin();

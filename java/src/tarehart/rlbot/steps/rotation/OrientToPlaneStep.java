@@ -3,11 +3,8 @@ package tarehart.rlbot.steps.rotation;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
-import tarehart.rlbot.Bot;
 import tarehart.rlbot.input.CarData;
-import tarehart.rlbot.input.CarOrientation;
 import tarehart.rlbot.math.VectorUtil;
-import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.steps.Step;
 
 import java.util.Optional;
@@ -16,7 +13,7 @@ import java.util.Optional;
 
 public abstract class OrientToPlaneStep implements Step {
 
-    public static final double SPIN_DECELERATION = 10; // Radians per second per second
+    public static final double SPIN_DECELERATION = 6; // Radians per second per second
 
     protected Vector3 planeNormal;
     protected boolean allowUpsideDown;
@@ -33,8 +30,10 @@ public abstract class OrientToPlaneStep implements Step {
     }
 
     private double getRadiansSpentDecelerating(double angularVelocity) {
-        double timeDecelerating = Math.abs(angularVelocity) / SPIN_DECELERATION;
-        return angularVelocity * timeDecelerating - .5 * SPIN_DECELERATION * timeDecelerating * timeDecelerating;
+        double velocityMagnitude = Math.abs(angularVelocity);
+        double spinDeceleration = getSpinDeceleration();
+        double timeDecelerating = velocityMagnitude / spinDeceleration;
+        return velocityMagnitude * timeDecelerating - .5 * spinDeceleration * timeDecelerating * timeDecelerating;
     }
 
     /**
@@ -45,7 +44,10 @@ public abstract class OrientToPlaneStep implements Step {
     }
 
 
-    protected double getCorrectionRadians(Vector3 vectorNeedingCorrection, Vector3 axisOfRotation) {
+    /**
+     * Does not care if we go the "wrong way" and end up upside down.
+     */
+    protected double getMinimalCorrectionRadiansToPlane(Vector3 vectorNeedingCorrection, Vector3 axisOfRotation) {
         // We want vectorNeedingCorrection to be resting on the plane. If it's lined up with the planeNormal, then it's
         // doing a very poor job of that.
         Vector3 planeError = VectorUtil.project(vectorNeedingCorrection, planeNormal);
@@ -56,24 +58,25 @@ public abstract class OrientToPlaneStep implements Step {
         return -Math.asin(distanceAbovePlane / maxOrbitHeightAbovePlane);
     }
 
-    protected abstract double getCorrectionRadians(CarData car);
+    protected abstract double getOrientationCorrection(CarData car);
     protected abstract double getAngularVelocity(CarData car);
     protected abstract AgentOutput accelerate(boolean positiveRadians);
+    protected abstract double getSpinDeceleration();
 
     private AgentOutput accelerateTowardPlane(CarData car) {
 
-        double radians = getCorrectionRadians(car);
+        double correctionRadians = getOrientationCorrection(car);
 
         double angularVelocity = getAngularVelocity(car);
 
-        if (angularVelocity * radians < 0) {
+        if (angularVelocity * correctionRadians > 0) {
             // We're trending toward the plane, that's good.
-            if (timeToDecelerate(angularVelocity, radians)) {
+            if (timeToDecelerate(angularVelocity, correctionRadians)) {
                 timeToDecelerate = true;
             }
         }
 
-        return accelerate(radians > 0);
+        return accelerate(correctionRadians > 0);
     }
 
     @Override
@@ -82,7 +85,7 @@ public abstract class OrientToPlaneStep implements Step {
         CarData car = input.getMyCarData();
 
         if (originalCorrection == null) {
-            originalCorrection = getCorrectionRadians(car);
+            originalCorrection = getOrientationCorrection(car);
         }
 
         AgentOutput output = null;
@@ -99,6 +102,8 @@ public abstract class OrientToPlaneStep implements Step {
 
             output = accelerate(originalCorrection < 0);
         }
+
+        output.withAcceleration(1); // Just in case we're stuck on our side on the ground
 
         return Optional.ofNullable(output);
     }

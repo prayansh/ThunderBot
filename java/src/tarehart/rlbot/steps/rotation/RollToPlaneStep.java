@@ -2,12 +2,7 @@ package tarehart.rlbot.steps.rotation;
 
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentOutput;
-import tarehart.rlbot.Bot;
 import tarehart.rlbot.input.CarData;
-import tarehart.rlbot.input.CarOrientation;
-import tarehart.rlbot.planning.Plan;
-import tarehart.rlbot.steps.BlindStep;
-import tarehart.rlbot.tuning.BotLog;
 
 public class RollToPlaneStep extends OrientToPlaneStep {
 
@@ -20,15 +15,24 @@ public class RollToPlaneStep extends OrientToPlaneStep {
     }
 
     @Override
-    protected double getCorrectionRadians(CarData car) {
+    protected double getOrientationCorrection(CarData car) {
         Vector3 vectorNeedingCorrection = car.orientation.rightVector;
         Vector3 axisOfRotation = car.orientation.noseVector;
-        double radians = getCorrectionRadians(vectorNeedingCorrection, axisOfRotation);
 
-        if (!allowUpsideDown && car.orientation.roofVector.dotProduct(planeNormal) < 0) {
-            radians += Math.PI;
+        // Negate the correction radians. If the right vector is above the plane, the function will indicate a negative
+        // correction, but we need to roll right which is considered the positive direction.
+        double correction = -getMinimalCorrectionRadiansToPlane(vectorNeedingCorrection, axisOfRotation);
+
+        boolean upsideDown = car.orientation.roofVector.dotProduct(planeNormal) < 0;
+
+        if (upsideDown) {
+            correction *= -1; // When upside down, need to rotate the opposite direction to converge on plane.
+            if (!allowUpsideDown) {
+                correction += Math.PI; // Turn all the way around
+            }
         }
-        return RotationUtil.shortWay(radians);
+
+        return RotationUtil.shortWay(correction);
     }
 
     @Override
@@ -39,6 +43,11 @@ public class RollToPlaneStep extends OrientToPlaneStep {
     @Override
     protected AgentOutput accelerate(boolean positiveRadians) {
         return  new AgentOutput().withSteer(positiveRadians ? 1 : -1).withSlide();
+    }
+
+    @Override
+    protected double getSpinDeceleration() {
+        return 80;
     }
 
     @Override
