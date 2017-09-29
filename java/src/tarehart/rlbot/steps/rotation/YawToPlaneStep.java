@@ -3,6 +3,7 @@ package tarehart.rlbot.steps.rotation;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.Bot;
+import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.input.CarOrientation;
 import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.steps.BlindStep;
@@ -19,20 +20,25 @@ public class YawToPlaneStep extends OrientToPlaneStep {
     }
 
     @Override
-    protected Plan makeOrientationPlan(CarOrientation current, Bot.Team team) {
+    protected double getCorrectionRadians(CarData car) {
+        Vector3 vectorNeedingCorrection = car.orientation.noseVector;
+        Vector3 axisOfRotation = car.orientation.roofVector;
+        double radians = getCorrectionRadians(vectorNeedingCorrection, axisOfRotation);
 
-        double radians = getCorrectionRadians(current.noseVector, current.roofVector);
-
-        if (!allowUpsideDown && current.rightVector.dotProduct(planeNormal) < 0) {
+        if (!allowUpsideDown && car.orientation.rightVector.dotProduct(planeNormal) < 0) {
             radians += Math.PI;
         }
-        radians = RotationUtil.shortWay(radians);
+        return RotationUtil.shortWay(radians);
+    }
 
-        BotLog.println("Yawing " + radians, team);
+    @Override
+    protected double getAngularVelocity(CarData car) {
+        return car.spin.yawRate;
+    }
 
-        return new Plan()
-                .withStep(new BlindStep(new AgentOutput().withSteer(Math.signum(radians)), RotationUtil.getStartingImpulse(radians)))
-                .withStep(new BlindStep(new AgentOutput().withSteer(-Math.signum(radians)), RotationUtil.getHaltingImpulse(radians)));
+    @Override
+    protected AgentOutput accelerate(boolean positiveRadians) {
+        return  new AgentOutput().withSteer(positiveRadians ? 1 : -1);
     }
 
     @Override

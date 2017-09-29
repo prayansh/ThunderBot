@@ -4,6 +4,7 @@ import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.Bot;
+import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.input.CarOrientation;
 import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.planning.Plan;
@@ -11,11 +12,16 @@ import tarehart.rlbot.steps.Step;
 
 import java.util.Optional;
 
+
+
 public abstract class OrientToPlaneStep implements Step {
 
-    private Plan plan;
+    public static final double SPIN_DECELERATION = 10; // Radians per second per second
+
     protected Vector3 planeNormal;
     protected boolean allowUpsideDown;
+    protected boolean timeToDecelerate;
+    private Double originalCorrection = null;
 
     public OrientToPlaneStep(Vector3 planeNormal) {
         this(planeNormal, false);
@@ -26,7 +32,18 @@ public abstract class OrientToPlaneStep implements Step {
         this.allowUpsideDown = allowUpsideDown;
     }
 
-    protected abstract Plan makeOrientationPlan(CarOrientation current, Bot.Team team);
+    private double getRadiansSpentDecelerating(double angularVelocity) {
+        double timeDecelerating = Math.abs(angularVelocity) / SPIN_DECELERATION;
+        return angularVelocity * timeDecelerating - .5 * SPIN_DECELERATION * timeDecelerating * timeDecelerating;
+    }
+
+    /**
+     * This does not consider direction. You should only call it if you are already rotating toward your target.
+     */
+    protected boolean timeToDecelerate(double angularVelocity, double radiansRemaining) {
+        return getRadiansSpentDecelerating(angularVelocity) >= Math.abs(radiansRemaining);
+    }
+
 
     protected double getCorrectionRadians(Vector3 vectorNeedingCorrection, Vector3 axisOfRotation) {
         // We want vectorNeedingCorrection to be resting on the plane. If it's lined up with the planeNormal, then it's
@@ -39,20 +56,56 @@ public abstract class OrientToPlaneStep implements Step {
         return -Math.asin(distanceAbovePlane / maxOrbitHeightAbovePlane);
     }
 
+    protected abstract double getCorrectionRadians(CarData car);
+    protected abstract double getAngularVelocity(CarData car);
+    protected abstract AgentOutput accelerate(boolean positiveRadians);
+
+    private AgentOutput accelerateTowardPlane(CarData car) {
+
+        double radians = getCorrectionRadians(car);
+
+        double angularVelocity = getAngularVelocity(car);
+
+        if (angularVelocity * radians < 0) {
+            // We're trending toward the plane, that's good.
+            if (timeToDecelerate(angularVelocity, radians)) {
+                timeToDecelerate = true;
+            }
+        }
+
+        return accelerate(radians > 0);
+    }
+
     @Override
     public Optional<AgentOutput> getOutput(AgentInput input) {
 
-        if (plan == null) {
-            plan = makeOrientationPlan(input.getMyCarData().orientation, input.team);
-            plan.begin();
+        CarData car = input.getMyCarData();
+
+        if (originalCorrection == null) {
+            originalCorrection = getCorrectionRadians(car);
         }
 
-        return plan.getOutput(input);
+        AgentOutput output = null;
+        if (!timeToDecelerate) {
+            output = accelerateTowardPlane(input.getMyCarData());
+        }
+
+        // The value of timeToDecelerate can get changed by accelerateTowardPlane.
+        if (timeToDecelerate) {
+            if (getAngularVelocity(car) * originalCorrection < 0) {
+                // We're done decelerating
+                return Optional.empty();
+            }
+
+            output = accelerate(originalCorrection < 0);
+        }
+
+        return Optional.ofNullable(output);
     }
 
     @Override
     public boolean isBlindlyComplete() {
-        return plan != null && plan.isComplete();
+        return false;
     }
 
     @Override
