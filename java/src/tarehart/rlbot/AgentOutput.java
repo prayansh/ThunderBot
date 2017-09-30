@@ -131,4 +131,8 @@ public class AgentOutput {
     public double getSteer() {
         return steeringTilt;
     }
+
+    public double getPitch() {
+        return pitchTilt;
+    }
 }

@@ -5,13 +5,19 @@ import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
+import tarehart.rlbot.math.Plane;
 import tarehart.rlbot.math.SpaceTime;
+import tarehart.rlbot.math.TimeUtil;
+import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
+import tarehart.rlbot.physics.DistancePlot;
+import tarehart.rlbot.planning.AccelerationModel;
 import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.steps.Step;
 import tarehart.rlbot.steps.TapStep;
+import tarehart.rlbot.steps.rotation.PitchToPlaneStep;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
@@ -20,13 +26,15 @@ import java.util.Optional;
 
 public class MidairStrikeStep implements Step {
 
-    private static final double SIDE_DODGE_THRESHOLD = Math.PI / 8;
+    private static final double SIDE_DODGE_THRESHOLD = Math.PI / 4;
     public static final int DODGE_TIME = 400;
     public static final double DODGE_DISTANCE = 5;
     private static final Duration maxTimeForAirDodge = Duration.ofMillis(1500);
+    public static final double UPWARD_VELOCITY_MAINTENANCE_ANGLE = Math.PI / 6;
     private int confusionCount = 0;
     private Plan plan;
     private LocalDateTime lastMomentForDodge;
+    private LocalDateTime beginningOfStep;
     private Duration timeInAirAtStart;
 
     public MidairStrikeStep(Duration timeInAirAtStart) {
@@ -44,11 +52,13 @@ public class MidairStrikeStep implements Step {
 
         if (lastMomentForDodge == null) {
             lastMomentForDodge = input.time.plus(maxTimeForAirDodge).minus(timeInAirAtStart);
+            beginningOfStep = input.time;
         }
 
-        BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(3));
+        BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(5));
         CarData car = input.getMyCarData();
-        Optional<SpaceTime> interceptOpportunity = SteerUtil.getInterceptOpportunity(car, ballPath, car.velocity.magnitude());
+        DistancePlot airAccelPlot = AccelerationModel.simulateAirAcceleration(car, Duration.ofSeconds(5));
+        Optional<SpaceTime> interceptOpportunity = SteerUtil.getInterceptOpportunity(car, ballPath, airAccelPlot);
         if (!interceptOpportunity.isPresent()) {
             confusionCount++;
             if (confusionCount > 3) {
@@ -69,7 +79,7 @@ public class MidairStrikeStep implements Step {
 
         if (input.time.isBefore(lastMomentForDodge) && distance < DODGE_DISTANCE) {
             // Let's flip into the ball!
-            if (Math.abs(correctionAngleRad) <= SIDE_DODGE_THRESHOLD) {
+            if (Math.abs(correctionAngleRad) <= SIDE_DODGE_THRESHOLD && ((Vector3) car.velocity.normaliseCopy()).z < .3) {
                 BotLog.println("Front flip strike", input.team);
                 plan = new Plan().withStep(new TapStep(2, new AgentOutput().withPitch(-1).withJump()));
                 plan.begin();
@@ -83,29 +93,60 @@ public class MidairStrikeStep implements Step {
             }
         }
 
-        if (millisTillIntercept > DODGE_TIME && carToIntercept.normaliseCopy().dotProduct(car.velocity.normaliseCopy()) < .6) {
+        double rightDirection = carToIntercept.normaliseCopy().dotProduct(car.velocity.normaliseCopy());
+        double secondsSoFar = TimeUtil.secondsBetween(beginningOfStep, input.time);
+
+        if (millisTillIntercept > DODGE_TIME && secondsSoFar > 2 && rightDirection < .6 || rightDirection < 0) {
             BotLog.println("Failed aerial on bad angle", input.team);
             return Optional.empty();
         }
 
         Vector3 idealDirection = (Vector3) carToIntercept.normaliseCopy();
         Vector3 currentMotion = (Vector3) car.velocity.normaliseCopy();
-        Vector3 currentPitch = car.orientation.noseVector;
 
         Vector2 sidescrollerCurrentVelocity = getPitchVector(currentMotion);
         Vector2 sidescrollerIdealVelocity = getPitchVector(idealDirection);
-        Vector2 sidescrollerOrientation = getPitchVector(currentPitch);
 
         double currentVelocityAngle = SteerUtil.getCorrectionAngleRad(new Vector2(1, 0), sidescrollerCurrentVelocity);
         double idealVelocityAngle = SteerUtil.getCorrectionAngleRad(new Vector2(1, 0), sidescrollerIdealVelocity);
-        double currentOrientation = SteerUtil.getCorrectionAngleRad(new Vector2(1, 0), sidescrollerOrientation);
 
-        double desiredOrientation = idealVelocityAngle + Math.PI / 6 + (idealVelocityAngle - currentVelocityAngle) * .5;
-        double orientationChange = desiredOrientation - currentOrientation;
+        double desiredVerticalAngle = idealVelocityAngle + UPWARD_VELOCITY_MAINTENANCE_ANGLE + (idealVelocityAngle - currentVelocityAngle) * .5;
+        desiredVerticalAngle = Math.min(desiredVerticalAngle, Math.PI / 2);
 
-        // TODO: midair steering!
+        Vector2 flatToIntercept = VectorUtil.flatten(carToIntercept);
 
-        return Optional.of(new AgentOutput().withBoost().withPitch(orientationChange * 2));
+        Vector2 currentFlatVelocity = VectorUtil.flatten(car.velocity);
+
+        Vector2 desiredFlatOrientation = VectorUtil.rotateVector(currentFlatVelocity, SteerUtil.getCorrectionAngleRad(currentFlatVelocity, flatToIntercept) * 2);
+        desiredFlatOrientation.normalise();
+
+
+        Vector3 desiredNoseVector = new Vector3(desiredFlatOrientation.x, desiredFlatOrientation.y, VectorUtil.rotateVector(new Vector2(1, 0), desiredVerticalAngle).y);
+        desiredNoseVector.normalise();
+
+        Vector3 pitchPlaneNormal = car.orientation.rightVector.copy();
+        pitchPlaneNormal.crossProduct(desiredNoseVector);
+
+
+        Vector3 yawPlaneNormal = desiredNoseVector.copy();
+        yawPlaneNormal.crossProduct(new Vector3(0, 0, 1));
+
+        Optional<AgentOutput> pitchOutput = new PitchToPlaneStep(pitchPlaneNormal).getOutput(input);
+        Optional<AgentOutput> yawOutput = new PitchToPlaneStep(yawPlaneNormal).getOutput(input);
+
+        return Optional.of(mergeOrientationOutputs(pitchOutput, yawOutput).withBoost(rightDirection > .9).withJump(millisTillIntercept > DODGE_TIME + 100));
+    }
+
+    private AgentOutput mergeOrientationOutputs(Optional<AgentOutput> pitchOutput, Optional<AgentOutput> yawOutput) {
+        AgentOutput output = new AgentOutput();
+        if (pitchOutput.isPresent()) {
+            output.withPitch(pitchOutput.get().getPitch());
+        }
+        if (yawOutput.isPresent()) {
+            output.withSteer(yawOutput.get().getSteer());
+        }
+
+        return output;
     }
 
     /**

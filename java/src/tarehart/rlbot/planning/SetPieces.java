@@ -39,14 +39,8 @@ public class SetPieces {
                 .withStep(new LandMindlesslyStep());
     }
 
-    /*
-    TODO: we should do less of this blind.
-    MidairStrike is now capable of managing pitch on its own.
-    It can do an even better job if it starts estimating angular velocity of the car
-     */
     public static Plan performAerial() {
         Duration tiltBackDuration = Duration.ofMillis(390);
-        Duration tiltForwardDuration = Duration.ofMillis(360);
 
         return new Plan()
                 .withStep(new BlindStep(
@@ -55,14 +49,7 @@ public class SetPieces {
                             .withPitch(1),
                         tiltBackDuration
                 ))
-                .withStep(new BlindStep(
-                        new AgentOutput()
-                            .withJump(true)
-                            .withPitch(-1)
-                            .withBoost(true),
-                        tiltForwardDuration
-                ))
-                .withStep(new MidairStrikeStep(tiltBackDuration.plus(tiltForwardDuration)))
+                .withStep(new MidairStrikeStep(tiltBackDuration))
                 .withStep(new LandGracefullyStep());
     }
 

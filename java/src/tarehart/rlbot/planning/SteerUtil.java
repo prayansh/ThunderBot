@@ -134,18 +134,6 @@ public class SteerUtil {
         return Optional.empty();
     }
 
-    public static Optional<SpaceTime> getInterceptOpportunity(CarData car, BallPath ballPath, double speed) {
-
-        for (SpaceTimeVelocity ballMoment: ballPath.getSlices()) {
-            double distanceSoFar = TimeUtil.secondsBetween(car.time, ballMoment.getTime()) * speed;
-            if (distanceSoFar > VectorUtil.flatDistance(car.position, ballMoment.space)) {
-                return Optional.of(ballMoment.toSpaceTime());
-            }
-        }
-
-        return Optional.empty();
-    }
-
     public static double getCorrectionAngleRad(CarData carData, Vector3 target) {
         return getCorrectionAngleRad(carData, VectorUtil.flatten(target));
     }

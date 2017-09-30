@@ -36,39 +36,6 @@ public class AccelerationModel {
         return Math.abs(correctionAngleRad) * carData.velocity.magnitude() * .02;
     }
 
-    /*
-    public static double simulateTravelTime(AgentInput input, Vector3 target, double boostBudget, boolean ignoreOrientation) {
-
-        double distance = VectorUtil.flatten(input.getMyPosition()).distance(VectorUtil.flatten(target));
-        double boostRemaining = boostBudget;
-
-        double distanceSoFar = 0;
-        double secondsSoFar = 0;
-        double currentSpeed = input.getMyVelocity().magnitude();
-        double steerPenaltySeconds = ignoreOrientation ? 0 : Math.abs(SteerUtil.getCorrectionAngleRad(input, target)) * currentSpeed * .02;
-
-        while (distanceSoFar < distance) {
-            double hypotheticalFrontFlipDistance = ((currentSpeed * 2 + FRONT_FLIP_SPEED_BOOST) / 2) * FRONT_FLIP_SECONDS;
-            if (boostRemaining <= 0 && distanceSoFar + hypotheticalFrontFlipDistance < distance) {
-                secondsSoFar += FRONT_FLIP_SECONDS;
-                distanceSoFar += hypotheticalFrontFlipDistance;
-                currentSpeed += FRONT_FLIP_SPEED_BOOST;
-                continue;
-            }
-
-            double acceleration = getAcceleration(currentSpeed, boostRemaining > 0);
-            currentSpeed += acceleration * TIME_STEP;
-            distanceSoFar += currentSpeed * TIME_STEP;
-            secondsSoFar += TIME_STEP;
-            boostRemaining -= BOOST_CONSUMED_PER_SECOND * TIME_STEP;
-        }
-
-        double overshoot = distanceSoFar - distance;
-        secondsSoFar -= overshoot / currentSpeed;
-
-        return secondsSoFar + steerPenaltySeconds;
-    }*/
-
     public static DistancePlot simulateAcceleration(CarData carData, Duration duration, double boostBudget) {
         return simulateAcceleration(carData, duration, boostBudget, Double.MAX_VALUE);
     }
@@ -135,5 +102,39 @@ public class AccelerationModel {
 
     public static double getFrontFlipDistance(double speed) {
         return (speed + FRONT_FLIP_SPEED_BOOST / 2) * FRONT_FLIP_SECONDS;
+    }
+
+    public static DistancePlot simulateAirAcceleration(CarData car, Duration duration) {
+        double currentSpeed = VectorUtil.flatten(car.velocity).magnitude();
+        DistancePlot plot = new DistancePlot(new DistanceTimeSpeed(0, car.time, currentSpeed));
+
+        double boostRemaining = car.boost;
+
+        double distanceSoFar = 0;
+        double secondsSoFar = 0;
+
+        double secondsToSimulate = TimeUtil.toSeconds(duration);
+
+        while (secondsSoFar < secondsToSimulate) {
+
+            double acceleration = VectorUtil.flatten(car.orientation.noseVector).magnitude() * INCREMENTAL_BOOST_ACCELERATION;
+            currentSpeed += acceleration * TIME_STEP;
+            if (currentSpeed > SUPERSONIC_SPEED) {
+                currentSpeed = SUPERSONIC_SPEED;
+            }
+            distanceSoFar += currentSpeed * TIME_STEP;
+            secondsSoFar += TIME_STEP;
+            boostRemaining -= BOOST_CONSUMED_PER_SECOND * TIME_STEP;
+            plot.addSlice(new DistanceTimeSpeed(distanceSoFar, car.time.plus(TimeUtil.toDuration(secondsSoFar)), currentSpeed));
+
+            if (currentSpeed >= SUPERSONIC_SPEED) {
+                // It gets boring from now on. Put a slice at the very end.
+                double secondsRemaining = secondsToSimulate - secondsSoFar;
+                plot.addSlice(new DistanceTimeSpeed(distanceSoFar + SUPERSONIC_SPEED * secondsRemaining, car.time.plus(duration), SUPERSONIC_SPEED));
+                break;
+            }
+        }
+
+        return plot;
     }
 }

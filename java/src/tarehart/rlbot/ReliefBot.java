@@ -40,7 +40,7 @@ public class ReliefBot extends Bot {
         final CarData car = input.getMyCarData();
 
 //        if (canInterruptPlanFor(Plan.Posture.OVERRIDE)) {
-//            currentPlan = new Plan(Plan.Posture.OVERRIDE).withStep(new CalibrateStep());
+//            currentPlan = new Plan(Plan.Posture.OVERRIDE).withStep(new InterceptStep(new Vector3()));
 //            currentPlan.begin();
 //        }
 

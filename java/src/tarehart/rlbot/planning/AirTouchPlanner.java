@@ -7,12 +7,12 @@ import tarehart.rlbot.math.TimeUtil;
 
 public class AirTouchPlanner {
 
-    private static final double AERIAL_RISE_RATE = 10;
+    private static final double AERIAL_RISE_RATE = 8;
     private static final double JUMP_RISE_RATE = 8;
     public static final double BOOST_NEEDED_FOR_AERIAL = 20;
     public static final double NEEDS_AERIAL_THRESHOLD = 6;
     public static final double MAX_JUMP_HIT = NEEDS_AERIAL_THRESHOLD;
-    public static final double NEEDS_JUMP_HIT_THRESHOLD = 4;
+    public static final double NEEDS_JUMP_HIT_THRESHOLD = 3.6;
     public static final double NEEDS_FRONT_FLIP_THRESHOLD = 2;
     private static final double CAR_BASE_HEIGHT = 0.33;
     private static final double MAX_FLIP_HIT = NEEDS_JUMP_HIT_THRESHOLD;
