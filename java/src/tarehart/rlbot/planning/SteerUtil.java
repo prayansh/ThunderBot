@@ -2,15 +2,12 @@ package tarehart.rlbot.planning;
 
 import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
-import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.*;
-import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.BallPhysics;
 import tarehart.rlbot.physics.DistancePlot;
-import tarehart.rlbot.tuning.BallTelemetry;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -89,23 +86,41 @@ public class SteerUtil {
 
     public static Optional<SpaceTime> getFilteredInterceptOpportunity(
             CarData carData, BallPath ballPath, DistancePlot acceleration, Vector3 interceptModifier, BiPredicate<CarData, SpaceTime> predicate) {
-        return getFilteredInterceptOpportunity(carData, ballPath, acceleration, interceptModifier, predicate, 0);
+        return getFilteredInterceptOpportunity(carData, ballPath, acceleration, interceptModifier, predicate, null);
     }
 
+    /**
+     *
+     * @param carData
+     * @param ballPath
+     * @param acceleration
+     * @param interceptModifier an offset from the ball position that the car is trying to reach
+     * @param predicate determines whether a particular ball slice is eligible for intercept
+     * @param
+     * @return
+     */
     public static Optional<SpaceTime> getFilteredInterceptOpportunity(
-            CarData carData, BallPath ballPath, DistancePlot acceleration, Vector3 interceptModifier, BiPredicate<CarData, SpaceTime> predicate, double maneuverSeconds) {
+            CarData carData,
+            BallPath ballPath,
+            DistancePlot acceleration,
+            Vector3 interceptModifier,
+            BiPredicate<CarData, SpaceTime> predicate,
+            StrikeProfile strikeProfile) {
 
         Vector3 myPosition = carData.position;
 
         for (SpaceTimeVelocity ballMoment: ballPath.getSlices()) {
-            Optional<DistanceTimeSpeed> motionAt = acceleration.getMotionAt(ballMoment.getTime());
+            Optional<DistanceTimeSpeed> motionAt = strikeProfile != null ?
+                    acceleration.getMotionAfterStrike(carData.time, ballMoment.getTime(), strikeProfile.speedupSeconds, strikeProfile.speedBoost) :
+                    acceleration.getMotionAt(ballMoment.getTime());
             if (motionAt.isPresent()) {
                 DistanceTimeSpeed dts = motionAt.get();
                 Vector3 intercept = ballMoment.space.addCopy(interceptModifier);
                 SpaceTime interceptSpaceTime = new SpaceTime(intercept, ballMoment.getTime());
                 double ballDistance = VectorUtil.flatDistance(myPosition, intercept);
                 if (dts.distance > ballDistance) {
-                    double travelSeconds = maneuverSeconds + AccelerationModel.getTravelSeconds(carData, acceleration, intercept).orElse(0d);
+                    double travelSeconds = (strikeProfile != null ? strikeProfile.maneuverSeconds : 0) +
+                            AccelerationModel.getTravelSeconds(carData, acceleration, intercept).orElse(0d);
                     if (travelSeconds <= TimeUtil.secondsBetween(carData.time, interceptSpaceTime.time)) {
                         if (predicate.test(carData, interceptSpaceTime)) {
                             return Optional.of(interceptSpaceTime);

@@ -21,6 +21,9 @@ import java.util.Optional;
 
 public class InterceptStep implements Step {
 
+    private static final StrikeProfile AERIAL_STRIKE_PROFILE = new StrikeProfile(0, 0, 0);
+    private static final StrikeProfile JUMP_HIT_STRIKE_PROFILE = new StrikeProfile(0, 10, .5);
+    private static final StrikeProfile FLIP_HIT_STRIKE_PROFILE = new StrikeProfile(0, 10, .5);
     private Plan plan;
     private Vector3 interceptModifier;
     private LocalDateTime doneMoment;
@@ -82,7 +85,7 @@ public class InterceptStep implements Step {
     public Optional<Intercept> getAerialIntercept(CarData carData, BallPath ballPath) {
         if (carData.boost >= AirTouchPlanner.BOOST_NEEDED_FOR_AERIAL) {
             DistancePlot budgetAcceleration = AccelerationModel.simulateAcceleration(carData, Duration.ofSeconds(4), AirTouchPlanner.getBoostBudget(carData), 0);
-            Optional<SpaceTime> budgetInterceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(carData, ballPath, budgetAcceleration, interceptModifier, AirTouchPlanner::isVerticallyAccessible);
+            Optional<SpaceTime> budgetInterceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(carData, ballPath, budgetAcceleration, interceptModifier, AirTouchPlanner::isVerticallyAccessible, AERIAL_STRIKE_PROFILE);
             if (budgetInterceptOpportunity.isPresent()) {
                 SpaceTime spaceTime = budgetInterceptOpportunity.get();
                 if (budgetInterceptOpportunity.get().space.z > AirTouchPlanner.NEEDS_AERIAL_THRESHOLD) {
@@ -94,7 +97,7 @@ public class InterceptStep implements Step {
     }
 
     public Optional<Intercept> getJumpHitIntercept(CarData carData, BallPath ballPath, DistancePlot fullAcceleration) {
-        Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(carData, ballPath, fullAcceleration, interceptModifier, AirTouchPlanner::isJumpHitAccessible);
+        Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(carData, ballPath, fullAcceleration, interceptModifier, AirTouchPlanner::isJumpHitAccessible, JUMP_HIT_STRIKE_PROFILE);
         if (interceptOpportunity.isPresent()) {
             if (interceptOpportunity.get().space.z > AirTouchPlanner.NEEDS_JUMP_HIT_THRESHOLD) {
                 return Optional.of(new Intercept(interceptOpportunity.get()));
@@ -104,7 +107,7 @@ public class InterceptStep implements Step {
     }
 
     public Optional<Intercept> getFlipHitIntercept(CarData carData, BallPath ballPath, DistancePlot fullAcceleration) {
-        Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(carData, ballPath, fullAcceleration, interceptModifier, AirTouchPlanner::isFlipHitAccessible);
+        Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(carData, ballPath, fullAcceleration, interceptModifier, AirTouchPlanner::isFlipHitAccessible, FLIP_HIT_STRIKE_PROFILE);
         return interceptOpportunity.map(Intercept::new);
     }
 

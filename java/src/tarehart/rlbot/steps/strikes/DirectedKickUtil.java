@@ -12,6 +12,7 @@ import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.planning.AccelerationModel;
 import tarehart.rlbot.planning.AirTouchPlanner;
 import tarehart.rlbot.planning.SteerUtil;
+import tarehart.rlbot.planning.StrikeProfile;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -22,10 +23,10 @@ public class DirectedKickUtil {
 
     public static Optional<DirectedKickPlan> planKick(AgentInput input, KickStrategy kickStrategy, boolean isSideHit) {
         Vector3 interceptModifier = (Vector3) kickStrategy.getKickDirection(input).normaliseCopy().scaleCopy(-2);
-        return planKick(input, kickStrategy, isSideHit, interceptModifier, .5);
+        return planKick(input, kickStrategy, isSideHit, interceptModifier, new StrikeProfile(.5, 0, 0));
     }
 
-    static Optional<DirectedKickPlan> planKick(AgentInput input, KickStrategy kickStrategy, boolean isSideHit, Vector3 interceptModifier, Double maneuverSeconds) {
+    static Optional<DirectedKickPlan> planKick(AgentInput input, KickStrategy kickStrategy, boolean isSideHit, Vector3 interceptModifier, StrikeProfile strikeProfile) {
         final DirectedKickPlan kickPlan = new DirectedKickPlan();
         kickPlan.interceptModifier = interceptModifier;
 
@@ -34,7 +35,7 @@ public class DirectedKickUtil {
         kickPlan.ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(4));
         kickPlan.distancePlot = AccelerationModel.simulateAcceleration(car, Duration.ofSeconds(4), car.boost, 0);
 
-        Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(car, kickPlan.ballPath, kickPlan.distancePlot, interceptModifier, AirTouchPlanner::isJumpHitAccessible, maneuverSeconds);
+        Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(car, kickPlan.ballPath, kickPlan.distancePlot, interceptModifier, AirTouchPlanner::isJumpHitAccessible, strikeProfile);
         Optional<SpaceTimeVelocity> ballMotion = interceptOpportunity.flatMap(inter -> kickPlan.ballPath.getMotionAt(inter.time));
 
         if (!ballMotion.isPresent() || !interceptOpportunity.isPresent()) {

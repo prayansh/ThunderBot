@@ -11,10 +11,7 @@ import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.DistancePlot;
-import tarehart.rlbot.planning.Plan;
-import tarehart.rlbot.planning.SetPieces;
-import tarehart.rlbot.planning.SteerPlan;
-import tarehart.rlbot.planning.SteerUtil;
+import tarehart.rlbot.planning.*;
 import tarehart.rlbot.steps.Step;
 import tarehart.rlbot.tuning.BotLog;
 
@@ -62,7 +59,8 @@ public class DirectedSideHitStep implements Step {
 
         final Optional<DirectedKickPlan> kickPlanOption;
         if (interceptModifier != null) {
-            kickPlanOption = DirectedKickUtil.planKick(input, kickStrategy, true, interceptModifier, maneuverSeconds);
+            StrikeProfile strikeProfile = new StrikeProfile(maneuverSeconds, 0, 0);
+            kickPlanOption = DirectedKickUtil.planKick(input, kickStrategy, true, interceptModifier, strikeProfile);
         } else {
             kickPlanOption = DirectedKickUtil.planKick(input, kickStrategy, true);
         }

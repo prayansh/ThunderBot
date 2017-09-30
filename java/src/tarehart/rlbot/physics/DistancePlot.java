@@ -2,6 +2,8 @@ package tarehart.rlbot.physics;
 
 import tarehart.rlbot.math.DistanceTimeSpeed;
 import tarehart.rlbot.math.TimeUtil;
+import tarehart.rlbot.planning.AccelerationModel;
+import tarehart.rlbot.planning.StrikeProfile;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -65,5 +67,38 @@ public class DistancePlot {
     public Optional<Double> getTravelTime(double distance) {
         Optional<DistanceTimeSpeed> motionAt = getMotionAt(distance);
         return motionAt.map(distanceTimeSpeed -> TimeUtil.secondsBetween(plot.get(0).getTime(), distanceTimeSpeed.getTime()));
+    }
+
+    public Optional<DistanceTimeSpeed> getMotionAfterStrike(LocalDateTime startTime, LocalDateTime momentAfterStrike, double speedupSeconds, double speedBoost) {
+
+        if (speedupSeconds == 0 || speedBoost == 0) {
+            return getMotionAt(momentAfterStrike);
+        }
+
+        double totalSeconds = TimeUtil.secondsBetween(startTime, momentAfterStrike);
+        if (totalSeconds < speedupSeconds) {
+            // Not enough time for a full strike.
+            double beginningSpeed = plot.get(0).speed;
+            double realizedBoost = speedBoost * totalSeconds / speedupSeconds;
+            double endSpeed = Math.min(realizedBoost, AccelerationModel.SUPERSONIC_SPEED);
+            double averageSpeed = beginningSpeed + endSpeed / 2;
+
+            return Optional.of(new DistanceTimeSpeed(averageSpeed * totalSeconds, momentAfterStrike, endSpeed));
+        }
+
+        LocalDateTime momentBeforeStrike = momentAfterStrike.minus(TimeUtil.toDuration(speedupSeconds));
+        Optional<DistanceTimeSpeed> dtsOption = getMotionAt(momentBeforeStrike);
+
+        if (dtsOption.isPresent()) {
+            DistanceTimeSpeed dts = dtsOption.get();
+            double beginningSpeed = dts.speed;
+            double endSpeed = Math.min(speedBoost, AccelerationModel.SUPERSONIC_SPEED);
+            double averageSpeed = beginningSpeed + endSpeed / 2;
+
+            return Optional.of(new DistanceTimeSpeed(dts.distance + averageSpeed * speedupSeconds, momentAfterStrike, endSpeed));
+        } else {
+            // We ran out of data in the distance plot.
+            return Optional.empty();
+        }
     }
 }

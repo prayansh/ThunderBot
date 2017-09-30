@@ -68,7 +68,9 @@ public class DirectedNoseHitStep implements Step {
 
         final Optional<DirectedKickPlan> kickPlanOption;
         if (interceptModifier != null) {
-            kickPlanOption = DirectedKickUtil.planKick(input, kickStrategy, false, interceptModifier, maneuverSeconds);
+
+            StrikeProfile strikeProfile = new StrikeProfile(maneuverSeconds, 0, 0);
+            kickPlanOption = DirectedKickUtil.planKick(input, kickStrategy, false, interceptModifier, strikeProfile);
         } else {
             kickPlanOption = DirectedKickUtil.planKick(input, kickStrategy, false);
         }
