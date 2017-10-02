@@ -44,7 +44,6 @@ public abstract class Bot {
     public Bot(Team team) {
         this.team = team;
         readout = new Readout();
-        launchReadout();
         arenaModel = new ArenaModel();
     }
 
@@ -79,17 +78,11 @@ public abstract class Bot {
         return currentPlan == null || currentPlan.getPosture().lessUrgentThan(posture) && currentPlan.canInterrupt();
     }
 
-    private void launchReadout() {
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        JFrame frame = new JFrame("Readout - " + team.name());
+    public JFrame getDebugWindow() {
+        JFrame frame = new JFrame("Debug - " + team.name());
         frame.setContentPane(readout.getRootPanel());
-        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
         frame.pack();
-        frame.setVisible(true);
+        return frame;
     }
 }

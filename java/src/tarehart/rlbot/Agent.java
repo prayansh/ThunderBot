@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import rlbot.input.PyGameTickPacket;
 import tarehart.rlbot.input.Chronometer;
 import tarehart.rlbot.input.SpinTracker;
+import tarehart.rlbot.ui.StatusSummary;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,6 +15,11 @@ public class Agent {
     private Gson gson = new Gson();
     private Chronometer chronometer = new Chronometer();
     private SpinTracker spinTracker = new SpinTracker();
+    private StatusSummary statusSummary;
+
+    public Agent(StatusSummary statusSummary) {
+        this.statusSummary = statusSummary;
+    }
 
     public int[] getOutputVector(String packetJson, String teamString) {
 
@@ -28,7 +34,9 @@ public class Agent {
 
             synchronized (this) {
                 if (!bots.containsKey(team)) {
-                    bots.put(team, new ReliefBot(team));
+                    ReliefBot bot = new ReliefBot(team);
+                    bots.put(team, bot);
+                    statusSummary.markTeamRunning(team, bot.getDebugWindow());
                 }
             }
 

@@ -10,13 +10,13 @@ debug any runtime issues that occur with your bot.
 
 # Optional Information. Fill out only if you wish.
 
-# Your real name:
-# Contact Email:
-# Can this bot's code be shared publicly (Default: No):
-# Can non-tournment gameplay of this bot be displayed publicly (Default: No):
+# Your real name: Tyler Arehart
+# Contact Email: tarehart@gmail.com
+# Can this bot's code be shared publicly (Default: No): No
+# Can non-tournment gameplay of this bot be displayed publicly (Default: No): Yes
 
 # This is the name that will be displayed on screen in the real time display!
-BOT_NAME = "TareBot"
+BOT_NAME = "ReliefBot"
 
 class agent:
 
