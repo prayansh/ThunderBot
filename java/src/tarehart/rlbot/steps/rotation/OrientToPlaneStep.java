@@ -8,13 +8,14 @@ import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.steps.Step;
 
 import java.util.Optional;
-
+import java.util.function.Function;
 
 
 public abstract class OrientToPlaneStep implements Step {
 
     public static final double SPIN_DECELERATION = 6; // Radians per second per second
 
+    private Function<AgentInput, Vector3> planeNormalFn;
     protected Vector3 planeNormal;
     protected boolean allowUpsideDown;
     protected boolean timeToDecelerate;
@@ -24,9 +25,13 @@ public abstract class OrientToPlaneStep implements Step {
         this(planeNormal, false);
     }
 
-    public OrientToPlaneStep(Vector3 planeNormal, boolean allowUpsideDown) {
-        this.planeNormal = planeNormal;
+    public OrientToPlaneStep(Function<AgentInput, Vector3> planeNormalFn, boolean allowUpsideDown) {
+        this.planeNormalFn = planeNormalFn;
         this.allowUpsideDown = allowUpsideDown;
+    }
+
+    public OrientToPlaneStep(Vector3 planeNormal, boolean allowUpsideDown) {
+        this(input -> planeNormal, allowUpsideDown);
     }
 
     private double getRadiansSpentDecelerating(double angularVelocity) {
@@ -83,6 +88,8 @@ public abstract class OrientToPlaneStep implements Step {
     public Optional<AgentOutput> getOutput(AgentInput input) {
 
         CarData car = input.getMyCarData();
+
+        planeNormal = planeNormalFn.apply(input);
 
         if (originalCorrection == null) {
             originalCorrection = getOrientationCorrection(car);

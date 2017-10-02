@@ -1,6 +1,8 @@
 package tarehart.rlbot.physics;
 
+import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.DistanceTimeSpeed;
+import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.TimeUtil;
 import tarehart.rlbot.planning.AccelerationModel;
 import tarehart.rlbot.planning.StrikeProfile;
@@ -27,18 +29,18 @@ public class DistancePlot {
         return plot;
     }
 
-    public Optional<DistanceTimeSpeed> getMotionAt(LocalDateTime time) {
-        if (time.isBefore(plot.get(0).getTime()) || time.isAfter(plot.get(plot.size() - 1).getTime())) {
+    public Optional<DistanceTimeSpeed> getMotionAfterSeconds(double time) {
+        if (time < plot.get(0).getTime() || time > plot.get(plot.size() - 1).getTime()) {
             return Optional.empty();
         }
 
         for (int i = 0; i < plot.size() - 1; i++) {
             DistanceTimeSpeed current = plot.get(i);
             DistanceTimeSpeed next = plot.get(i + 1);
-            if (next.getTime().isAfter(time)) {
+            if (next.getTime() > time) {
 
-                long simulationStepMillis = Duration.between(current.getTime(), next.getTime()).toMillis();
-                double tweenPoint = Duration.between(current.getTime(), time).toMillis() * 1.0 / simulationStepMillis;
+                double simulationStepSeconds = next.getTime() - current.getTime();
+                double tweenPoint = (time - current.getTime()) / simulationStepSeconds;
                 double distance = (1 - tweenPoint) * current.distance + tweenPoint * next.distance;
                 double speed = (1 - tweenPoint) * current.speed + tweenPoint * next.speed;
                 return Optional.of(new DistanceTimeSpeed(distance, time, speed));
@@ -48,15 +50,15 @@ public class DistancePlot {
         return Optional.of(plot.get(plot.size() - 1));
     }
 
-    public Optional<DistanceTimeSpeed> getMotionAt(double distance) {
+    public Optional<DistanceTimeSpeed> getMotionAfterDistance(double distance) {
 
         for (int i = 0; i < plot.size() - 1; i++) {
             DistanceTimeSpeed current = plot.get(i);
             DistanceTimeSpeed next = plot.get(i + 1);
             if (next.distance > distance) {
-                double stepSeconds = TimeUtil.secondsBetween(current.getTime(), next.getTime());
+                double simulationStepSeconds = next.getTime() - current.getTime();
                 double tweenPoint = (distance - current.distance) / (next.distance - current.distance);
-                LocalDateTime moment = current.getTime().plus(TimeUtil.toDuration(stepSeconds * tweenPoint));
+                double moment = current.getTime() + simulationStepSeconds * tweenPoint;
                 double speed = (1 - tweenPoint) * current.speed + tweenPoint * next.speed;
                 return Optional.of(new DistanceTimeSpeed(distance, moment, speed));
             }
@@ -65,37 +67,42 @@ public class DistancePlot {
     }
 
     public Optional<Double> getTravelTime(double distance) {
-        Optional<DistanceTimeSpeed> motionAt = getMotionAt(distance);
-        return motionAt.map(distanceTimeSpeed -> TimeUtil.secondsBetween(plot.get(0).getTime(), distanceTimeSpeed.getTime()));
+        Optional<DistanceTimeSpeed> motionAt = getMotionAfterDistance(distance);
+        return motionAt.map(DistanceTimeSpeed::getTime);
     }
 
-    public Optional<DistanceTimeSpeed> getMotionAfterStrike(LocalDateTime startTime, LocalDateTime momentAfterStrike, double speedupSeconds, double speedBoost) {
+    /**
+     * The spacetime is used to infer allotted time and correction angle, NOT distance.
+     */
+    public Optional<DistanceTimeSpeed> getMotionAfterStrike(CarData carData, SpaceTime spaceTime, StrikeProfile strikeProfile) {
 
-        if (speedupSeconds == 0 || speedBoost == 0) {
-            return getMotionAt(momentAfterStrike);
+        double orientSeconds = AccelerationModel.getSteerPenaltySeconds(carData, spaceTime.space);
+
+        double totalSeconds = TimeUtil.secondsBetween(carData.time, spaceTime.time);
+        double secondsSpentAccelerating = Math.max(0, totalSeconds - orientSeconds);
+
+        if (strikeProfile == null || strikeProfile.speedupSeconds == 0 || strikeProfile.speedBoost == 0) {
+            Optional<DistanceTimeSpeed> motion = getMotionAfterSeconds(secondsSpentAccelerating);
+            return motion.map(dts -> new DistanceTimeSpeed(dts.distance, totalSeconds, dts.speed));
         }
 
-        double totalSeconds = TimeUtil.secondsBetween(startTime, momentAfterStrike);
-        if (totalSeconds < speedupSeconds) {
+        double speedupSeconds = strikeProfile.speedupSeconds;
+        double speedBoost = strikeProfile.speedBoost;
+        if (secondsSpentAccelerating < speedupSeconds) {
             // Not enough time for a full strike.
             double beginningSpeed = plot.get(0).speed;
-            double realizedBoost = speedBoost * totalSeconds / speedupSeconds;
-            double endSpeed = Math.min(realizedBoost, AccelerationModel.SUPERSONIC_SPEED);
-            double averageSpeed = beginningSpeed + endSpeed / 2;
-
-            return Optional.of(new DistanceTimeSpeed(averageSpeed * totalSeconds, momentAfterStrike, endSpeed));
+            double increasedSpeed = Math.min(beginningSpeed + speedBoost, AccelerationModel.SUPERSONIC_SPEED);
+            return Optional.of(new DistanceTimeSpeed(increasedSpeed * secondsSpentAccelerating, totalSeconds, increasedSpeed));
         }
 
-        LocalDateTime momentBeforeStrike = momentAfterStrike.minus(TimeUtil.toDuration(speedupSeconds));
-        Optional<DistanceTimeSpeed> dtsOption = getMotionAt(momentBeforeStrike);
+        double accelSecondsBeforeStrike = secondsSpentAccelerating - speedupSeconds;
+        Optional<DistanceTimeSpeed> dtsOption = getMotionAfterSeconds(accelSecondsBeforeStrike);
 
         if (dtsOption.isPresent()) {
             DistanceTimeSpeed dts = dtsOption.get();
             double beginningSpeed = dts.speed;
-            double endSpeed = Math.min(speedBoost, AccelerationModel.SUPERSONIC_SPEED);
-            double averageSpeed = beginningSpeed + endSpeed / 2;
-
-            return Optional.of(new DistanceTimeSpeed(dts.distance + averageSpeed * speedupSeconds, momentAfterStrike, endSpeed));
+            double increasedSpeed = Math.min(beginningSpeed + speedBoost, AccelerationModel.SUPERSONIC_SPEED);
+            return Optional.of(new DistanceTimeSpeed(dts.distance + increasedSpeed * speedupSeconds, totalSeconds, increasedSpeed));
         } else {
             // We ran out of data in the distance plot.
             return Optional.empty();

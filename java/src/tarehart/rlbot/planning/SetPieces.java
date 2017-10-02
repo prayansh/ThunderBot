@@ -34,9 +34,9 @@ public class SetPieces {
                         new AgentOutput()
                                 .withAcceleration(1)
                                 .withPitch(-1),
-                        Duration.ofMillis(50)
+                        Duration.ofMillis(900)
                 ))
-                .withStep(new LandMindlesslyStep());
+                .withStep(new LandGracefullyStep());
     }
 
     public static Plan performAerial() {
@@ -50,7 +50,7 @@ public class SetPieces {
                         tiltBackDuration
                 ))
                 .withStep(new MidairStrikeStep(tiltBackDuration))
-                .withStep(new LandGracefullyStep());
+                .withStep(new LandGracefullyStep(LandGracefullyStep.FACE_BALL));
     }
 
     public static Plan performJumpHit(double strikeHeight) {
@@ -91,9 +91,9 @@ public class SetPieces {
                         new AgentOutput()
                                 .withAcceleration(1)
                                 .withPitch(-1),
-                        Duration.ofMillis(50)
+                        Duration.ofMillis(800)
                 ))
-                .withStep(new LandMindlesslyStep());
+                .withStep(new LandGracefullyStep(LandGracefullyStep.FACE_BALL));
     }
 
     public static Plan sideFlip(boolean flipLeft) {

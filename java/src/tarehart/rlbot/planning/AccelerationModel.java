@@ -12,8 +12,8 @@ import java.util.Optional;
 
 public class AccelerationModel {
 
-    public static final int SUPERSONIC_SPEED = 46;
-    public static final int MEDIUM_SPEED = 28;
+    public static final double SUPERSONIC_SPEED = 46;
+    public static final double MEDIUM_SPEED = 28;
     public static final double FRONT_FLIP_SECONDS = 1.5;
 
     private static final Double TIME_STEP = 0.1;
@@ -33,7 +33,8 @@ public class AccelerationModel {
     public static double getSteerPenaltySeconds(CarData carData, Vector3 target) {
         Vector3 toTarget = (Vector3) target.subCopy(carData.position);
         double correctionAngleRad = VectorUtil.getCorrectionAngle(carData.orientation.noseVector, toTarget, carData.orientation.roofVector);
-        return Math.abs(correctionAngleRad) * carData.velocity.magnitude() * .02;
+        double correctionErr = Math.abs(correctionAngleRad);
+        return correctionErr * .1 + correctionErr * carData.velocity.magnitude() * .005;
     }
 
     public static DistancePlot simulateAcceleration(CarData carData, Duration duration, double boostBudget) {
@@ -43,7 +44,7 @@ public class AccelerationModel {
     public static DistancePlot simulateAcceleration(CarData carData, Duration duration, double boostBudget, double flipCutoffDistance) {
 
         double currentSpeed = carData.velocity.magnitude();
-        DistancePlot plot = new DistancePlot(new DistanceTimeSpeed(0, carData.time, currentSpeed));
+        DistancePlot plot = new DistancePlot(new DistanceTimeSpeed(0, 0, currentSpeed));
 
         double boostRemaining = boostBudget;
 
@@ -58,7 +59,7 @@ public class AccelerationModel {
                 secondsSoFar += FRONT_FLIP_SECONDS;
                 distanceSoFar += hypotheticalFrontFlipDistance;
                 currentSpeed += FRONT_FLIP_SPEED_BOOST;
-                plot.addSlice(new DistanceTimeSpeed(distanceSoFar, carData.time.plus(TimeUtil.toDuration(secondsSoFar)), currentSpeed));
+                plot.addSlice(new DistanceTimeSpeed(distanceSoFar, secondsSoFar, currentSpeed));
                 continue;
             }
 
@@ -70,12 +71,12 @@ public class AccelerationModel {
             distanceSoFar += currentSpeed * TIME_STEP;
             secondsSoFar += TIME_STEP;
             boostRemaining -= BOOST_CONSUMED_PER_SECOND * TIME_STEP;
-            plot.addSlice(new DistanceTimeSpeed(distanceSoFar, carData.time.plus(TimeUtil.toDuration(secondsSoFar)), currentSpeed));
+            plot.addSlice(new DistanceTimeSpeed(distanceSoFar, secondsSoFar, currentSpeed));
 
             if (currentSpeed >= SUPERSONIC_SPEED) {
                 // It gets boring from now on. Put a slice at the very end.
                 double secondsRemaining = secondsToSimulate - secondsSoFar;
-                plot.addSlice(new DistanceTimeSpeed(distanceSoFar + SUPERSONIC_SPEED * secondsRemaining, carData.time.plus(duration), SUPERSONIC_SPEED));
+                plot.addSlice(new DistanceTimeSpeed(distanceSoFar + SUPERSONIC_SPEED * secondsRemaining, secondsToSimulate, SUPERSONIC_SPEED));
                 break;
             }
         }
@@ -106,7 +107,7 @@ public class AccelerationModel {
 
     public static DistancePlot simulateAirAcceleration(CarData car, Duration duration) {
         double currentSpeed = VectorUtil.flatten(car.velocity).magnitude();
-        DistancePlot plot = new DistancePlot(new DistanceTimeSpeed(0, car.time, currentSpeed));
+        DistancePlot plot = new DistancePlot(new DistanceTimeSpeed(0, 0, currentSpeed));
 
         double boostRemaining = car.boost;
 
@@ -117,7 +118,7 @@ public class AccelerationModel {
 
         while (secondsSoFar < secondsToSimulate) {
 
-            double acceleration = VectorUtil.flatten(car.orientation.noseVector).magnitude() * INCREMENTAL_BOOST_ACCELERATION;
+            double acceleration = boostRemaining > 0 ? VectorUtil.flatten(car.orientation.noseVector).magnitude() * INCREMENTAL_BOOST_ACCELERATION : 0;
             currentSpeed += acceleration * TIME_STEP;
             if (currentSpeed > SUPERSONIC_SPEED) {
                 currentSpeed = SUPERSONIC_SPEED;
@@ -125,12 +126,12 @@ public class AccelerationModel {
             distanceSoFar += currentSpeed * TIME_STEP;
             secondsSoFar += TIME_STEP;
             boostRemaining -= BOOST_CONSUMED_PER_SECOND * TIME_STEP;
-            plot.addSlice(new DistanceTimeSpeed(distanceSoFar, car.time.plus(TimeUtil.toDuration(secondsSoFar)), currentSpeed));
+            plot.addSlice(new DistanceTimeSpeed(distanceSoFar, secondsSoFar, currentSpeed));
 
             if (currentSpeed >= SUPERSONIC_SPEED) {
                 // It gets boring from now on. Put a slice at the very end.
                 double secondsRemaining = secondsToSimulate - secondsSoFar;
-                plot.addSlice(new DistanceTimeSpeed(distanceSoFar + SUPERSONIC_SPEED * secondsRemaining, car.time.plus(duration), SUPERSONIC_SPEED));
+                plot.addSlice(new DistanceTimeSpeed(distanceSoFar + SUPERSONIC_SPEED * secondsRemaining, secondsToSimulate, SUPERSONIC_SPEED));
                 break;
             }
         }

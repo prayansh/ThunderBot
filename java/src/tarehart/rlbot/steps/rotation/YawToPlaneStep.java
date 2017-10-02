@@ -1,13 +1,16 @@
 package tarehart.rlbot.steps.rotation;
 
 import mikera.vectorz.Vector3;
+import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
 
+import java.util.function.Function;
+
 public class YawToPlaneStep extends OrientToPlaneStep {
 
-    public YawToPlaneStep(Vector3 planeNormal) {
-        super(planeNormal);
+    public YawToPlaneStep(Function<AgentInput, Vector3> planeNormalFn) {
+        super(planeNormalFn, false);
     }
 
     public YawToPlaneStep(Vector3 planeNormal, boolean allowUpsideDown) {

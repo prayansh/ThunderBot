@@ -25,6 +25,10 @@ public class VectorUtil {
         return flatten(a).distance(flatten(b));
     }
 
+    public static double flatDistance(Vector3 a, Vector3 b, Vector3 planeNormal) {
+        return projectToPlane(a, planeNormal).distance(projectToPlane(b, planeNormal));
+    }
+
     public static Optional<Vector3> getPlaneIntersection(Plane plane, Vector3 segmentPosition, Vector3 segmentVector) {
         // get d value
         double d = plane.normal.dotProduct(plane.position);

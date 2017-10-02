@@ -19,6 +19,7 @@ import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.Bot;
 import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.SpaceTimeVelocity;
+import tarehart.rlbot.math.TimeUtil;
 import tarehart.rlbot.planning.Goal;
 import tarehart.rlbot.tuning.BallTelemetry;
 
@@ -76,6 +77,10 @@ public class ArenaModel {
 
     public static boolean isBehindGoalLine(Vector3 position) {
         return Math.abs(position.y) > BACK_WALL;
+    }
+
+    public static BallPath predictBallPath(AgentInput input, double seconds) {
+        return predictBallPath(input, input.time, TimeUtil.toDuration(seconds));
     }
 
     public static BallPath predictBallPath(AgentInput input, LocalDateTime startingAt, Duration duration) {
@@ -328,5 +333,9 @@ public class ArenaModel {
 
     public static boolean isCarOnWall(CarData car) {
         return isCarNearWall(car) && Math.abs(car.orientation.roofVector.z) < 0.05;
+    }
+
+    public static boolean isNearFloorEdge(CarData car) {
+        return getDistanceFromWall(car.position) + car.position.z < 6;
     }
 }

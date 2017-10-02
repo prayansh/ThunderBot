@@ -12,6 +12,7 @@ import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.DistancePlot;
 import tarehart.rlbot.planning.AccelerationModel;
+import tarehart.rlbot.planning.GoalUtil;
 import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.steps.Step;
 import tarehart.rlbot.tuning.BotLog;
@@ -127,7 +128,11 @@ public class WallTouchStep implements Step {
             Optional<SpaceTimeVelocity> ballLater = ballPath.getMotionAt(nearWall.getTime().plusSeconds(1));
             if (ballLater.isPresent()) {
                 SpaceTimeVelocity motion = ballLater.get();
-                return ArenaModel.getDistanceFromWall(motion.getSpace()) <= ACCEPTABLE_WALL_DISTANCE;
+                if (ArenaModel.getDistanceFromWall(motion.getSpace()) > ACCEPTABLE_WALL_DISTANCE) {
+                    return false;
+                }
+                Vector3 ownGoalCenter = GoalUtil.getOwnGoal(input.team).getCenter();
+                return (motion.getSpace().distance(ownGoalCenter) > input.getMyCarData().position.distance(ownGoalCenter));
             }
 
         }

@@ -5,6 +5,7 @@ import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.SpaceTime;
+import tarehart.rlbot.math.TimeUtil;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.DistancePlot;
@@ -21,13 +22,14 @@ import java.util.Optional;
 
 public class InterceptStep implements Step {
 
-    private static final StrikeProfile AERIAL_STRIKE_PROFILE = new StrikeProfile(0, 0, 0);
-    private static final StrikeProfile JUMP_HIT_STRIKE_PROFILE = new StrikeProfile(0, 10, .5);
-    private static final StrikeProfile FLIP_HIT_STRIKE_PROFILE = new StrikeProfile(0, 10, .5);
+    public static final StrikeProfile AERIAL_STRIKE_PROFILE = new StrikeProfile(0, 0, 0);
+    public static final StrikeProfile JUMP_HIT_STRIKE_PROFILE = new StrikeProfile(0, 10, .6);
+    public static final StrikeProfile FLIP_HIT_STRIKE_PROFILE = new StrikeProfile(0, 10, .6);
+    public static final double PROBABLY_TOUCHING_THRESHOLD = 5.5;
     private Plan plan;
     private Vector3 interceptModifier;
     private LocalDateTime doneMoment;
-    private Vector3 originalIntercept;
+    private Intercept originalIntercept;
 
     public InterceptStep(Vector3 interceptModifier) {
         this.interceptModifier = interceptModifier;
@@ -45,7 +47,8 @@ public class InterceptStep implements Step {
 
         CarData carData = input.getMyCarData();
 
-        if (doneMoment == null && carData.position.distance(input.ballPosition) < 4.5) {
+        double distanceFromBall = carData.position.distance(input.ballPosition);
+        if (doneMoment == null && distanceFromBall < PROBABLY_TOUCHING_THRESHOLD) {
             // You get a tiny bit more time
             doneMoment = input.time.plus(Duration.ofMillis(1000));
         }
@@ -53,12 +56,7 @@ public class InterceptStep implements Step {
         BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(4));
         DistancePlot fullAcceleration = AccelerationModel.simulateAcceleration(carData, Duration.ofSeconds(4), carData.boost, 0);
 
-        List<Intercept> interceptOptions = new ArrayList<>();
-        getAerialIntercept(carData, ballPath).ifPresent(interceptOptions::add);
-        getJumpHitIntercept(carData, ballPath, fullAcceleration).ifPresent(interceptOptions::add);
-        getFlipHitIntercept(carData, ballPath, fullAcceleration).ifPresent(interceptOptions::add);
-
-        Optional<Intercept> chosenIntercept = interceptOptions.stream().sorted(Comparator.comparing(Intercept::getTime)).findFirst();
+        Optional<Intercept> chosenIntercept = getSoonestIntercept(carData, ballPath, fullAcceleration, interceptModifier);
         Optional<Plan> launchPlan = chosenIntercept.flatMap(cept -> InterceptPlanner.planImmediateLaunch(input.getMyCarData(), cept.toSpaceTime()));
         if (launchPlan.isPresent()) {
             plan = launchPlan.get();
@@ -69,56 +67,69 @@ public class InterceptStep implements Step {
 
         if (chosenIntercept.isPresent()) {
             if (originalIntercept == null) {
-                originalIntercept = chosenIntercept.get().getSpace();
+                originalIntercept = chosenIntercept.get();
             } else {
-                if (originalIntercept.distance(chosenIntercept.get().getSpace()) > 20) {
-                    BotLog.println("Failed to make the intercept", input.team);
+                if (TimeUtil.secondsBetween(originalIntercept.getTime(), chosenIntercept.get().getTime()) > 3 && distanceFromBall > PROBABLY_TOUCHING_THRESHOLD) {
+                    if (doneMoment != null) {
+                        BotLog.println("Probably intercepted successfully", input.team);
+                    } else {
+                        BotLog.println("Failed to make the intercept", input.team);
+                    }
                     return Optional.empty(); // Failed to kick it soon enough, new stuff has happened.
                 }
             }
         }
 
 
-        return chosenIntercept.map(intercept -> getThereOnTime(input, intercept.toSpaceTime(), intercept.getAirBoost()));
+        return chosenIntercept.map(intercept -> getThereOnTime(input, intercept));
     }
 
-    public Optional<Intercept> getAerialIntercept(CarData carData, BallPath ballPath) {
+    public static Optional<Intercept> getSoonestIntercept(CarData carData, BallPath ballPath, DistancePlot fullAcceleration, Vector3 interceptModifier) {
+        List<Intercept> interceptOptions = new ArrayList<>();
+        getAerialIntercept(carData, ballPath, interceptModifier).ifPresent(interceptOptions::add);
+        getJumpHitIntercept(carData, ballPath, fullAcceleration, interceptModifier).ifPresent(interceptOptions::add);
+        getFlipHitIntercept(carData, ballPath, fullAcceleration, interceptModifier).ifPresent(interceptOptions::add);
+
+        return interceptOptions.stream().sorted(Comparator.comparing(Intercept::getTime)).findFirst();
+    }
+
+    private static Optional<Intercept> getAerialIntercept(CarData carData, BallPath ballPath, Vector3 interceptModifier) {
         if (carData.boost >= AirTouchPlanner.BOOST_NEEDED_FOR_AERIAL) {
             DistancePlot budgetAcceleration = AccelerationModel.simulateAcceleration(carData, Duration.ofSeconds(4), AirTouchPlanner.getBoostBudget(carData), 0);
             Optional<SpaceTime> budgetInterceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(carData, ballPath, budgetAcceleration, interceptModifier, AirTouchPlanner::isVerticallyAccessible, AERIAL_STRIKE_PROFILE);
             if (budgetInterceptOpportunity.isPresent()) {
                 SpaceTime spaceTime = budgetInterceptOpportunity.get();
                 if (budgetInterceptOpportunity.get().space.z > AirTouchPlanner.NEEDS_AERIAL_THRESHOLD) {
-                    return Optional.of(new Intercept(spaceTime.space, spaceTime.time, AirTouchPlanner.BOOST_NEEDED_FOR_AERIAL));
+                    return Optional.of(new Intercept(spaceTime.space, spaceTime.time, AirTouchPlanner.BOOST_NEEDED_FOR_AERIAL, AERIAL_STRIKE_PROFILE));
                 }
             }
         }
         return Optional.empty();
     }
 
-    public Optional<Intercept> getJumpHitIntercept(CarData carData, BallPath ballPath, DistancePlot fullAcceleration) {
+    private static Optional<Intercept> getJumpHitIntercept(CarData carData, BallPath ballPath, DistancePlot fullAcceleration, Vector3 interceptModifier) {
         Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(carData, ballPath, fullAcceleration, interceptModifier, AirTouchPlanner::isJumpHitAccessible, JUMP_HIT_STRIKE_PROFILE);
         if (interceptOpportunity.isPresent()) {
             if (interceptOpportunity.get().space.z > AirTouchPlanner.NEEDS_JUMP_HIT_THRESHOLD) {
-                return Optional.of(new Intercept(interceptOpportunity.get()));
+                return Optional.of(new Intercept(interceptOpportunity.get(), JUMP_HIT_STRIKE_PROFILE));
             }
         }
         return Optional.empty();
     }
 
-    public Optional<Intercept> getFlipHitIntercept(CarData carData, BallPath ballPath, DistancePlot fullAcceleration) {
+    private static Optional<Intercept> getFlipHitIntercept(CarData carData, BallPath ballPath, DistancePlot fullAcceleration, Vector3 interceptModifier) {
         Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(carData, ballPath, fullAcceleration, interceptModifier, AirTouchPlanner::isFlipHitAccessible, FLIP_HIT_STRIKE_PROFILE);
-        return interceptOpportunity.map(Intercept::new);
+        return interceptOpportunity.map(spaceTime -> new Intercept(spaceTime, FLIP_HIT_STRIKE_PROFILE));
     }
 
-    private AgentOutput getThereOnTime(AgentInput input, SpaceTime groundPosition, double reservedBoost) {
+    private AgentOutput getThereOnTime(AgentInput input, Intercept intercept) {
 
         Optional<AgentOutput> flipOut = Optional.empty();
         CarData car = input.getMyCarData();
 
-        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(car, groundPosition.space);
+        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(car, intercept.getSpace());
         if (sensibleFlip.isPresent()) {
-            BotLog.println("Front flip for AsapAerial", input.team);
+            BotLog.println("Front flip toward intercept", input.team);
             this.plan = sensibleFlip.get();
             this.plan.begin();
             flipOut = this.plan.getOutput(input);
@@ -128,8 +139,16 @@ public class InterceptStep implements Step {
             return flipOut.get();
         }
 
-        AgentOutput output = SteerUtil.getThereOnTime(car, groundPosition);
-        if (car.boost <= reservedBoost + 5) {
+//        double speed = car.velocity.magnitude();
+//        StrikeProfile strikeProfile = intercept.getStrikeProfile();
+//        double backoffDistance = (strikeProfile.speedBoost + speed) * strikeProfile.speedupSeconds;
+//        Vector3 backoffVector = (Vector3) car.position.subCopy(intercept.getSpace()).normaliseCopy().scaleCopy(backoffDistance);
+//        Vector3 backoffPosition = (Vector3) intercept.getSpace().subCopy(backoffVector);
+//
+//        SpaceTime preStrikePosition = new SpaceTime(backoffPosition, intercept.getTime().minus(TimeUtil.toDuration(strikeProfile.speedupSeconds)));
+
+        AgentOutput output = SteerUtil.getThereOnTime(car, intercept.toSpaceTime());
+        if (car.boost <= intercept.getAirBoost() + 5) {
             output.withBoost(false);
         }
         return output;

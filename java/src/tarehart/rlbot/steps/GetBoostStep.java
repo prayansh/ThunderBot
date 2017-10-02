@@ -11,10 +11,7 @@ import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.DistancePlot;
-import tarehart.rlbot.planning.AccelerationModel;
-import tarehart.rlbot.planning.Plan;
-import tarehart.rlbot.planning.SteerPlan;
-import tarehart.rlbot.planning.SteerUtil;
+import tarehart.rlbot.planning.*;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
@@ -51,7 +48,7 @@ public class GetBoostStep implements Step {
             return plan.getOutput(input);
         }
 
-        if (distance < 3 || !canRun(car)) {
+        if (distance < 3) {
             return Optional.empty();
         } else {
 
@@ -100,11 +97,13 @@ public class GetBoostStep implements Step {
                 nearestLocation = boost;
             }
         }
-        if (minTime < 2) {
+        if (minTime < 1.5) {
             return nearestLocation;
         }
 
-        BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(3));
+        BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(4));
+        Vector3 idealPlaceToGetBoost = ballPath.getEndpoint().getSpace().copy();
+        idealPlaceToGetBoost.y += 60 * Math.signum(GoalUtil.getOwnGoal(input.team).getCenter().y); // Add a defensive bias
         return getNearestBoost(input.fullBoosts, ballPath.getEndpoint().space);
     }
 
@@ -131,10 +130,6 @@ public class GetBoostStep implements Step {
 
     @Override
     public void begin() {
-    }
-
-    public static boolean canRun(CarData car) {
-        return car.position.z < 1;
     }
 
     public static boolean seesOpportunisticBoost(CarData carData, List<FullBoost> boosts) {

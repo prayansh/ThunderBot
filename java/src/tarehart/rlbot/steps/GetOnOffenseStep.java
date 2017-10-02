@@ -11,7 +11,6 @@ import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.DistancePlot;
 import tarehart.rlbot.planning.*;
-import tarehart.rlbot.steps.defense.GetOnDefenseStep;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
@@ -20,6 +19,12 @@ import java.util.Optional;
 public class GetOnOffenseStep implements Step {
 
     private Plan plan;
+
+    public static double getYAxisWrongSidedness(AgentInput input) {
+        Vector3 ownGoalCenter = GoalUtil.getOwnGoal(input.team).getCenter();
+        double playerToBallY = input.ballPosition.y - input.getMyCarData().position.y;
+        return playerToBallY * Math.signum(ownGoalCenter.y);
+    }
 
     public Optional<AgentOutput> getOutput(AgentInput input) {
 
@@ -55,7 +60,7 @@ public class GetOnOffenseStep implements Step {
         CarData car = input.getMyCarData();
 
         double flatDistance = VectorUtil.flatDistance(target, car.position);
-        if (flatDistance < 20 && GetOnDefenseStep.getWrongSidedness(input) < 0) {
+        if (getYAxisWrongSidedness(input) < 0) {
             return Optional.empty();
         }
         Vector3 targetToBallFuture = (Vector3) futureMotion.getSpace().subCopy(target);
@@ -75,10 +80,10 @@ public class GetOnOffenseStep implements Step {
                 return this.plan.getOutput(input);
             }
 
-            return Optional.of(SteerUtil.steerTowardGroundPosition(car, circleTurn).withBoost(false));
+            return Optional.of(SteerUtil.steerTowardGroundPosition(car, circleTurn));
         }
 
-        return Optional.of(SteerUtil.steerTowardGroundPosition(car, target).withBoost(false));
+        return Optional.of(SteerUtil.steerTowardGroundPosition(car, target));
     }
 
     @Override

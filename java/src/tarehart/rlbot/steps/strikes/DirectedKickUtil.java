@@ -4,10 +4,7 @@ import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.input.CarData;
-import tarehart.rlbot.math.DistanceTimeSpeed;
-import tarehart.rlbot.math.SpaceTime;
-import tarehart.rlbot.math.SpaceTimeVelocity;
-import tarehart.rlbot.math.VectorUtil;
+import tarehart.rlbot.math.*;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.planning.AccelerationModel;
 import tarehart.rlbot.planning.AirTouchPlanner;
@@ -43,7 +40,9 @@ public class DirectedKickUtil {
         }
         kickPlan.ballAtIntercept = ballMotion.get();
 
-        double impactSpeed = isSideHit ? SIDE_HIT_SPEED : kickPlan.distancePlot.getMotionAt(kickPlan.ballAtIntercept.getTime()).get().speed;
+        double secondsTillImpactRoughly = TimeUtil.secondsBetween(input.time, kickPlan.ballAtIntercept.getTime());
+        double impactSpeed = isSideHit ? SIDE_HIT_SPEED :
+                kickPlan.distancePlot.getMotionAfterSeconds(secondsTillImpactRoughly).map(dts -> dts.speed).orElse(AccelerationModel.SUPERSONIC_SPEED);
 
         Vector3 easyForce;
         if (isSideHit) {

@@ -4,6 +4,7 @@ import mikera.vectorz.Vector3;
 import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.TimeUtil;
+import tarehart.rlbot.steps.strikes.InterceptStep;
 
 public class AirTouchPlanner {
 
@@ -40,7 +41,7 @@ public class AirTouchPlanner {
         LaunchChecklist checklist = new LaunchChecklist();
         checkLaunchReadiness(checklist, car, intercept);
         checklist.notTooClose = true;
-        checklist.timeForIgnition = TimeUtil.secondsBetween(car.time, intercept.time) < .6;
+        checklist.timeForIgnition = TimeUtil.secondsBetween(car.time, intercept.time) < InterceptStep.FLIP_HIT_STRIKE_PROFILE.speedupSeconds;
         return checklist;
     }
 

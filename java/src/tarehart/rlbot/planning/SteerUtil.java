@@ -5,6 +5,7 @@ import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.*;
+import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.BallPhysics;
 import tarehart.rlbot.physics.DistancePlot;
@@ -69,9 +70,9 @@ public class SteerUtil {
 
     private static boolean canGetUnder(CarData carData, SpaceTime spaceTime, double boostBudget) {
         DistancePlot plot = AccelerationModel.simulateAcceleration(carData, Duration.ofSeconds(4), boostBudget, carData.position.distance(spaceTime.space));
-        Optional<Double> travelSeconds = AccelerationModel.getTravelSeconds(carData, plot, spaceTime.space);
-        double secondsAllotted = Duration.between(carData.time, spaceTime.time).toMillis() / 1000.0;
-        return travelSeconds.filter(travel -> travel < secondsAllotted).isPresent();
+        Optional<DistanceTimeSpeed> dts = plot.getMotionAfterStrike(carData, spaceTime, null);
+        double secondsAllotted = TimeUtil.secondsBetween(carData.time, spaceTime.time);
+        return dts.filter(travel -> travel.time < secondsAllotted).isPresent();
     }
 
     public static Optional<SpaceTime> getInterceptOpportunityAssumingMaxAccel(CarData carData, BallPath ballPath, double boostBudget) {
@@ -89,16 +90,6 @@ public class SteerUtil {
         return getFilteredInterceptOpportunity(carData, ballPath, acceleration, interceptModifier, predicate, null);
     }
 
-    /**
-     *
-     * @param carData
-     * @param ballPath
-     * @param acceleration
-     * @param interceptModifier an offset from the ball position that the car is trying to reach
-     * @param predicate determines whether a particular ball slice is eligible for intercept
-     * @param
-     * @return
-     */
     public static Optional<SpaceTime> getFilteredInterceptOpportunity(
             CarData carData,
             BallPath ballPath,
@@ -107,24 +98,41 @@ public class SteerUtil {
             BiPredicate<CarData, SpaceTime> predicate,
             StrikeProfile strikeProfile) {
 
+        return getFilteredInterceptOpportunity(carData, ballPath, acceleration, interceptModifier, predicate, strikeProfile, new Vector3(0, 0, 1));
+    }
+
+    /**
+     *
+     * @param carData
+     * @param ballPath
+     * @param acceleration
+     * @param interceptModifier an offset from the ball position that the car is trying to reach
+     * @param predicate determines whether a particular ball slice is eligible for intercept
+     * @param strikeProfile a description of how the car will move during the final moments of the intercept
+     * @param planeNormal the normal of the plane that the car is driving on for this intercept.
+     * @return
+     */
+    public static Optional<SpaceTime> getFilteredInterceptOpportunity(
+            CarData carData,
+            BallPath ballPath,
+            DistancePlot acceleration,
+            Vector3 interceptModifier,
+            BiPredicate<CarData, SpaceTime> predicate,
+            StrikeProfile strikeProfile,
+            Vector3 planeNormal) {
+
         Vector3 myPosition = carData.position;
 
         for (SpaceTimeVelocity ballMoment: ballPath.getSlices()) {
-            Optional<DistanceTimeSpeed> motionAt = strikeProfile != null ?
-                    acceleration.getMotionAfterStrike(carData.time, ballMoment.getTime(), strikeProfile.speedupSeconds, strikeProfile.speedBoost) :
-                    acceleration.getMotionAt(ballMoment.getTime());
+            Optional<DistanceTimeSpeed> motionAt = acceleration.getMotionAfterStrike(carData, ballMoment.toSpaceTime(), strikeProfile);
             if (motionAt.isPresent()) {
                 DistanceTimeSpeed dts = motionAt.get();
                 Vector3 intercept = ballMoment.space.addCopy(interceptModifier);
                 SpaceTime interceptSpaceTime = new SpaceTime(intercept, ballMoment.getTime());
-                double ballDistance = VectorUtil.flatDistance(myPosition, intercept);
+                double ballDistance = VectorUtil.flatDistance(myPosition, intercept, planeNormal);
                 if (dts.distance > ballDistance) {
-                    double travelSeconds = (strikeProfile != null ? strikeProfile.maneuverSeconds : 0) +
-                            AccelerationModel.getTravelSeconds(carData, acceleration, intercept).orElse(0d);
-                    if (travelSeconds <= TimeUtil.secondsBetween(carData.time, interceptSpaceTime.time)) {
-                        if (predicate.test(carData, interceptSpaceTime)) {
-                            return Optional.of(interceptSpaceTime);
-                        }
+                    if (predicate.test(carData, interceptSpaceTime)) {
+                        return Optional.of(interceptSpaceTime);
                     }
                 }
             } else {
@@ -144,8 +152,8 @@ public class SteerUtil {
 
     public static double getCorrectionAngleRad(Vector2 current, Vector2 ideal) {
 
-        float currentRad = (float) Math.atan2(current.y, current.x);
-        float idealRad = (float) Math.atan2(ideal.y, ideal.x);
+        double currentRad = Math.atan2(current.y, current.x);
+        double idealRad = Math.atan2(ideal.y, ideal.x);
 
         if (Math.abs(currentRad - idealRad) > Math.PI) {
             if (currentRad < 0) {
@@ -160,11 +168,29 @@ public class SteerUtil {
     }
 
     public static AgentOutput steerTowardGroundPosition(CarData carData, Vector2 position) {
+
+        if (ArenaModel.isCarOnWall(carData)) {
+            return steerTowardGroundPositionFromWall(carData, position);
+        }
+
         double correctionAngle = getCorrectionAngleRad(carData, position);
         Vector2 myPositionFlat = VectorUtil.flatten(carData.position);
         double distance = position.distance(myPositionFlat);
         double speed = carData.velocity.magnitude();
         return getSteeringOutput(correctionAngle, distance, speed, carData.isSupersonic);
+    }
+
+    private static AgentOutput steerTowardGroundPositionFromWall(CarData carData, Vector2 position) {
+        Vector2 toPositionFlat = (Vector2) position.subCopy(VectorUtil.flatten(carData.position));
+        Vector3 carShadow = new Vector3(carData.position.x, carData.position.y, 0);
+        double heightOnWall = carData.position.z;
+        Vector3 wallNormal = carData.orientation.roofVector;
+        double distanceOntoField = VectorUtil.project(toPositionFlat, VectorUtil.flatten(wallNormal)).magnitude();
+        double wallWeight = heightOnWall / (heightOnWall + distanceOntoField);
+        Vector3 toPositionAlongSeam = VectorUtil.projectToPlane(new Vector3(toPositionFlat.x, toPositionFlat.y, 0), wallNormal);
+        Vector3 seamPosition = carShadow.addCopy(toPositionAlongSeam.scaleCopy(wallWeight));
+
+        return steerTowardWallPosition(carData, seamPosition);
     }
 
     public static AgentOutput steerTowardWallPosition(CarData carData, Vector3 position) {
@@ -196,20 +222,6 @@ public class SteerUtil {
         return steerTowardGroundPosition(carData, VectorUtil.flatten(position));
     }
 
-    public static AgentOutput arcTowardPosition(CarData car, SplineHandle position) {
-        if (position.isWithinHandleRange(car.position)) {
-            AgentOutput steer = SteerUtil.steerTowardGroundPosition(car, position.getLocation());
-
-            double correction = Math.abs(SteerUtil.getCorrectionAngleRad(car, position.getLocation()));
-            if (correction > Math.PI / 4 && car.velocity.magnitude() > AccelerationModel.MEDIUM_SPEED) {
-                steer.withBoost(false).withAcceleration(0).withDeceleration(.2);
-            }
-            return steer;
-        } else {
-            return SteerUtil.steerTowardGroundPosition(car, position.getNearestHandle(car.position));
-        }
-    }
-
     public static double getDistanceFromCar(CarData car, Vector3 loc) {
         return loc.distance(car.position);
     }
@@ -219,6 +231,10 @@ public class SteerUtil {
     }
 
     public static Optional<Plan> getSensibleFlip(CarData car, Vector2 target) {
+
+        if(car.isSupersonic) {
+            return Optional.empty();
+        }
 
         double distanceCovered = AccelerationModel.getFrontFlipDistance(car.velocity.magnitude());
 
@@ -308,7 +324,7 @@ public class SteerUtil {
         double currentSpeed = car.velocity.magnitude();
         double expectedSpeed = AccelerationModel.SUPERSONIC_SPEED;
 
-        Optional<DistanceTimeSpeed> motion = distancePlot.getMotionAt(distance);
+        Optional<DistanceTimeSpeed> motion = distancePlot.getMotionAfterDistance(distance);
         if (motion.isPresent()) {
             expectedSpeed = motion.get().speed;
         }

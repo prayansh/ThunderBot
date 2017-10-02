@@ -11,25 +11,21 @@ public class IdealDirectedHitStep implements Step {
     private final KickStrategy kickStrategy;
     private Step proxyStep;
 
-    public IdealDirectedHitStep(KickStrategy kickStrategy) {
+    public IdealDirectedHitStep(KickStrategy kickStrategy, AgentInput input) {
         this.kickStrategy = kickStrategy;
-        proxyStep = new DirectedNoseHitStep(kickStrategy);
+
+        DirectedNoseHitStep noseHit = new DirectedNoseHitStep(kickStrategy);
+
+        if (noseHit.getOutput(input).isPresent() && Math.abs(noseHit.getEstimatedAngleOfKickFromApproach()) < Math.PI / 2) {
+            proxyStep = noseHit;
+        } else {
+            proxyStep = new DirectedSideHitStep(kickStrategy);
+        }
     }
 
     @Override
     public Optional<AgentOutput> getOutput(AgentInput input) {
-
-        Optional<AgentOutput> output = proxyStep.getOutput(input);
-
-        if (proxyStep instanceof DirectedNoseHitStep) {
-            double estimatedAngleOfKickFromApproach = ((DirectedNoseHitStep) proxyStep).getEstimatedAngleOfKickFromApproach();
-            if (Math.abs(estimatedAngleOfKickFromApproach) > Math.PI / 2) {
-                proxyStep = new DirectedSideHitStep(kickStrategy);
-                return proxyStep.getOutput(input);
-            }
-        }
-
-        return output;
+        return proxyStep.getOutput(input);
     }
 
     @Override

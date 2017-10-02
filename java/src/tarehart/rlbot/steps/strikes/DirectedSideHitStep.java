@@ -52,11 +52,6 @@ public class DirectedSideHitStep implements Step {
             return Optional.empty();
         }
 
-        if (ArenaModel.isCarOnWall(car)) {
-            BotLog.println("Failed to side hit because we're on the wall", input.team);
-            return Optional.empty();
-        }
-
         final Optional<DirectedKickPlan> kickPlanOption;
         if (interceptModifier != null) {
             StrikeProfile strikeProfile = new StrikeProfile(maneuverSeconds, 0, 0);
@@ -127,12 +122,14 @@ public class DirectedSideHitStep implements Step {
     private Optional<AgentOutput> getNavigation(AgentInput input, SteerPlan circleTurnOption) {
         CarData car = input.getMyCarData();
 
-        Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(car, circleTurnOption.waypoint);
-        if (sensibleFlip.isPresent()) {
-            BotLog.println("Front flip toward side hit", input.team);
-            this.plan = sensibleFlip.get();
-            this.plan.begin();
-            return this.plan.getOutput(input);
+        if (car.boost == 0) {
+            Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(car, circleTurnOption.waypoint);
+            if (sensibleFlip.isPresent()) {
+                BotLog.println("Front flip toward side hit", input.team);
+                this.plan = sensibleFlip.get();
+                this.plan.begin();
+                return this.plan.getOutput(input);
+            }
         }
 
         return Optional.of(circleTurnOption.immediateSteer);
