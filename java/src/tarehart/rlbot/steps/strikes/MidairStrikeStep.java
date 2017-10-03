@@ -134,7 +134,7 @@ public class MidairStrikeStep implements Step {
         Optional<AgentOutput> pitchOutput = new PitchToPlaneStep(pitchPlaneNormal).getOutput(input);
         Optional<AgentOutput> yawOutput = new PitchToPlaneStep(yawPlaneNormal).getOutput(input);
 
-        return Optional.of(mergeOrientationOutputs(pitchOutput, yawOutput).withBoost(rightDirection > .9).withJump(millisTillIntercept > DODGE_TIME + 100));
+        return Optional.of(mergeOrientationOutputs(pitchOutput, yawOutput).withBoost().withJump(millisTillIntercept > DODGE_TIME + 100));
     }
 
     private AgentOutput mergeOrientationOutputs(Optional<AgentOutput> pitchOutput, Optional<AgentOutput> yawOutput) {

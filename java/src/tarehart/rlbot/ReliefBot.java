@@ -9,12 +9,12 @@ import tarehart.rlbot.planning.GoalUtil;
 import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.planning.TacticsAdvisor;
-import tarehart.rlbot.steps.*;
-import tarehart.rlbot.steps.defense.GetOnDefenseStep;
-import tarehart.rlbot.steps.defense.ThreatAssessor;
+import tarehart.rlbot.steps.GoForKickoffStep;
 import tarehart.rlbot.steps.defense.WhatASaveStep;
 import tarehart.rlbot.steps.landing.LandGracefullyStep;
-import tarehart.rlbot.steps.strikes.*;
+import tarehart.rlbot.steps.strikes.IdealDirectedHitStep;
+import tarehart.rlbot.steps.strikes.KickAtEnemyGoal;
+import tarehart.rlbot.steps.strikes.KickAwayFromOwnGoal;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;

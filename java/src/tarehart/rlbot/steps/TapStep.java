@@ -2,13 +2,16 @@ package tarehart.rlbot.steps;
 
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.tuning.BotLog;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public class TapStep implements Step {
     private AgentOutput output;
     private int numFrames;
     private int frameCount;
+    private LocalDateTime previousTime;
 
     public TapStep(AgentOutput output) {
         this(1, output);
@@ -20,7 +23,12 @@ public class TapStep implements Step {
     }
 
     public Optional<AgentOutput> getOutput(AgentInput input) {
-        frameCount++;
+
+        if (previousTime == null || input.time.isAfter(previousTime)) {
+            frameCount++;
+            previousTime = input.time;
+        }
+
         if (frameCount > numFrames) {
             return Optional.empty();
         }
