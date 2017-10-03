@@ -19,11 +19,11 @@ public class Chronometer {
         previousGameTime = null;
     }
 
-    public void readInput(PyGameInfo timeInfo) {
+    public void readInput(PyGameInfo timeInfo, boolean isKickoff) {
 
         if (previousGameTimeRemaining != null && previousTimeSeconds != null) {
             double deltaSeconds;
-            if (timeInfo.GameTimeRemaining > 0) {
+            if (timeInfo.GameTimeRemaining > 0 && !isKickoff) {
                 deltaSeconds = Math.abs(previousGameTimeRemaining - timeInfo.GameTimeRemaining);
             } else {
                 deltaSeconds = timeInfo.TimeSeconds - previousTimeSeconds;

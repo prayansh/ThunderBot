@@ -1,26 +1,25 @@
 package tarehart.rlbot.input;
 
 import mikera.vectorz.Vector3;
+import tarehart.rlbot.Bot;
 import tarehart.rlbot.math.VectorUtil;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 public class SpinTracker {
 
-    private CarOrientation previousBlue;
-    private CarOrientation previousOrange;
-    private CarSpin blueSpin = new CarSpin(0, 0, 0);
-    private CarSpin orangeSpin = new CarSpin(0, 0, 0);
+    private Map<Bot.Team, CarOrientation> previousOrientations = new HashMap<>();
+    private Map<Bot.Team, CarSpin> spins = new HashMap<>();
 
-    public void readInput(CarOrientation blueOrientation, CarOrientation orangeOrientation, double secondsElapsed) {
-
+    public void readInput(CarOrientation orientation, Bot.Team team, double secondsElapsed) {
         if (secondsElapsed > 0) {
-            if (previousBlue != null && previousOrange != null) {
-                blueSpin = getCarSpin(previousBlue, blueOrientation, secondsElapsed);
-                orangeSpin = getCarSpin(previousOrange, orangeOrientation, secondsElapsed);
+            if (previousOrientations.containsKey(team)) {
+                spins.put(team, getCarSpin(previousOrientations.get(team), orientation, secondsElapsed));
             }
-            previousBlue = blueOrientation;
-            previousOrange = orangeOrientation;
+            previousOrientations.put(team, orientation);
         }
     }
 
@@ -40,11 +39,7 @@ public class SpinTracker {
         return Math.asin(projection.magnitude() * Math.signum(projection.dotProduct(previousOrthogonal)));
     }
 
-    public CarSpin getOrangeSpin() {
-        return orangeSpin;
-    }
-
-    public CarSpin getBlueSpin() {
-        return blueSpin;
+    public CarSpin getSpin(Bot.Team team) {
+        return Optional.ofNullable(spins.get(team)).orElse(new CarSpin(0, 0, 0));
     }
 }

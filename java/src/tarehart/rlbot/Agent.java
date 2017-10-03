@@ -22,15 +22,20 @@ public class Agent {
     }
 
     public int[] getOutputVector(String packetJson, String teamString) {
+        return getAgentOutput(packetJson, teamString).toPython();
+    }
 
-        AgentOutput output;
+    private AgentOutput getAgentOutput(String packetJson, String teamString) {
 
         try {
             Bot.Team team = Bot.Team.valueOf(teamString.toUpperCase());
 
             PyGameTickPacket packet = gson.fromJson(packetJson, PyGameTickPacket.class);
-
             AgentInput translatedInput = new AgentInput(packet, team, chronometer, spinTracker);
+
+            if (translatedInput.getMyCarData() == null) {
+                return new AgentOutput();
+            }
 
             synchronized (this) {
                 if (!bots.containsKey(team)) {
@@ -42,12 +47,10 @@ public class Agent {
 
             Bot bot = bots.get(team);
 
-            output = bot.processInput(translatedInput);
+            return bot.processInput(translatedInput);
         } catch (Exception e) {
             e.printStackTrace();
-            output = new AgentOutput();
+            return new AgentOutput();
         }
-        int[] outputForPython = output.toPython();
-        return outputForPython;
     }
 }

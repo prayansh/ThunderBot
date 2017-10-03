@@ -78,6 +78,10 @@ public abstract class Bot {
         return currentPlan == null || currentPlan.getPosture().lessUrgentThan(posture) && currentPlan.canInterrupt();
     }
 
+    protected boolean noActivePlanWithPosture(Plan.Posture posture) {
+        return currentPlan == null || currentPlan.getPosture() != posture;
+    }
+
     public JFrame getDebugWindow() {
         JFrame frame = new JFrame("Debug - " + team.name());
         frame.setContentPane(readout.getRootPanel());

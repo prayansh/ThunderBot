@@ -4,6 +4,7 @@ import mikera.vectorz.Vector3;
 import rlbot.input.*;
 import tarehart.rlbot.input.*;
 import tarehart.rlbot.math.TimeUtil;
+import tarehart.rlbot.math.VectorUtil;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -32,59 +33,35 @@ public class AgentInput {
 
     public AgentInput(PyGameTickPacket gameTickPacket, Bot.Team team, Chronometer chronometer, SpinTracker spinTracker) {
 
-        chronometer.readInput(gameTickPacket.gameInfo);
+        ballPosition = convert(gameTickPacket.gameball.Location);
+        ballVelocity = convert(gameTickPacket.gameball.Velocity);
+        boolean isKickoff = VectorUtil.flatten(ballPosition).isZero() && ballVelocity.isZero();
+
+        chronometer.readInput(gameTickPacket.gameInfo, isKickoff);
 
         this.team = team;
         time = chronometer.getGameTime();
 
-        final int blueIndex;
-        final int orangeIndex;
+        Optional<PyCarInfo> blueCarInput = Optional.empty();
+        Optional<PyCarInfo> orangeCarInput = Optional.empty();
 
-        if (gameTickPacket.gamecars.get(0).Team == 0) {
-            blueIndex = 0;
-            orangeIndex = 1;
-        } else {
-            orangeIndex = 0;
-            blueIndex = 1;
+        for (PyCarInfo pyCar: gameTickPacket.gamecars) {
+            if (pyCar.Team == 0) {
+                blueCarInput = Optional.of(pyCar);
+            } else {
+                orangeCarInput = Optional.of(pyCar);
+            }
         }
 
-        final PyCarInfo blueCarInput = gameTickPacket.gamecars.get(blueIndex);
-        final PyCarInfo orangeCarInput = gameTickPacket.gamecars.get(orangeIndex);
-
-
-        blueScore = blueCarInput.Score.Goals + orangeCarInput.Score.OwnGoals;
-        orangeScore = orangeCarInput.Score.Goals + blueCarInput.Score.OwnGoals;
-        blueDemo = blueCarInput.Score.Demolitions;
-        orangeDemo = orangeCarInput.Score.Demolitions;
-
-        ballPosition = convert(gameTickPacket.gameball.Location);
-        ballVelocity = convert(gameTickPacket.gameball.Velocity);
-
-        Vector3 orangePosition = convert(orangeCarInput.Location);
-        Vector3 orangeVelocity = convert(orangeCarInput.Velocity);
-        CarOrientation orangeOrientation = convert(orangeCarInput.Rotation);
-
-        double orangeBoost = orangeCarInput.Boost;
-
-
-        Vector3 bluePosition = convert(blueCarInput.Location);
-        Vector3 blueVelocity = convert(blueCarInput.Velocity);
-        CarOrientation blueOrientation = convert(blueCarInput.Rotation);
-
-        double blueBoost = blueCarInput.Boost;
-
+        blueScore = blueCarInput.map(c -> c.Score.Goals).orElse(0) + orangeCarInput.map(c -> c.Score.OwnGoals).orElse(0);
+        orangeScore = orangeCarInput.map(c -> c.Score.Goals).orElse(0) + blueCarInput.map(c -> c.Score.OwnGoals).orElse(0);
+        blueDemo = blueCarInput.map(c -> c.Score.Demolitions).orElse(0);
+        orangeDemo = orangeCarInput.map(c -> c.Score.Demolitions).orElse(0);
 
         double elapsedSeconds = TimeUtil.toSeconds(chronometer.getTimeDiff());
-        spinTracker.readInput(blueOrientation, orangeOrientation, elapsedSeconds);
 
-        final CarSpin blueSpin = spinTracker.getBlueSpin();
-        final CarSpin orangeSpin = spinTracker.getOrangeSpin();
-
-        orangeCar = new CarData(orangePosition, orangeVelocity, orangeOrientation, orangeSpin, orangeBoost,
-                orangeCarInput.bSuperSonic, Bot.Team.ORANGE, time);
-
-        blueCar = new CarData(bluePosition, blueVelocity, blueOrientation, blueSpin, blueBoost,
-                blueCarInput.bSuperSonic, Bot.Team.BLUE, time);
+        blueCar = blueCarInput.map(c -> convert(c, Bot.Team.BLUE, spinTracker, elapsedSeconds)).orElse(null);
+        orangeCar = orangeCarInput.map(c -> convert(c, Bot.Team.ORANGE, spinTracker, elapsedSeconds)).orElse(null);
 
         for (PyBoostInfo boostInfo: gameTickPacket.gameBoosts) {
             Vector3 location = convert(boostInfo.Location);
@@ -92,7 +69,20 @@ public class AgentInput {
             confirmedLocation.ifPresent(loc -> fullBoosts.add(new FullBoost(loc, boostInfo.bActive,
                     boostInfo.bActive ? LocalDateTime.from(time) : time.plus(Duration.ofMillis(boostInfo.Timer)))));
         }
+    }
 
+    private CarData convert(PyCarInfo pyCar, Bot.Team team, SpinTracker spinTracker, double elapsedSeconds) {
+        Vector3 position = convert(pyCar.Location);
+        Vector3 velocity = convert(pyCar.Velocity);
+        CarOrientation orientation = convert(pyCar.Rotation);
+        double boost = pyCar.Boost;
+
+        spinTracker.readInput(orientation, team, elapsedSeconds);
+
+        final CarSpin spin = spinTracker.getSpin(team);
+
+        return new CarData(position, velocity, orientation, spin, boost,
+                pyCar.bSuperSonic, team, time);
     }
 
     private CarOrientation convert(PyRotator rotation) {

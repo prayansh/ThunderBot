@@ -40,8 +40,8 @@ public class ReliefBot extends Bot {
 //        }
 
         // Kickoffs can happen unpredictably because the bot doesn't know about goals at the moment.
-        if (VectorUtil.flatten(input.ballPosition).magnitudeSquared() == 0) {
-            currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new GoForKickoffStep());
+        if (noActivePlanWithPosture(Plan.Posture.KICKOFF) && VectorUtil.flatten(input.ballPosition).magnitudeSquared() == 0) {
+            currentPlan = new Plan(Plan.Posture.KICKOFF).withStep(new GoForKickoffStep());
             currentPlan.begin();
         }
 
