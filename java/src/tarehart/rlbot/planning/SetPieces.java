@@ -1,6 +1,7 @@
 package tarehart.rlbot.planning;
 
 import tarehart.rlbot.AgentOutput;
+import tarehart.rlbot.math.TimeUtil;
 import tarehart.rlbot.steps.BlindStep;
 import tarehart.rlbot.steps.TapStep;
 import tarehart.rlbot.steps.landing.LandGracefullyStep;
@@ -113,5 +114,27 @@ public class SetPieces {
                                 .withAcceleration(1)
                                 .withSteer(flipLeft ? -1 : 1)))
                 .withStep(new LandMindlesslyStep());
+    }
+
+    public static Plan jumpSideFlip(boolean flipLeft, double jumpTime) {
+
+        jumpTime = Math.max(jumpTime, 0.01);
+
+        return new Plan()
+                .unstoppable()
+                .withStep(new BlindStep(
+                        new AgentOutput()
+                                .withJump(true)
+                                .withAcceleration(1), TimeUtil.toDuration(jumpTime)))
+                .withStep(new TapStep(2,
+                        new AgentOutput()
+                                .withAcceleration(1)
+                ))
+                .withStep(new TapStep(2,
+                        new AgentOutput()
+                                .withJump(true)
+                                .withAcceleration(1)
+                                .withSteer(flipLeft ? -1 : 1)))
+                .withStep(new LandGracefullyStep(LandGracefullyStep.FACE_BALL));
     }
 }

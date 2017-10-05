@@ -24,6 +24,7 @@ public class AgentInput {
     public final Vector3 ballPosition;
     public final Vector3 ballVelocity;
     public final Bot.Team team;
+    public final long frameCount;
     public LocalDateTime time;
     public List<FullBoost> fullBoosts = new ArrayList<>(6);
 
@@ -31,7 +32,9 @@ public class AgentInput {
     public static final double RADIANS_PER_UROT = Math.PI / UROT_IN_SEMICIRCLE;
     private static final double PACKET_DISTANCE_TO_CLASSIC = 50;
 
-    public AgentInput(PyGameTickPacket gameTickPacket, Bot.Team team, Chronometer chronometer, SpinTracker spinTracker) {
+    public AgentInput(PyGameTickPacket gameTickPacket, Bot.Team team, Chronometer chronometer, SpinTracker spinTracker, long frameCount) {
+
+        this.frameCount = frameCount;
 
         ballPosition = convert(gameTickPacket.gameball.Location);
         ballVelocity = convert(gameTickPacket.gameball.Velocity);
@@ -60,8 +63,8 @@ public class AgentInput {
 
         double elapsedSeconds = TimeUtil.toSeconds(chronometer.getTimeDiff());
 
-        blueCar = blueCarInput.map(c -> convert(c, Bot.Team.BLUE, spinTracker, elapsedSeconds)).orElse(null);
-        orangeCar = orangeCarInput.map(c -> convert(c, Bot.Team.ORANGE, spinTracker, elapsedSeconds)).orElse(null);
+        blueCar = blueCarInput.map(c -> convert(c, Bot.Team.BLUE, spinTracker, elapsedSeconds, frameCount)).orElse(null);
+        orangeCar = orangeCarInput.map(c -> convert(c, Bot.Team.ORANGE, spinTracker, elapsedSeconds, frameCount)).orElse(null);
 
         for (PyBoostInfo boostInfo: gameTickPacket.gameBoosts) {
             Vector3 location = convert(boostInfo.Location);
@@ -71,7 +74,7 @@ public class AgentInput {
         }
     }
 
-    private CarData convert(PyCarInfo pyCar, Bot.Team team, SpinTracker spinTracker, double elapsedSeconds) {
+    private CarData convert(PyCarInfo pyCar, Bot.Team team, SpinTracker spinTracker, double elapsedSeconds, long frameCount) {
         Vector3 position = convert(pyCar.Location);
         Vector3 velocity = convert(pyCar.Velocity);
         CarOrientation orientation = convert(pyCar.Rotation);
@@ -82,7 +85,7 @@ public class AgentInput {
         final CarSpin spin = spinTracker.getSpin(team);
 
         return new CarData(position, velocity, orientation, spin, boost,
-                pyCar.bSuperSonic, team, time);
+                pyCar.bSuperSonic, team, time, frameCount);
     }
 
     private CarOrientation convert(PyRotator rotation) {

@@ -31,7 +31,7 @@ public class TagAlongStep implements Step {
         CarData enemyCar = input.getEnemyCarData();
         DistancePlot fullAcceleration = AccelerationModel.simulateAcceleration(car, Duration.ofSeconds(4), car.boost, 0);
 
-        Vector2 waypoint = VectorUtil.flatten(enemyCar.position.addCopy(enemyCar.orientation.rightVector.scaleCopy(2)));
+        Vector2 waypoint = VectorUtil.flatten(enemyCar.position.addCopy(enemyCar.orientation.rightVector.scaleCopy(4)));
         Vector2 targetFacing = VectorUtil.flatten(enemyCar.orientation.noseVector);
         SteerPlan steerPlan = SteerUtil.getPlanForCircleTurn(car, fullAcceleration, waypoint, targetFacing);
 

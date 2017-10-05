@@ -30,7 +30,7 @@ public class MidairStrikeStep implements Step {
     public static final int DODGE_TIME = 400;
     public static final double DODGE_DISTANCE = 5;
     private static final Duration maxTimeForAirDodge = Duration.ofMillis(1500);
-    public static final double UPWARD_VELOCITY_MAINTENANCE_ANGLE = Math.PI / 6;
+    public static final double UPWARD_VELOCITY_MAINTENANCE_ANGLE = Math.PI / 4;
     private int confusionCount = 0;
     private Plan plan;
     private LocalDateTime lastMomentForDodge;

@@ -14,10 +14,11 @@ public class CarData {
     public boolean isSupersonic;
     public final Bot.Team team;
     public final LocalDateTime time;
+    public final long frameCount;
 
 
     public CarData(Vector3 position, Vector3 velocity, CarOrientation orientation, CarSpin spin, double boost,
-                   boolean isSupersonic, Bot.Team team, LocalDateTime time) {
+                   boolean isSupersonic, Bot.Team team, LocalDateTime time, long frameCount) {
         this.position = position;
         this.velocity = velocity;
         this.orientation = orientation;
@@ -26,5 +27,6 @@ public class CarData {
         this.isSupersonic = isSupersonic;
         this.team = team;
         this.time = time;
+        this.frameCount = frameCount;
     }
 }

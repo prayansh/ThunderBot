@@ -15,7 +15,7 @@ public class AirTouchPlanner {
     public static final double MAX_JUMP_HIT = NEEDS_AERIAL_THRESHOLD;
     public static final double NEEDS_JUMP_HIT_THRESHOLD = 3.6;
     public static final double NEEDS_FRONT_FLIP_THRESHOLD = 2;
-    private static final double CAR_BASE_HEIGHT = 0.33;
+    public static final double CAR_BASE_HEIGHT = 0.33;
     private static final double MAX_FLIP_HIT = NEEDS_JUMP_HIT_THRESHOLD;
 
 

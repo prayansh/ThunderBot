@@ -396,16 +396,22 @@ public class SteerUtil {
         Vector2 centerToSteerTarget = VectorUtil.rotateVector((Vector2) flatPosition.subCopy(idealCircle.center), lookaheadRadians * (clockwise ? -1 : 1));
         Vector2 steerTarget = (Vector2) idealCircle.center.addCopy(centerToSteerTarget);
 
-        AgentOutput output = steerTowardGroundPosition(car, steerTarget).withSlide(false);
+        AgentOutput output = steerTowardGroundPosition(car, steerTarget).withSlide(false).withDeceleration(0).withAcceleration(1);
 
         if (speedRatio < 1) {
-            output.withAcceleration(1);
-            output.withBoost(currentSpeed >= AccelerationModel.MEDIUM_SPEED || speedRatio < .8);
-        } else  {
-            output.withAcceleration(0).withDeceleration(Math.max(0, speedRatio - 1.5));
-            if (speedRatio > 1.5) {
-                output.withSlide();
+            output.withBoost(currentSpeed >= AccelerationModel.MEDIUM_SPEED && speedRatio < .8 || speedRatio < .7);
+        } else {
+            int framesBetweenSlidePulses;
+            if (speedRatio > 2) {
+                framesBetweenSlidePulses = 3;
+            } else if (speedRatio > 1.5) {
+                framesBetweenSlidePulses = 6;
+            } else if (speedRatio > 1.2) {
+                framesBetweenSlidePulses = 9;
+            } else {
+                framesBetweenSlidePulses = 12;
             }
+            output.withSlide(car.frameCount % (framesBetweenSlidePulses + 1) == 0);
         }
 
         return new SteerPlan(output, targetPosition);

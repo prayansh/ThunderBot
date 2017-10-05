@@ -16,6 +16,7 @@ public class Agent {
     private Chronometer chronometer = new Chronometer();
     private SpinTracker spinTracker = new SpinTracker();
     private StatusSummary statusSummary;
+    private long frameCount = 0;
 
     public Agent(StatusSummary statusSummary) {
         this.statusSummary = statusSummary;
@@ -31,7 +32,7 @@ public class Agent {
             Bot.Team team = Bot.Team.valueOf(teamString.toUpperCase());
 
             PyGameTickPacket packet = gson.fromJson(packetJson, PyGameTickPacket.class);
-            AgentInput translatedInput = new AgentInput(packet, team, chronometer, spinTracker);
+            AgentInput translatedInput = new AgentInput(packet, team, chronometer, spinTracker, frameCount++);
 
             if (translatedInput.getMyCarData() == null) {
                 return new AgentOutput();

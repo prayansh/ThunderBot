@@ -57,6 +57,7 @@ public class ArenaModel {
     public static final float WALL_FRICTION = .5f;
     public static final float BALL_FRICTION = .6f;
     public static final int STEPS_PER_SECOND = 10;
+    private static final int STEPS_PER_SECOND_HIGH_RES = 50;
 
     private DynamicsWorld world;
     private RigidBody ball;
@@ -235,8 +236,13 @@ public class ArenaModel {
 
         // Do some simulation
         while (simulationTime.isBefore(endTime)) {
-            world.stepSimulation(1.0f / STEPS_PER_SECOND, 2, 0.5f / STEPS_PER_SECOND);
-            simulationTime = simulationTime.plus(SIMULATION_STEP);
+            float stepsPerSecond = STEPS_PER_SECOND;
+            if (simulationTime.isBefore(start.getTime().plusSeconds(1))) {
+                stepsPerSecond = STEPS_PER_SECOND_HIGH_RES;
+            }
+
+            world.stepSimulation(1.0f / stepsPerSecond, 2, 0.5f / stepsPerSecond);
+            simulationTime = simulationTime.plus(TimeUtil.toDuration(1 / stepsPerSecond));
             Vector3 ballVelocity = getBallVelocity();
             ballPath.addSlice(new SpaceTimeVelocity(getBallPosition(), simulationTime, ballVelocity));
             double speed = ballVelocity.magnitude();

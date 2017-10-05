@@ -27,7 +27,7 @@ public class KickAtEnemyGoal implements KickStrategy {
     }
 
     private Vector3 getDirection(CarData car, Vector3 ballPosition, Vector3 easyKick) {
-        Vector2 easyKickFlat = VectorUtil.flatten((Vector3) ballPosition.subCopy(car.position));
+        Vector2 easyKickFlat = VectorUtil.flatten(easyKick);
         Vector2 toLeftCorner = VectorUtil.flatten((Vector3) GoalUtil.getEnemyGoal(car.team).getLeftPost(6).subCopy(ballPosition));
         Vector2 toRightCorner = VectorUtil.flatten((Vector3) GoalUtil.getEnemyGoal(car.team).getRightPost(6).subCopy(ballPosition));
 

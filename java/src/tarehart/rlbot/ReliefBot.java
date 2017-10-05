@@ -10,8 +10,10 @@ import tarehart.rlbot.planning.Plan;
 import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.planning.TacticsAdvisor;
 import tarehart.rlbot.steps.GoForKickoffStep;
+import tarehart.rlbot.steps.debug.TagAlongStep;
 import tarehart.rlbot.steps.defense.WhatASaveStep;
 import tarehart.rlbot.steps.landing.LandGracefullyStep;
+import tarehart.rlbot.steps.strikes.DirectedSideHitStep;
 import tarehart.rlbot.steps.strikes.IdealDirectedHitStep;
 import tarehart.rlbot.steps.strikes.KickAtEnemyGoal;
 import tarehart.rlbot.steps.strikes.KickAwayFromOwnGoal;
@@ -35,7 +37,7 @@ public class ReliefBot extends Bot {
         final CarData car = input.getMyCarData();
 
 //        if (canInterruptPlanFor(Plan.Posture.OVERRIDE)) {
-//            currentPlan = new Plan(Plan.Posture.OVERRIDE).withStep(new InterceptStep(new Vector3()));
+//            currentPlan = new Plan(Plan.Posture.OVERRIDE).withStep(new DirectedSideHitStep(new KickAtEnemyGoal()));
 //            currentPlan.begin();
 //        }
 
