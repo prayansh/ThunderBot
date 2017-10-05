@@ -10,4 +10,6 @@ public class TacticalSituation {
     public double distanceBallIsBehindUs;
     public double enemyOffensiveApproachCorrection; // If the enemy wants to shoot on our goal, how many radians away from a direct approach?
     public SpaceTime expectedEnemyContact;
+    public double distanceFromEnemyBackWall;
+    public double distanceFromEnemyCorner;
 }

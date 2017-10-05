@@ -45,7 +45,10 @@ public class GetBoostStep implements Step {
         double distance = SteerUtil.getDistanceFromCar(car, targetLocation.location);
 
         if (plan != null && !plan.isComplete()) {
-            return plan.getOutput(input);
+            Optional<AgentOutput> output = plan.getOutput(input);
+            if (output.isPresent()) {
+                return output;
+            }
         }
 
         if (distance < 3) {

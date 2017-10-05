@@ -1,23 +1,23 @@
 package tarehart.rlbot.planning;
 
+import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.SpaceTime;
+import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.math.TimeUtil;
 import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.DistancePlot;
+import tarehart.rlbot.steps.CatchBallStep;
 import tarehart.rlbot.steps.DribbleStep;
 import tarehart.rlbot.steps.GetBoostStep;
 import tarehart.rlbot.steps.GetOnOffenseStep;
 import tarehart.rlbot.steps.defense.GetOnDefenseStep;
 import tarehart.rlbot.steps.defense.ThreatAssessor;
-import tarehart.rlbot.steps.strikes.DirectedNoseHitStep;
-import tarehart.rlbot.steps.strikes.IdealDirectedHitStep;
-import tarehart.rlbot.steps.strikes.InterceptStep;
-import tarehart.rlbot.steps.strikes.KickAtEnemyGoal;
+import tarehart.rlbot.steps.strikes.*;
 import tarehart.rlbot.steps.wall.DescendFromWallStep;
 import tarehart.rlbot.steps.wall.MountWallStep;
 import tarehart.rlbot.steps.wall.WallTouchStep;
@@ -29,10 +29,9 @@ import java.util.Optional;
 
 public class TacticsAdvisor {
 
-    private ThreatAssessor threatAssessor;
+    private static final double lookaheadSeconds = 3;
 
     public TacticsAdvisor() {
-        this.threatAssessor = new ThreatAssessor();
     }
 
     public Plan makePlan(AgentInput input) {
@@ -109,8 +108,13 @@ public class TacticsAdvisor {
 
         CarData car = input.getMyCarData();
 
-        // TODO: this logic needs improvement.
-        // Sometimes we should catch and dribble.
+        if (situation.distanceFromEnemyBackWall < 15) {
+            Optional<SpaceTime> catchOpportunity = SteerUtil.getCatchOpportunity(car, ballPath, car.boost);
+            if (catchOpportunity.isPresent()) {
+                return new Plan().withStep(new CatchBallStep(catchOpportunity.get())).withStep(new DribbleStep());
+            }
+            return new Plan(Plan.Posture.OFFENSIVE).withStep(new IdealDirectedHitStep(new FunnelTowardEnemyGoal(), input));
+        }
 
         if (DribbleStep.canDribble(input, false) && input.ballVelocity.magnitude() > 15) {
             BotLog.println("Beginning dribble", input.team);
@@ -119,11 +123,11 @@ public class TacticsAdvisor {
             return new Plan(Plan.Posture.OFFENSIVE).withStep(new MountWallStep()).withStep(new WallTouchStep()).withStep(new DescendFromWallStep());
         } else if (DirectedNoseHitStep.canMakeDirectedKick(input)) {
             return new Plan(Plan.Posture.OFFENSIVE).withStep(new IdealDirectedHitStep(new KickAtEnemyGoal(), input));
-        } else if (GetOnOffenseStep.getYAxisWrongSidedness(input) > 0) {
-            BotLog.println("Getting behind the ball", input.team);
-            return new Plan(Plan.Posture.OFFENSIVE).withStep(new GetOnOffenseStep());
         } else if (car.boost < 30) {
             return new Plan().withStep(new GetBoostStep());
+        } else if (GetOnOffenseStep.getYAxisWrongSidedness(input) > 0) {
+            BotLog.println("Getting behind the ball", input.team);
+            return new Plan(Plan.Posture.NEUTRAL).withStep(new GetOnOffenseStep());
         } else {
             return new Plan(Plan.Posture.OFFENSIVE).withStep(new InterceptStep(new Vector3()));
         }
@@ -133,21 +137,32 @@ public class TacticsAdvisor {
 
         Optional<SpaceTime> enemyIntercept = getEnemyIntercept(input, ballPath);
 
+        SpaceTimeVelocity futureBallMotion = ballPath.getMotionAt(input.time.plus(TimeUtil.toDuration(lookaheadSeconds))).orElse(ballPath.getEndpoint());
+
         TacticalSituation situation = new TacticalSituation();
         situation.expectedEnemyContact = enemyIntercept.orElse(ballPath.getEndpoint().toSpaceTime());
-        situation.ownGoalFutureProximity = measureBallToOwnGoalDistanceInFuture(input);
+        situation.ownGoalFutureProximity = VectorUtil.flatDistance(GoalUtil.getOwnGoal(input.team).getCenter(), futureBallMotion.getSpace());
         situation.distanceBallIsBehindUs = measureOutOfPosition(input);
         situation.enemyOffensiveApproachCorrection = measureEnemyApproachError(input, situation.expectedEnemyContact);
+        double enemyGoalY = GoalUtil.getEnemyGoal(input.team).getCenter().y;
+        situation.distanceFromEnemyBackWall = Math.abs(enemyGoalY - futureBallMotion.space.y);
+        situation.distanceFromEnemyCorner = getDistanceFromEnemyCorner(futureBallMotion, enemyGoalY);
 
         return situation;
     }
 
-    private double measureBallToOwnGoalDistanceInFuture(AgentInput input) {
-        BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(4));
-        Goal myGoal = GoalUtil.getOwnGoal(input.team);
-        return VectorUtil.flatDistance(myGoal.getCenter(), ballPath.getEndpoint().getSpace());
-    }
+    private double getDistanceFromEnemyCorner(SpaceTimeVelocity futureBallMotion, double enemyGoalY) {
+        Vector2 corner1 = (Vector2) ArenaModel.CORNER_ANGLE_CENTER.copy();
+        Vector2 corner2 = (Vector2) ArenaModel.CORNER_ANGLE_CENTER.copy();
 
+        corner1.y *= Math.signum(enemyGoalY);
+        corner2.y *= Math.signum(enemyGoalY);
+        corner2.x *= -1;
+
+        Vector2 ballFutureFlat = VectorUtil.flatten(futureBallMotion.space);
+
+        return Math.min(ballFutureFlat.distance(corner1), ballFutureFlat.distance(corner2));
+    }
 
     private Optional<SpaceTime> getEnemyIntercept(AgentInput input, BallPath ballPath) {
 

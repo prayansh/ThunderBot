@@ -46,7 +46,10 @@ public class DirectedSideHitStep implements Step {
         CarData car = input.getMyCarData();
 
         if (plan != null && !plan.isComplete()) {
-            return plan.getOutput(input);
+            Optional<AgentOutput> output = plan.getOutput(input);
+            if (output.isPresent()) {
+                return output;
+            }
         }
 
         if (doneMoment != null && input.time.isAfter(doneMoment)) {

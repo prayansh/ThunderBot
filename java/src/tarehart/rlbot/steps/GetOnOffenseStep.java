@@ -29,6 +29,17 @@ public class GetOnOffenseStep implements Step {
     public Optional<AgentOutput> getOutput(AgentInput input) {
 
         if (plan != null && !plan.isComplete()) {
+            Optional<AgentOutput> output = plan.getOutput(input);
+            if (output.isPresent()) {
+                return output;
+            }
+        }
+
+        CarData car = input.getMyCarData();
+
+        if (car.boost < 10 && GetBoostStep.seesOpportunisticBoost(car, input.fullBoosts)) {
+            plan = new Plan().withStep(new GetBoostStep());
+            plan.begin();
             return plan.getOutput(input);
         }
 
@@ -57,7 +68,7 @@ public class GetOnOffenseStep implements Step {
             target.sub(goalToBallNormal.scaleCopy(10));
         }
 
-        CarData car = input.getMyCarData();
+
 
         double flatDistance = VectorUtil.flatDistance(target, car.position);
         if (getYAxisWrongSidedness(input) < 0) {

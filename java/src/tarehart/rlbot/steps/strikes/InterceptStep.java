@@ -38,7 +38,10 @@ public class InterceptStep implements Step {
     public Optional<AgentOutput> getOutput(AgentInput input) {
 
         if (plan != null && !plan.isComplete()) {
-            return plan.getOutput(input);
+            Optional<AgentOutput> output = plan.getOutput(input);
+            if (output.isPresent()) {
+                return output;
+            }
         }
 
         if (doneMoment != null && input.time.isAfter(doneMoment)) {

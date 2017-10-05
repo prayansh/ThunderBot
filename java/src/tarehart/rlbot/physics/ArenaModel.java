@@ -14,6 +14,7 @@ import com.bulletphysics.dynamics.RigidBody;
 import com.bulletphysics.dynamics.RigidBodyConstructionInfo;
 import com.bulletphysics.dynamics.constraintsolver.SequentialImpulseConstraintSolver;
 import com.bulletphysics.linearmath.Transform;
+import mikera.vectorz.Vector2;
 import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.Bot;
@@ -48,7 +49,7 @@ public class ArenaModel {
     public static final float BALL_DRAG = .0305f;
     public static final float BALL_RADIUS = 1.8555f;
 
-    public static final Vector2f CORNER_ANGLE_CENTER = new Vector2f(70.5f, 90.2f);
+    public static final Vector2 CORNER_ANGLE_CENTER = new Vector2(70.5, 90.2);
 
     // The diagonal surfaces that merge the floor and the wall--
     // Higher = more diagonal showing.
@@ -135,10 +136,10 @@ public class ArenaModel {
 
 
         // 45 angle corners
-        addWallToWorld(new Vector3f(1, 1, 0), new Vector3f(-CORNER_ANGLE_CENTER.x, -CORNER_ANGLE_CENTER.y, 0));
-        addWallToWorld(new Vector3f(-1, 1, 0), new Vector3f(CORNER_ANGLE_CENTER.x, -CORNER_ANGLE_CENTER.y, 0));
-        addWallToWorld(new Vector3f(1, -1, 0), new Vector3f(-CORNER_ANGLE_CENTER.x, CORNER_ANGLE_CENTER.y, 0));
-        addWallToWorld(new Vector3f(-1, -1, 0), new Vector3f(CORNER_ANGLE_CENTER.x, CORNER_ANGLE_CENTER.y, 0));
+        addWallToWorld(new Vector3f(1, 1, 0), new Vector3f((float) -CORNER_ANGLE_CENTER.x, (float) -CORNER_ANGLE_CENTER.y, 0));
+        addWallToWorld(new Vector3f(-1, 1, 0), new Vector3f((float) CORNER_ANGLE_CENTER.x, (float) -CORNER_ANGLE_CENTER.y, 0));
+        addWallToWorld(new Vector3f(1, -1, 0), new Vector3f((float) -CORNER_ANGLE_CENTER.x, (float) CORNER_ANGLE_CENTER.y, 0));
+        addWallToWorld(new Vector3f(-1, -1, 0), new Vector3f((float) CORNER_ANGLE_CENTER.x, (float) CORNER_ANGLE_CENTER.y, 0));
 
         // 45 degree angle rails at floor
         addWallToWorld(new Vector3f(1, 0, 1), new Vector3f(-SIDE_WALL, 0, RAIL_HEIGHT));

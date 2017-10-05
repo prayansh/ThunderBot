@@ -31,7 +31,12 @@ public class DribbleStep implements Step {
     public Optional<AgentOutput> getOutput(AgentInput input) {
 
         if (plan != null && !plan.isComplete()) {
-            return plan.getOutput(input);
+            if (plan != null && !plan.isComplete()) {
+                Optional<AgentOutput> output = plan.getOutput(input);
+                if (output.isPresent()) {
+                    return output;
+                }
+            }
         }
 
         CarData car = input.getMyCarData();
