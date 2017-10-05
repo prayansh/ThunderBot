@@ -38,7 +38,7 @@ public class DirectedNoseHitStep implements Step {
 
     public static boolean canMakeDirectedKick(AgentInput input) {
         return BallPhysics.getGroundBounceEnergy(
-                new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity)) < 50;
+                new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity)) < 30;
     }
 
     public double getEstimatedAngleOfKickFromApproach() {
@@ -51,7 +51,7 @@ public class DirectedNoseHitStep implements Step {
 
         if (doneMoment == null && car.position.distance(input.ballPosition) < 4.5) {
             // You get a tiny bit more time
-            doneMoment = input.time.plus(Duration.ofMillis(1000));
+            doneMoment = input.time.plus(Duration.ofMillis(200));
         }
 
         if (plan != null && !plan.isComplete()) {
@@ -110,7 +110,7 @@ public class DirectedNoseHitStep implements Step {
             interceptModifier.scale(-1.4);
         }
 
-        if (Math.abs(estimatedAngleOfKickFromApproach) < Math.PI / 12 && Math.abs(rendezvousCorrection) < Math.PI / 12) {
+        if (carPositionAtIntercept.z > 2 && Math.abs(estimatedAngleOfKickFromApproach) < Math.PI / 12 && Math.abs(rendezvousCorrection) < Math.PI / 12) {
 
             plan = new Plan().withStep(new InterceptStep(interceptModifier));
             plan.begin();

@@ -58,15 +58,16 @@ public class GoForKickoffStep implements Step {
 
         double ySide = Math.signum(car.position.y);
 
+        Vector2 target;
         if (kickoffType == KickoffType.CHEATIN && Math.abs(car.position.y) > CHEATIN_BOOST_Y + 10) {
             // Steer toward boost
-            Vector2 target = new Vector2(0, ySide * CHEATIN_BOOST_Y);
-            return Optional.of(SteerUtil.steerTowardGroundPosition(car, target));
+            target = new Vector2(0, ySide * CHEATIN_BOOST_Y);
+        } else if (distance > 30) {
+            target = new Vector2(0, ySide * 15);
         } else {
-            DistancePlot plot = AccelerationModel.simulateAcceleration(car, Duration.ofSeconds(5), car.boost + 15); // We'll pickup a boost
-            SteerPlan planForCircleTurn = SteerUtil.getPlanForCircleTurn(car, plot, new Vector2(0, ySide * 10), new Vector2(0, -ySide));
-            return Optional.of(planForCircleTurn.immediateSteer);
+            target = new Vector2(0, 0);
         }
+        return Optional.of(SteerUtil.steerTowardGroundPosition(car, target));
     }
 
     private KickoffType getKickoffType(CarData car) {

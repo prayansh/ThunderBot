@@ -118,10 +118,14 @@ public class SetPieces {
 
     public static Plan jumpSideFlip(boolean flipLeft, double jumpTime) {
 
-        jumpTime = Math.max(jumpTime, 0.01);
+        jumpTime = Math.max(jumpTime, 0);
 
         return new Plan()
                 .unstoppable()
+                .withStep(new TapStep(2,
+                        new AgentOutput()
+                                .withJump(true)
+                                .withAcceleration(1)))
                 .withStep(new BlindStep(
                         new AgentOutput()
                                 .withJump(true)

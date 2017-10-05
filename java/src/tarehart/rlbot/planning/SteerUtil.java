@@ -124,15 +124,14 @@ public class SteerUtil {
         Vector3 myPosition = carData.position;
 
         for (SpaceTimeVelocity ballMoment: ballPath.getSlices()) {
-            Optional<DistanceTimeSpeed> motionAt = acceleration.getMotionAfterStrike(carData, ballMoment.toSpaceTime(), strikeProfile);
+            SpaceTime intercept = new SpaceTime(ballMoment.space.addCopy(interceptModifier), ballMoment.getTime());
+            Optional<DistanceTimeSpeed> motionAt = acceleration.getMotionAfterStrike(carData, intercept, strikeProfile);
             if (motionAt.isPresent()) {
                 DistanceTimeSpeed dts = motionAt.get();
-                Vector3 intercept = ballMoment.space.addCopy(interceptModifier);
-                SpaceTime interceptSpaceTime = new SpaceTime(intercept, ballMoment.getTime());
-                double ballDistance = VectorUtil.flatDistance(myPosition, intercept, planeNormal);
-                if (dts.distance > ballDistance) {
-                    if (predicate.test(carData, interceptSpaceTime)) {
-                        return Optional.of(interceptSpaceTime);
+                double interceptDistance = VectorUtil.flatDistance(myPosition, intercept.space, planeNormal);
+                if (dts.distance > interceptDistance) {
+                    if (predicate.test(carData, intercept)) {
+                        return Optional.of(intercept);
                     }
                 }
             } else {

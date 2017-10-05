@@ -32,7 +32,7 @@ public class DirectedKickUtil {
         kickPlan.ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(4));
         kickPlan.distancePlot = AccelerationModel.simulateAcceleration(car, Duration.ofSeconds(4), car.boost, 0);
 
-        Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(car, kickPlan.ballPath, kickPlan.distancePlot, interceptModifier, AirTouchPlanner::isJumpHitAccessible, strikeProfile);
+        Optional<SpaceTime> interceptOpportunity = SteerUtil.getFilteredInterceptOpportunity(car, kickPlan.ballPath, kickPlan.distancePlot, interceptModifier, AirTouchPlanner::isJumpSideFlipAccessible, strikeProfile);
         Optional<SpaceTimeVelocity> ballMotion = interceptOpportunity.flatMap(inter -> kickPlan.ballPath.getMotionAt(inter.time));
 
         if (!ballMotion.isPresent() || !interceptOpportunity.isPresent()) {

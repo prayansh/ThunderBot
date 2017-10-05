@@ -17,6 +17,7 @@ public class AirTouchPlanner {
     public static final double NEEDS_FRONT_FLIP_THRESHOLD = 2;
     public static final double CAR_BASE_HEIGHT = 0.33;
     private static final double MAX_FLIP_HIT = NEEDS_JUMP_HIT_THRESHOLD;
+    private static final double MAX_JUMP_SIDE_FLIP = 4;
 
 
     public static AerialChecklist checkAerialReadiness(CarData car, SpaceTime carPositionAtContact) {
@@ -76,6 +77,16 @@ public class AirTouchPlanner {
 
     public static boolean isJumpHitAccessible(CarData carData, SpaceTime intercept) {
         if (intercept.space.z > MAX_JUMP_HIT) {
+            return false;
+        }
+
+        double secondsTillIntercept = TimeUtil.secondsBetween(carData.time, intercept.time);
+        double tMinus = getJumpLaunchCountdown(intercept.space.z, secondsTillIntercept);
+        return tMinus >= -0.1;
+    }
+
+    public static boolean isJumpSideFlipAccessible(CarData carData, SpaceTime intercept) {
+        if (intercept.space.z > MAX_JUMP_SIDE_FLIP) {
             return false;
         }
 

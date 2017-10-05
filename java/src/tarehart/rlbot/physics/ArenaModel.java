@@ -21,6 +21,7 @@ import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.math.TimeUtil;
 import tarehart.rlbot.planning.Goal;
+import tarehart.rlbot.planning.GoalUtil;
 import tarehart.rlbot.tuning.BallTelemetry;
 
 import javax.vecmath.Quat4f;
@@ -342,6 +343,6 @@ public class ArenaModel {
     }
 
     public static boolean isNearFloorEdge(CarData car) {
-        return getDistanceFromWall(car.position) + car.position.z < 6;
+        return Math.abs(car.position.x) > Goal.EXTENT && getDistanceFromWall(car.position) + car.position.z < 6;
     }
 }

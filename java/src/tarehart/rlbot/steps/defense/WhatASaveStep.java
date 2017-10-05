@@ -63,7 +63,7 @@ public class WhatASaveStep implements Step {
 
             if (Math.abs(SteerUtil.getCorrectionAngleRad(VectorUtil.flatten(car.orientation.noseVector), VectorUtil.flatten(carToIntercept))) < Math.PI / 12) {
 
-                plan = new Plan(Plan.Posture.SAVE).withStep(new InterceptStep(new Vector3(0, Math.signum(goal.getCenter().y) * 1.1, 0)));
+                plan = new Plan(Plan.Posture.SAVE).withStep(new InterceptStep(new Vector3(0, Math.signum(goal.getCenter().y) * 1.5, 0)));
                 plan.begin();
                 return plan.getOutput(input);
             } else {

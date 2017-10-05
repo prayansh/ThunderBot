@@ -23,9 +23,9 @@ import java.util.Optional;
 public class DirectedSideHitStep implements Step {
 
     private static final double MANEUVER_SECONDS_PER_RADIAN = .1;
-    private static final double APPROACH_DISTANCE = 1.2;
-    private static final double SIDE_FLIP_SPEED = 7.5;
-    private static final int DISTANCE_AT_CONTACT = 2;
+    private static final double APPROACH_DISTANCE = 1.5;
+    private static final double SIDE_FLIP_SPEED = 9;
+    private static final double DISTANCE_AT_CONTACT = 1.8;
     public static final double JUMP_TIME_PER_HEIGHT = .1;
     private Plan plan;
 
@@ -89,10 +89,10 @@ public class DirectedSideHitStep implements Step {
         Vector2 orthogonalPoint = VectorUtil.flatten(carPositionAtIntercept);
 
         if (finalApproach) {
-            return performFinalApproach(input, orthogonalPoint, kickPlan, carPositionAtIntercept);
+            return performFinalApproach(input, orthogonalPoint, kickPlan, carPositionAtIntercept, strikeDirection);
         }
 
-        double strikeTime = getStrikeTime(carPositionAtIntercept);
+        double strikeTime = getStrikeTime(carPositionAtIntercept, APPROACH_DISTANCE);
         double expectedSpeed = kickPlan.distancePlot.getMotionAfterDistance(VectorUtil.flatten(car.position).distance(orthogonalPoint)).map(m -> m.speed).orElse(40.0);
         double backoff = expectedSpeed * strikeTime + 1;
 
@@ -105,19 +105,20 @@ public class DirectedSideHitStep implements Step {
         Vector2 steerTarget = (Vector2) orthogonalPoint.copy();
         steerTarget.sub(facingForSideFlip.scaleCopy(backoff));
 
-        Vector2 toSteerTarget = (Vector2) steerTarget.subCopy(VectorUtil.flatten(car.position));
+        Vector2 toOrthogonal = (Vector2) orthogonalPoint.subCopy(VectorUtil.flatten(car.position));
 
-        double distance = toSteerTarget.magnitude();
+        double distance = toOrthogonal.magnitude();
         Vector2 carNose = VectorUtil.flatten(car.orientation.noseVector);
-        if (distance < 3 && toSteerTarget.dotProduct(carNose) < 0) {
+        double angleCorrection = SteerUtil.getCorrectionAngleRad(carNose, facingForSideFlip);
+        if (distance < backoff + 3 && Math.abs(angleCorrection) < Math.PI / 8) {
             doneMoment = input.time.plus(TimeUtil.toDuration(strikeTime + .5));
             finalApproach = true;
             maneuverSeconds = 0;
             // Done with the circle turn. Drive toward the orthogonal point and wait for the right moment to launch.
-            return performFinalApproach(input, orthogonalPoint, kickPlan, carPositionAtIntercept);
+            return performFinalApproach(input, orthogonalPoint, kickPlan, carPositionAtIntercept, strikeDirection);
         }
 
-        double angleCorrection = SteerUtil.getCorrectionAngleRad(carNose, facingForSideFlip);
+
         maneuverSeconds = Math.abs(angleCorrection) * MANEUVER_SECONDS_PER_RADIAN;
 
         SteerPlan circleTurnPlan = SteerUtil.getPlanForCircleTurn(car, kickPlan.distancePlot, steerTarget, facingForSideFlip);
@@ -125,19 +126,23 @@ public class DirectedSideHitStep implements Step {
         return getNavigation(input, circleTurnPlan);
     }
 
-    private double getStrikeTime(Vector3 carPositionAtIntercept) {
+    private double getStrikeTime(Vector3 carPositionAtIntercept, double approachDistance) {
         double jumpTime = getJumpTime(carPositionAtIntercept);
-        return jumpTime + APPROACH_DISTANCE / SIDE_FLIP_SPEED;
+        return jumpTime + approachDistance / SIDE_FLIP_SPEED;
     }
 
-    private Optional<AgentOutput> performFinalApproach(AgentInput input, Vector2 orthogonalPoint, DirectedKickPlan kickPlan, Vector3 carPositionAtIntercept) {
+    private Optional<AgentOutput> performFinalApproach(AgentInput input, Vector2 orthogonalPoint, DirectedKickPlan kickPlan, Vector3 carPositionAtIntercept, Vector2 strikeDirection) {
 
         // You're probably darn close to flip time.
 
         CarData car = input.getMyCarData();
 
         double jumpTime = getJumpTime(carPositionAtIntercept);
-        double strikeTime = getStrikeTime(carPositionAtIntercept);
+        Vector2 carAtImpact = (Vector2) VectorUtil.flatten(kickPlan.ballAtIntercept.space).addCopy(strikeDirection.scaleCopy(-DISTANCE_AT_CONTACT));
+        Vector2 toImpact = (Vector2) carAtImpact.subCopy(VectorUtil.flatten(car.position));
+        Vector2 projectedApproach = VectorUtil.project(toImpact, VectorUtil.flatten(car.orientation.rightVector));
+        double realApproachDistance = projectedApproach.magnitude();
+        double strikeTime = getStrikeTime(carPositionAtIntercept, realApproachDistance);
         double backoff = car.velocity.magnitude() * strikeTime;
 
         double distance = VectorUtil.flatten(car.position).distance(orthogonalPoint);

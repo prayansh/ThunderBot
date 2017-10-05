@@ -1,5 +1,6 @@
 package tarehart.rlbot;
 
+import mikera.vectorz.Vector3;
 import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.math.VectorUtil;
@@ -13,10 +14,7 @@ import tarehart.rlbot.steps.GoForKickoffStep;
 import tarehart.rlbot.steps.debug.TagAlongStep;
 import tarehart.rlbot.steps.defense.WhatASaveStep;
 import tarehart.rlbot.steps.landing.LandGracefullyStep;
-import tarehart.rlbot.steps.strikes.DirectedSideHitStep;
-import tarehart.rlbot.steps.strikes.IdealDirectedHitStep;
-import tarehart.rlbot.steps.strikes.KickAtEnemyGoal;
-import tarehart.rlbot.steps.strikes.KickAwayFromOwnGoal;
+import tarehart.rlbot.steps.strikes.*;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
@@ -37,7 +35,7 @@ public class ReliefBot extends Bot {
         final CarData car = input.getMyCarData();
 
 //        if (canInterruptPlanFor(Plan.Posture.OVERRIDE)) {
-//            currentPlan = new Plan(Plan.Posture.OVERRIDE).withStep(new DirectedSideHitStep(new KickAtEnemyGoal()));
+//            currentPlan = new Plan(Plan.Posture.OVERRIDE).withStep(new InterceptStep(new Vector3()));
 //            currentPlan.begin();
 //        }
 
