@@ -75,7 +75,7 @@ public class DribbleStep implements Step {
         Vector2 pressurePoint;
         double approachDistance = 0;
 
-        if (ballSpeed > 10) {
+        if (ballSpeed > 20) {
             double velocityCorrectionAngle = SteerUtil.getCorrectionAngleRad(ballVelocityFlat, ballToGoal);
             double angleTweak = Math.min(Math.PI / 6, Math.max(-Math.PI / 6, velocityCorrectionAngle * ballSpeed / 10));
             pushDirection = (Vector2) VectorUtil.rotateVector(ballToGoal, angleTweak).normaliseCopy();

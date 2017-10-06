@@ -71,8 +71,8 @@ public class SteerUtil {
     private static boolean canGetUnder(CarData carData, SpaceTime spaceTime, double boostBudget) {
         DistancePlot plot = AccelerationModel.simulateAcceleration(carData, Duration.ofSeconds(4), boostBudget, carData.position.distance(spaceTime.space));
         Optional<DistanceTimeSpeed> dts = plot.getMotionAfterStrike(carData, spaceTime, null);
-        double secondsAllotted = TimeUtil.secondsBetween(carData.time, spaceTime.time);
-        return dts.filter(travel -> travel.time < secondsAllotted).isPresent();
+        double requiredDistance = SteerUtil.getDistanceFromCar(carData, spaceTime.space);
+        return dts.filter(travel -> travel.distance > requiredDistance).isPresent();
     }
 
     public static Optional<SpaceTime> getInterceptOpportunityAssumingMaxAccel(CarData carData, BallPath ballPath, double boostBudget) {
@@ -205,9 +205,9 @@ public class SteerUtil {
         double turnSharpness = difference * 6/Math.PI + difference * speed * .1;
         turnSharpness = (1 - DEAD_ZONE) * turnSharpness + Math.signum(turnSharpness) * DEAD_ZONE;
 
-        boolean shouldBrake = distance < 25 && difference > Math.PI / 6 && speed > 25;
+        boolean shouldBrake = distance < 25 && difference > Math.PI / 4 && speed > 25;
         boolean shouldSlide = shouldBrake || difference > Math.PI / 2;
-        boolean shouldBoost = !shouldBrake && turnSharpness < .5 && !isSupersonic;
+        boolean shouldBoost = !shouldBrake && difference < Math.PI / 6 && !isSupersonic;
 
         return new AgentOutput()
                 .withAcceleration(shouldBrake ? 0 : 1)
@@ -222,7 +222,7 @@ public class SteerUtil {
     }
 
     public static double getDistanceFromCar(CarData car, Vector3 loc) {
-        return loc.distance(car.position);
+        return VectorUtil.flatDistance(loc, car.position);
     }
 
     public static Optional<Plan> getSensibleFlip(CarData car, Vector3 target) {
@@ -395,7 +395,7 @@ public class SteerUtil {
         Vector2 centerToSteerTarget = VectorUtil.rotateVector((Vector2) flatPosition.subCopy(idealCircle.center), lookaheadRadians * (clockwise ? -1 : 1));
         Vector2 steerTarget = (Vector2) idealCircle.center.addCopy(centerToSteerTarget);
 
-        AgentOutput output = steerTowardGroundPosition(car, steerTarget).withSlide(false).withDeceleration(0).withAcceleration(1);
+        AgentOutput output = steerTowardGroundPosition(car, steerTarget).withBoost(false).withSlide(false).withDeceleration(0).withAcceleration(1);
 
         if (speedRatio < 1) {
             output.withBoost(currentSpeed >= AccelerationModel.MEDIUM_SPEED && speedRatio < .8 || speedRatio < .7);

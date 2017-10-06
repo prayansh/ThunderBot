@@ -16,7 +16,7 @@ import tarehart.rlbot.steps.DribbleStep;
 import tarehart.rlbot.steps.GetBoostStep;
 import tarehart.rlbot.steps.GetOnOffenseStep;
 import tarehart.rlbot.steps.defense.GetOnDefenseStep;
-import tarehart.rlbot.steps.defense.ThreatAssessor;
+import tarehart.rlbot.steps.defense.WhatASaveStep;
 import tarehart.rlbot.steps.strikes.*;
 import tarehart.rlbot.steps.wall.DescendFromWallStep;
 import tarehart.rlbot.steps.wall.MountWallStep;
@@ -29,20 +29,30 @@ import java.util.Optional;
 
 public class TacticsAdvisor {
 
-    private static final double lookaheadSeconds = 3;
+    private static final double LOOKAHEAD_SECONDS = 2;
 
     public TacticsAdvisor() {
     }
 
-    public Plan makePlan(AgentInput input) {
+    public Plan makePlan(AgentInput input, TacticalSituation situation) {
+
+        if (situation.scoredOnThreat.isPresent()) {
+            return new Plan(Plan.Posture.SAVE).withStep(new WhatASaveStep());
+        }
+
+        if (situation.needsDefensiveClear) {
+            return new Plan(Plan.Posture.CLEAR).withStep(new IdealDirectedHitStep(new KickAwayFromOwnGoal(), input));
+        }
+
+        if (situation.shotOnGoalAvailable) {
+            return new Plan(Plan.Posture.OFFENSIVE).withStep(new IdealDirectedHitStep(new KickAtEnemyGoal(), input));
+        }
 
         Duration planHorizon = Duration.ofSeconds(5);
 
         CarData car = input.getMyCarData();
         BallPath ballPath = ArenaModel.predictBallPath(input, input.time, planHorizon);
         DistancePlot distancePlot = AccelerationModel.simulateAcceleration(car, planHorizon, car.boost);
-
-        TacticalSituation situation = assessSituation(input, ballPath);
 
         Optional<Intercept> interceptStepOffering = InterceptStep.getSoonestIntercept(input.getMyCarData(), ballPath, distancePlot, new Vector3());
         LocalDateTime ourExpectedContactTime = interceptStepOffering.map(Intercept::getTime).orElse(ballPath.getEndpoint().getTime());
@@ -108,10 +118,10 @@ public class TacticsAdvisor {
 
         CarData car = input.getMyCarData();
 
-        if (situation.distanceFromEnemyBackWall < 15) {
+        if (situation.distanceFromEnemyBackWall < 20) {
             Optional<SpaceTime> catchOpportunity = SteerUtil.getCatchOpportunity(car, ballPath, car.boost);
             if (catchOpportunity.isPresent()) {
-                return new Plan().withStep(new CatchBallStep(catchOpportunity.get())).withStep(new DribbleStep());
+                return new Plan(Plan.Posture.OFFENSIVE).withStep(new CatchBallStep(catchOpportunity.get())).withStep(new DribbleStep());
             }
             return new Plan(Plan.Posture.OFFENSIVE).withStep(new IdealDirectedHitStep(new FunnelTowardEnemyGoal(), input));
         }
@@ -121,9 +131,9 @@ public class TacticsAdvisor {
             return new Plan(Plan.Posture.OFFENSIVE).withStep(new DribbleStep());
         }  else if (WallTouchStep.hasWallTouchOpportunity(input, ballPath)) {
             return new Plan(Plan.Posture.OFFENSIVE).withStep(new MountWallStep()).withStep(new WallTouchStep()).withStep(new DescendFromWallStep());
-        } else if (DirectedNoseHitStep.canMakeDirectedKick(input)) {
+        } else if (DirectedNoseHitStep.canMakeDirectedKick(input, new KickAtEnemyGoal())) {
             return new Plan(Plan.Posture.OFFENSIVE).withStep(new IdealDirectedHitStep(new KickAtEnemyGoal(), input));
-        } else if (car.boost < 30) {
+        } else if (car.boost < 50) {
             return new Plan().withStep(new GetBoostStep());
         } else if (GetOnOffenseStep.getYAxisWrongSidedness(input) > 0) {
             BotLog.println("Getting behind the ball", input.team);
@@ -133,11 +143,11 @@ public class TacticsAdvisor {
         }
     }
 
-    private TacticalSituation assessSituation(AgentInput input, BallPath ballPath) {
+    public TacticalSituation assessSituation(AgentInput input, BallPath ballPath) {
 
         Optional<SpaceTime> enemyIntercept = getEnemyIntercept(input, ballPath);
 
-        SpaceTimeVelocity futureBallMotion = ballPath.getMotionAt(input.time.plus(TimeUtil.toDuration(lookaheadSeconds))).orElse(ballPath.getEndpoint());
+        SpaceTimeVelocity futureBallMotion = ballPath.getMotionAt(input.time.plus(TimeUtil.toDuration(LOOKAHEAD_SECONDS))).orElse(ballPath.getEndpoint());
 
         TacticalSituation situation = new TacticalSituation();
         situation.expectedEnemyContact = enemyIntercept.orElse(ballPath.getEndpoint().toSpaceTime());
@@ -147,6 +157,11 @@ public class TacticsAdvisor {
         double enemyGoalY = GoalUtil.getEnemyGoal(input.team).getCenter().y;
         situation.distanceFromEnemyBackWall = Math.abs(enemyGoalY - futureBallMotion.space.y);
         situation.distanceFromEnemyCorner = getDistanceFromEnemyCorner(futureBallMotion, enemyGoalY);
+
+        situation.scoredOnThreat = GoalUtil.predictGoalEvent(GoalUtil.getOwnGoal(input.team), ballPath);
+        situation.needsDefensiveClear = GoalUtil.ballLingersInBox(GoalUtil.getOwnGoal(input.team), ballPath);
+        situation.shotOnGoalAvailable = GoalUtil.ballLingersInBox(GoalUtil.getEnemyGoal(input.team), ballPath) &&
+                input.getMyCarData().position.distance(input.ballPosition) < 80;
 
         return situation;
     }

@@ -60,7 +60,7 @@ public class CatchBallStep implements Step {
         Vector3 awayFromEnemyGoal = (Vector3) catchLocation.space.subCopy(enemyGoal);
         awayFromEnemyGoal.z = 0;
         awayFromEnemyGoal.normalise();
-        awayFromEnemyGoal.scale(.85);
+        awayFromEnemyGoal.scale(1.2);
         Vector3 target = catchLocation.space.addCopy(awayFromEnemyGoal);
 
         return SteerUtil.getThereOnTime(car, new SpaceTime(target, catchLocation.time));

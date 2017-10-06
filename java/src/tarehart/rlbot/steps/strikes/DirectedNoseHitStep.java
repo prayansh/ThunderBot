@@ -36,9 +36,18 @@ public class DirectedNoseHitStep implements Step {
         this.kickStrategy = kickStrategy;
     }
 
-    public static boolean canMakeDirectedKick(AgentInput input) {
-        return BallPhysics.getGroundBounceEnergy(
-                new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity)) < 30;
+    public static boolean canMakeDirectedKick(AgentInput input, KickStrategy kickStrategy) {
+        boolean tooBouncy = BallPhysics.getGroundBounceEnergy(
+                new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity)) > 30;
+
+        Vector2 kickDirection = VectorUtil.flatten(kickStrategy.getKickDirection(input));
+        Vector2 carToBall = VectorUtil.flatten((Vector3) input.ballPosition.subCopy(input.getMyCarData().position));
+
+        double correctionAngleRad = SteerUtil.getCorrectionAngleRad(kickDirection, carToBall);
+
+        boolean wrongSide = Math.abs(correctionAngleRad) > Math.PI * 2/3;
+
+        return !tooBouncy && !wrongSide;
     }
 
     public double getEstimatedAngleOfKickFromApproach() {

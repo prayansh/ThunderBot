@@ -69,6 +69,7 @@ public class WallTouchStep implements Step {
         }
 
         if (readyToJump(input, motion.toSpaceTime())) {
+            BotLog.println("Jumping for wall touch.", input.team);
             return Optional.of(new AgentOutput().withAcceleration(1).withJump());
         }
 

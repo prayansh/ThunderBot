@@ -1,20 +1,12 @@
 package tarehart.rlbot;
 
-import mikera.vectorz.Vector3;
 import tarehart.rlbot.input.CarData;
-import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
-import tarehart.rlbot.planning.GoalUtil;
-import tarehart.rlbot.planning.Plan;
-import tarehart.rlbot.planning.SteerUtil;
-import tarehart.rlbot.planning.TacticsAdvisor;
+import tarehart.rlbot.planning.*;
 import tarehart.rlbot.steps.GoForKickoffStep;
-import tarehart.rlbot.steps.debug.TagAlongStep;
-import tarehart.rlbot.steps.defense.WhatASaveStep;
 import tarehart.rlbot.steps.landing.LandGracefullyStep;
-import tarehart.rlbot.steps.strikes.*;
 import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
@@ -54,35 +46,21 @@ public class ReliefBot extends Bot {
         }
 
         BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(7));
-        if (canInterruptPlanFor(Plan.Posture.SAVE)) {
-            Optional<SpaceTimeVelocity> scoredOn = GoalUtil.predictGoalEvent(GoalUtil.getOwnGoal(input.team), ballPath);
-            if (scoredOn.isPresent()) {
-                BotLog.println("Going for save", input.team);
-                currentPlan = new Plan(Plan.Posture.SAVE).withStep(new WhatASaveStep());
-                currentPlan.begin();
-            }
-        }
+        TacticalSituation situation = tacticsAdvisor.assessSituation(input, ballPath);
 
-        if (canInterruptPlanFor(Plan.Posture.CLEAR)) {
-            boolean ballEntersOurBox = GoalUtil.ballLingersInBox(GoalUtil.getOwnGoal(input.team), ballPath);
-            if (ballEntersOurBox) {
-                BotLog.println("Going for clear", input.team);
-                currentPlan = new Plan(Plan.Posture.CLEAR).withStep(new IdealDirectedHitStep(new KickAwayFromOwnGoal(), input));
-                currentPlan.begin();
-            }
-        }
-
-        if (canInterruptPlanFor(Plan.Posture.OFFENSIVE)) {
-            boolean ballEntersEnemyBox = GoalUtil.ballLingersInBox(GoalUtil.getEnemyGoal(input.team), ballPath);
-            if (ballEntersEnemyBox && car.position.distance(input.ballPosition) < 80) {
-                BotLog.println("Going for shot", input.team);
-                currentPlan = new Plan(Plan.Posture.OFFENSIVE).withStep(new IdealDirectedHitStep(new KickAtEnemyGoal(), input));
-                currentPlan.begin();
-            }
+        if (situation.scoredOnThreat.isPresent() && canInterruptPlanFor(Plan.Posture.SAVE)) {
+            BotLog.println("Need to go for save! Canceling current plan.", input.team);
+            currentPlan = null;
+        } else if (situation.needsDefensiveClear && canInterruptPlanFor(Plan.Posture.CLEAR)) {
+            BotLog.println("Going for clear! Canceling current plan.", input.team);
+            currentPlan = null;
+        } else if (situation.shotOnGoalAvailable && canInterruptPlanFor(Plan.Posture.OFFENSIVE)) {
+            BotLog.println("Shot opportunity! Canceling current plan.", input.team);
+            currentPlan = null;
         }
 
         if (currentPlan == null || currentPlan.isComplete()) {
-            currentPlan = tacticsAdvisor.makePlan(input);
+            currentPlan = tacticsAdvisor.makePlan(input, situation);
             currentPlan.begin();
         }
 

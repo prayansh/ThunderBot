@@ -15,7 +15,7 @@ import java.time.Duration;
 import java.util.Optional;
 
 public class DirectedKickUtil {
-    private static final double BALL_VELOCITY_INFLUENCE = .7;
+    private static final double BALL_VELOCITY_INFLUENCE = .3;
     private static final double SIDE_HIT_SPEED = 20;
 
     public static Optional<DirectedKickPlan> planKick(AgentInput input, KickStrategy kickStrategy, boolean isSideHit) {
