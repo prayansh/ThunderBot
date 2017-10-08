@@ -56,16 +56,16 @@ public class GetBoostStep implements Step {
         } else {
 
             CarData carData = input.getMyCarData();
-            Vector2 myPosition = VectorUtil.flatten(carData.position);
+            Vector2 myPosition = carData.position.flatten();
             Vector3 target = targetLocation.location;
-            Vector2 toBoost = VectorUtil.flatten(target).subCopy(myPosition);
+            Vector2 toBoost = target.flatten().minus(myPosition);
 
 
 
             DistancePlot distancePlot = AccelerationModel.simulateAcceleration(car, Duration.ofSeconds(4), car.boost);
-            Vector2 facing = VectorUtil.orthogonal(VectorUtil.flatten(target), v -> v.dotProduct(toBoost) > 0).normaliseCopy();
+            Vector2 facing = VectorUtil.orthogonal(target.flatten(), v -> v.dotProduct(toBoost) > 0).normaliseCopy();
 
-            SteerPlan planForCircleTurn = SteerUtil.getPlanForCircleTurn(car, distancePlot, VectorUtil.flatten(target), facing);
+            SteerPlan planForCircleTurn = SteerUtil.getPlanForCircleTurn(car, distancePlot, target.flatten(), facing);
 
             Optional<Plan> sensibleFlip = SteerUtil.getSensibleFlip(car, planForCircleTurn.waypoint);
             if (sensibleFlip.isPresent()) {

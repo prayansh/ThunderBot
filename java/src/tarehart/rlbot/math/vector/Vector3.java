@@ -16,27 +16,27 @@ public class Vector3 {
         this(0, 0, 0);
     }
 
-    public Vector3 addCopy(Vector3 other) {
+    public Vector3 plus(Vector3 other) {
         return new Vector3(x + other.x, y + other.y, z + other.z);
     }
 
-    public Vector3 subCopy(Vector3 other) {
+    public Vector3 minus(Vector3 other) {
         return new Vector3(x - other.x, y - other.y, z - other.z);
     }
 
-    public Vector3 scaleCopy(double scale) {
+    public Vector3 scaled(double scale) {
         return new Vector3(x * scale, y * scale, z * scale);
     }
 
     /**
      * If magnitude is negative, we will return a vector facing the opposite direction.
      */
-    public Vector3 withMagnitude(double magnitude) {
+    public Vector3 scaledToMagnitude(double magnitude) {
         if (isZero()) {
             throw new IllegalStateException("Cannot scale up a vector with length zero!");
         }
         double scaleRequired = magnitude / magnitude();
-        return scaleCopy(scaleRequired);
+        return scaled(scaleRequired);
     }
 
     public double distance(Vector3 other) {
@@ -59,7 +59,7 @@ public class Vector3 {
         if (isZero()) {
             throw new IllegalStateException("Cannot normalize a vector with length zero!");
         }
-        return this.scaleCopy(1 / magnitude());
+        return this.scaled(1 / magnitude());
     }
 
     public double dotProduct(Vector3 other) {
@@ -90,7 +90,7 @@ public class Vector3 {
 
     public Vector3 projectToPlane(Vector3 planeNormal) {
         double d = dotProduct(planeNormal);
-        Vector3 antidote = planeNormal.scaleCopy(-d);
-        return addCopy(antidote);
+        Vector3 antidote = planeNormal.scaled(-d);
+        return plus(antidote);
     }
 }

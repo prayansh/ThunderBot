@@ -3,7 +3,6 @@ package tarehart.rlbot.physics;
 import tarehart.rlbot.math.vector.Vector2;
 import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.math.*;
-import tarehart.rlbot.planning.SteerUtil;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -40,9 +39,9 @@ public class BallPath {
 
                 long simulationStepMillis = Duration.between(current.getTime(), next.getTime()).toMillis();
                 double tweenPoint = Duration.between(current.getTime(), time).toMillis() * 1.0 / simulationStepMillis;
-                Vector3 toNext = next.getSpace().subCopy(current.getSpace());
-                Vector3 toTween = toNext.scaleCopy(tweenPoint);
-                Vector3 space = current.getSpace().addCopy(toTween);
+                Vector3 toNext = next.getSpace().minus(current.getSpace());
+                Vector3 toTween = toNext.scaled(tweenPoint);
+                Vector3 space = current.getSpace().plus(toTween);
                 Vector3 velocity = averageVectors(current.getVelocity(), next.getVelocity(), 1 - tweenPoint);
                 return Optional.of(new SpaceTimeVelocity(new SpaceTime(space, time), velocity));
             }
@@ -52,7 +51,7 @@ public class BallPath {
     }
 
     private Vector3 averageVectors(Vector3 a, Vector3 b, double weightOfA) {
-        return a.scaleCopy(weightOfA).addCopy(b.scaleCopy(1 - weightOfA));
+        return a.scaled(weightOfA).plus(b.scaled(1 - weightOfA));
     }
 
     /**
@@ -90,8 +89,8 @@ public class BallPath {
         if (currentVelocity.magnitudeSquared() < .01) {
             return false;
         }
-        Vector2 prev = VectorUtil.flatten(previousVelocity);
-        Vector2 curr = VectorUtil.flatten(currentVelocity);
+        Vector2 prev = previousVelocity.flatten();
+        Vector2 curr = currentVelocity.flatten();
 
         return Vector2.angle(prev, curr) > Math.PI / 6;
     }
@@ -154,7 +153,7 @@ public class BallPath {
 
             SpaceTimeVelocity previous = path.get(i - 1);
 
-            if (directionSensitive && spt.getSpace().subCopy(previous.getSpace()).dotProduct(plane.normal) > 0) {
+            if (directionSensitive && spt.getSpace().minus(previous.getSpace()).dotProduct(plane.normal) > 0) {
                 // Moving the same direction as the plane normal. If we're direction sensitive, then we don't care about plane breaks in this direction.
                 continue;
             }
@@ -177,7 +176,7 @@ public class BallPath {
     }
 
     private Optional<Vector3> getPlaneBreak(Vector3 start, Vector3 end, Plane plane) {
-        return VectorUtil.getPlaneIntersection(plane, start, end.subCopy(start));
+        return VectorUtil.getPlaneIntersection(plane, start, end.minus(start));
     }
 
     public Optional<SpaceTimeVelocity> findSlice(Predicate<SpaceTimeVelocity> decider) {

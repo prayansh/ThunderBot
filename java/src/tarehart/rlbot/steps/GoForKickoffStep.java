@@ -39,7 +39,7 @@ public class GoForKickoffStep implements Step {
             }
         }
 
-        if (VectorUtil.flatten(input.ballPosition).magnitudeSquared() > 0) {
+        if (input.ballPosition.flatten().magnitudeSquared() > 0) {
             return Optional.empty();
         }
 

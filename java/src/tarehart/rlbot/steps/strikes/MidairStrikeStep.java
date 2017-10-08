@@ -5,7 +5,6 @@ import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
-import tarehart.rlbot.math.Plane;
 import tarehart.rlbot.math.SpaceTime;
 import tarehart.rlbot.math.TimeUtil;
 import tarehart.rlbot.math.VectorUtil;
@@ -70,7 +69,7 @@ public class MidairStrikeStep implements Step {
             return Optional.of(new AgentOutput().withBoost());
         }
         SpaceTime intercept = interceptOpportunity.get();
-        Vector3 carToIntercept = intercept.space.subCopy(car.position);
+        Vector3 carToIntercept = intercept.space.minus(car.position);
         long millisTillIntercept = Duration.between(input.time, intercept.time).toMillis();
         double distance = car.position.distance(input.ballPosition);
         BotLog.println("Midair strike running... Distance: " + distance, input.team);
@@ -113,9 +112,9 @@ public class MidairStrikeStep implements Step {
         double desiredVerticalAngle = idealVelocityAngle + UPWARD_VELOCITY_MAINTENANCE_ANGLE + (idealVelocityAngle - currentVelocityAngle) * .5;
         desiredVerticalAngle = Math.min(desiredVerticalAngle, Math.PI / 2);
 
-        Vector2 flatToIntercept = VectorUtil.flatten(carToIntercept);
+        Vector2 flatToIntercept = carToIntercept.flatten();
 
-        Vector2 currentFlatVelocity = VectorUtil.flatten(car.velocity);
+        Vector2 currentFlatVelocity = car.velocity.flatten();
 
         double yawCorrection = currentFlatVelocity.correctionAngle(flatToIntercept);
         Vector2 desiredFlatOrientation = VectorUtil.rotateVector(currentFlatVelocity, yawCorrection * 2).normaliseCopy();

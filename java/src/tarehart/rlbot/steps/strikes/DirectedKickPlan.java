@@ -4,7 +4,6 @@ import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.DistancePlot;
-import tarehart.rlbot.planning.AccelerationModel;
 
 public class DirectedKickPlan {
     public BallPath ballPath;
@@ -15,6 +14,6 @@ public class DirectedKickPlan {
     public Vector3 plannedKickForce;
 
     public Vector3 getCarPositionAtIntercept() {
-        return ballAtIntercept.getSpace().addCopy(interceptModifier);
+        return ballAtIntercept.getSpace().plus(interceptModifier);
     }
 }

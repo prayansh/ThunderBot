@@ -1,7 +1,6 @@
 package tarehart.rlbot.math;
 
 import tarehart.rlbot.math.vector.Vector2;
-import tarehart.rlbot.planning.SteerUtil;
 
 public class Circle {
 
@@ -38,7 +37,7 @@ public class Circle {
     }
 
     public static boolean isClockwise(Circle circle, Vector2 tangentPosition, Vector2 tangentDirection) {
-        Vector2 tangentToCenter = tangentPosition.subCopy(circle.center);
+        Vector2 tangentToCenter = tangentPosition.minus(circle.center);
         return tangentToCenter.correctionAngle(tangentDirection) < 0;
     }
 }

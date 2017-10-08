@@ -38,7 +38,7 @@ public class AgentInput {
 
         ballPosition = convert(gameTickPacket.gameball.Location);
         ballVelocity = convert(gameTickPacket.gameball.Velocity);
-        boolean isKickoff = VectorUtil.flatten(ballPosition).isZero() && ballVelocity.isZero();
+        boolean isKickoff = ballPosition.flatten().isZero() && ballVelocity.isZero();
 
         chronometer.readInput(gameTickPacket.gameInfo, isKickoff);
 

@@ -10,27 +10,27 @@ public class Vector2 {
         this.y = y;
     }
 
-    public Vector2 addCopy(Vector2 other) {
+    public Vector2 plus(Vector2 other) {
         return new Vector2(x + other.x, y + other.y);
     }
 
-    public Vector2 subCopy(Vector2 other) {
+    public Vector2 minus(Vector2 other) {
         return new Vector2(x - other.x, y - other.y);
     }
 
-    public Vector2 scaleCopy(double scale) {
+    public Vector2 scaled(double scale) {
         return new Vector2(x * scale, y * scale);
     }
 
     /**
      * If magnitude is negative, we will return a vector facing the opposite direction.
      */
-    public Vector2 withMagnitude(double magnitude) {
+    public Vector2 scaledToMagnitude(double magnitude) {
         if (isZero()) {
             throw new IllegalStateException("Cannot scale up a vector with length zero!");
         }
         double scaleRequired = magnitude / magnitude();
-        return scaleCopy(scaleRequired);
+        return scaled(scaleRequired);
     }
 
     public double distance(Vector2 other) {
@@ -52,7 +52,7 @@ public class Vector2 {
         if (isZero()) {
             throw new IllegalStateException("Cannot normalize a vector with length zero!");
         }
-        return this.scaleCopy(1 / magnitude());
+        return this.scaled(1 / magnitude());
     }
 
     public double dotProduct(Vector2 other) {

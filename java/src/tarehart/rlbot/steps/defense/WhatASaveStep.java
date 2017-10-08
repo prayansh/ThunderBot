@@ -16,7 +16,6 @@ import tarehart.rlbot.steps.Step;
 import tarehart.rlbot.steps.strikes.DirectedSideHitStep;
 import tarehart.rlbot.steps.strikes.InterceptStep;
 import tarehart.rlbot.steps.strikes.KickAwayFromOwnGoal;
-import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -47,8 +46,8 @@ public class WhatASaveStep implements Step {
 
         if (whichPost == null) {
 
-            Vector3 carToThreat = threat.space.subCopy(car.position);
-            double carApproachVsBallApproach = VectorUtil.flatten(carToThreat).correctionAngle(VectorUtil.flatten(input.ballVelocity));
+            Vector3 carToThreat = threat.space.minus(car.position);
+            double carApproachVsBallApproach = carToThreat.flatten().correctionAngle(input.ballVelocity.flatten());
             // When carApproachVsBallApproach < 0, car is to the right of the ball, angle wise. Right is positive X when we're on the positive Y side of the field.
             whichPost = Math.signum(-carApproachVsBallApproach * threat.space.y);
 
@@ -60,11 +59,11 @@ public class WhatASaveStep implements Step {
 
         SpaceTime intercept = SteerUtil.getInterceptOpportunity(car, ballPath, plot).orElse(threat.toSpaceTime());
 
-        Vector3 carToIntercept = intercept.space.subCopy(car.position);
-        double carApproachVsBallApproach = VectorUtil.flatten(carToIntercept).correctionAngle(VectorUtil.flatten(input.ballVelocity));
+        Vector3 carToIntercept = intercept.space.minus(car.position);
+        double carApproachVsBallApproach = carToIntercept.flatten().correctionAngle(input.ballVelocity.flatten());
         if (Math.abs(carApproachVsBallApproach) > Math.PI / 5) {
 
-            if (Vector2.angle(VectorUtil.flatten(car.orientation.noseVector), VectorUtil.flatten(carToIntercept)) < Math.PI / 12) {
+            if (Vector2.angle(car.orientation.noseVector.flatten(), carToIntercept.flatten()) < Math.PI / 12) {
 
                 plan = new Plan(Plan.Posture.SAVE).withStep(new InterceptStep(new Vector3(0, Math.signum(goal.getCenter().y) * 1.5, 0)));
                 plan.begin();

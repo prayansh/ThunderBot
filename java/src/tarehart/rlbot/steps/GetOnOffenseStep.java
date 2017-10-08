@@ -57,15 +57,15 @@ public class GetOnOffenseStep implements Step {
 
         if (futureMotion.getSpace().distance(enemyGoal.getCenter())  < ArenaModel.SIDE_WALL * .8) {
             // Get into a strike position, 10 units behind the ball
-            Vector3 goalToBall = target.subCopy(enemyGoal.getCenter());
+            Vector3 goalToBall = target.minus(enemyGoal.getCenter());
             Vector3 goalToBallNormal = goalToBall.normaliseCopy();
-            target = target.addCopy(goalToBallNormal.scaleCopy(10));
+            target = target.plus(goalToBallNormal.scaled(10));
 
         } else {
             // Get into a backstop position
-            Vector3 goalToBall = target.subCopy(ownGoal.getCenter());
+            Vector3 goalToBall = target.minus(ownGoal.getCenter());
             Vector3 goalToBallNormal = goalToBall.normaliseCopy();
-            target = target.subCopy(goalToBallNormal.scaleCopy(10));
+            target = target.minus(goalToBallNormal.scaled(10));
         }
 
 
@@ -74,12 +74,12 @@ public class GetOnOffenseStep implements Step {
         if (getYAxisWrongSidedness(input) < 0) {
             return Optional.empty();
         }
-        Vector3 targetToBallFuture = futureMotion.getSpace().subCopy(target);
+        Vector3 targetToBallFuture = futureMotion.getSpace().minus(target);
 
         DistancePlot plot = AccelerationModel.simulateAcceleration(car, Duration.ofSeconds(4), 0);
 
 
-        Optional<Vector2> circleTurnOption = SteerUtil.getWaypointForCircleTurn(car, plot, VectorUtil.flatten(target), VectorUtil.flatten(targetToBallFuture).normaliseCopy());
+        Optional<Vector2> circleTurnOption = SteerUtil.getWaypointForCircleTurn(car, plot, target.flatten(), targetToBallFuture.flatten().normaliseCopy());
 
         if (circleTurnOption.isPresent()) {
             Vector2 circleTurn = circleTurnOption.get();

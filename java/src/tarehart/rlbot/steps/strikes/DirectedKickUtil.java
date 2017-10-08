@@ -19,7 +19,7 @@ public class DirectedKickUtil {
     private static final double SIDE_HIT_SPEED = 20;
 
     public static Optional<DirectedKickPlan> planKick(AgentInput input, KickStrategy kickStrategy, boolean isSideHit) {
-        Vector3 interceptModifier = kickStrategy.getKickDirection(input).normaliseCopy().scaleCopy(-2);
+        Vector3 interceptModifier = kickStrategy.getKickDirection(input).normaliseCopy().scaled(-2);
         return planKick(input, kickStrategy, isSideHit, interceptModifier, new StrikeProfile(.5, 0, 0));
     }
 
@@ -46,14 +46,14 @@ public class DirectedKickUtil {
 
         Vector3 easyForce;
         if (isSideHit) {
-            Vector2 carToIntercept = VectorUtil.flatten(interceptOpportunity.get().space.subCopy(car.position));
-            Vector2 sideHit = VectorUtil.orthogonal(carToIntercept, v -> v.dotProduct(VectorUtil.flatten(interceptModifier)) < 0);
+            Vector2 carToIntercept = interceptOpportunity.get().space.minus(car.position).flatten();
+            Vector2 sideHit = VectorUtil.orthogonal(carToIntercept, v -> v.dotProduct(interceptModifier.flatten()) < 0);
             easyForce = new Vector3(sideHit.x, sideHit.y, 0);
         } else {
-            easyForce = kickPlan.ballAtIntercept.getSpace().subCopy(car.position);
+            easyForce = kickPlan.ballAtIntercept.getSpace().minus(car.position);
         }
 
-        easyForce.withMagnitude(impactSpeed);
+        easyForce.scaledToMagnitude(impactSpeed);
 
         Vector3 easyKick = bump(kickPlan.ballAtIntercept.getVelocity(), easyForce);
         Vector3 kickDirection = kickStrategy.getKickDirection(input, kickPlan.ballAtIntercept.getSpace(), easyKick);
@@ -65,9 +65,9 @@ public class DirectedKickUtil {
         } else {
 
             // TODO: this is a rough approximation.
-            Vector2 orthogonal = VectorUtil.orthogonal(VectorUtil.flatten(kickDirection));
-            Vector2 transverseBallVelocity = VectorUtil.project(VectorUtil.flatten(kickPlan.ballAtIntercept.getVelocity()), orthogonal);
-            kickPlan.desiredBallVelocity = kickDirection.normaliseCopy().scaleCopy(impactSpeed + transverseBallVelocity.magnitude() * .7);
+            Vector2 orthogonal = VectorUtil.orthogonal(kickDirection.flatten());
+            Vector2 transverseBallVelocity = VectorUtil.project(kickPlan.ballAtIntercept.getVelocity().flatten(), orthogonal);
+            kickPlan.desiredBallVelocity = kickDirection.normaliseCopy().scaled(impactSpeed + transverseBallVelocity.magnitude() * .7);
             kickPlan.plannedKickForce = new Vector3(
                     kickPlan.desiredBallVelocity.x - transverseBallVelocity.x * BALL_VELOCITY_INFLUENCE,
                     kickPlan.desiredBallVelocity.y - transverseBallVelocity.y * BALL_VELOCITY_INFLUENCE,
@@ -83,21 +83,21 @@ public class DirectedKickUtil {
      */
     private static Vector3 reflect(Vector3 incident, Vector3 normal) {
         normal = normal.normaliseCopy();
-        return incident.subCopy(normal.scaleCopy(2 * incident.dotProduct(normal)));
+        return incident.minus(normal.scaled(2 * incident.dotProduct(normal)));
     }
 
     private static Vector3 bump(Vector3 incident, Vector3 movingWall) {
         // Move into reference frame of moving wall
-        Vector3 incidentAccordingToWall = incident.subCopy(movingWall);
+        Vector3 incidentAccordingToWall = incident.minus(movingWall);
         Vector3 reflectionAccordingToWall = reflect(incidentAccordingToWall, movingWall);
-        return reflectionAccordingToWall.addCopy(movingWall);
+        return reflectionAccordingToWall.plus(movingWall);
     }
 
 
     static double getAngleOfKickFromApproach(CarData car, DirectedKickPlan kickPlan) {
-        Vector2 strikeForceFlat = VectorUtil.flatten(kickPlan.plannedKickForce);
+        Vector2 strikeForceFlat = kickPlan.plannedKickForce.flatten();
         Vector3 carPositionAtIntercept = kickPlan.getCarPositionAtIntercept();
-        Vector2 carToIntercept = VectorUtil.flatten(carPositionAtIntercept.subCopy(car.position));
+        Vector2 carToIntercept = carPositionAtIntercept.minus(car.position).flatten();
         return carToIntercept.correctionAngle(strikeForceFlat);
     }
 }

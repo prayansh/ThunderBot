@@ -10,20 +10,16 @@ import tarehart.rlbot.input.CarOrientation;
 import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.planning.Plan;
-import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.steps.Step;
 import tarehart.rlbot.steps.rotation.PitchToPlaneStep;
 import tarehart.rlbot.steps.rotation.RollToPlaneStep;
 import tarehart.rlbot.steps.rotation.YawToPlaneStep;
 import tarehart.rlbot.steps.wall.DescendFromWallStep;
 import tarehart.rlbot.steps.wall.WallTouchStep;
-import tarehart.rlbot.tuning.BotLog;
 
 import java.time.Duration;
-import java.util.Comparator;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 public class LandGracefullyStep implements Step {
     private static final double SIN_45 = Math.sin(Math.PI / 4);
@@ -34,13 +30,13 @@ public class LandGracefullyStep implements Step {
     public static final Function<AgentInput, Vector2> FACE_BALL = LandGracefullyStep::faceBall;
 
     private static Vector2 faceBall(AgentInput input) {
-        Vector2 toBall = VectorUtil.flatten((input.ballPosition).subCopy(input.getMyCarData().position));
+        Vector2 toBall = (input.ballPosition).minus(input.getMyCarData().position).flatten();
         return toBall.normaliseCopy();
     }
 
 
     public LandGracefullyStep() {
-        this(input -> VectorUtil.flatten(input.getMyCarData().velocity));
+        this(input -> input.getMyCarData().velocity.flatten());
     }
 
     public LandGracefullyStep(Function<AgentInput, Vector2> facingFn) {

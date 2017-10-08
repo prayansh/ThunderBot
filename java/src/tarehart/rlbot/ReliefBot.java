@@ -32,7 +32,7 @@ public class ReliefBot extends Bot {
 //        }
 
         // Kickoffs can happen unpredictably because the bot doesn't know about goals at the moment.
-        if (noActivePlanWithPosture(Plan.Posture.KICKOFF) && VectorUtil.flatten(input.ballPosition).magnitudeSquared() == 0) {
+        if (noActivePlanWithPosture(Plan.Posture.KICKOFF) && input.ballPosition.flatten().magnitudeSquared() == 0) {
             currentPlan = new Plan(Plan.Posture.KICKOFF).withStep(new GoForKickoffStep());
             currentPlan.begin();
         }

@@ -10,20 +10,16 @@ public class VectorUtil {
 
     public static Vector3 project(Vector3 vector, Vector3 onto) {
         double scale = vector.dotProduct(onto) / onto.magnitudeSquared();
-        return onto.scaleCopy(scale);
+        return onto.scaled(scale);
     }
 
     public static Vector2 project(Vector2 vector, Vector2 onto) {
         double scale = vector.dotProduct(onto) / onto.magnitudeSquared();
-        return onto.scaleCopy(scale);
-    }
-
-    public static Vector2 flatten(Vector3 vector3) {
-        return new Vector2(vector3.x, vector3.y);
+        return onto.scaled(scale);
     }
 
     public static double flatDistance(Vector3 a, Vector3 b) {
-        return flatten(a).distance(flatten(b));
+        return a.flatten().distance(b.flatten());
     }
 
     public static double flatDistance(Vector3 a, Vector3 b, Vector3 planeNormal) {
@@ -42,7 +38,7 @@ public class VectorUtil {
         double x = (d - plane.normal.dotProduct(segmentPosition)) / plane.normal.dotProduct(segmentVector);
 
         // output contact point
-        Vector3 intersection = segmentPosition.addCopy(segmentVector.scaleCopy(x));
+        Vector3 intersection = segmentPosition.plus(segmentVector.scaled(x));
 
         if (intersection.distance(segmentPosition) > segmentVector.magnitude()) {
             return Optional.empty();
@@ -71,7 +67,7 @@ public class VectorUtil {
         if (isCorrectDirection.apply(result)) {
             return result;
         }
-        return result.scaleCopy(-1);
+        return result.scaled(-1);
     }
 
     public static double getCorrectionAngle(Vector3 current, Vector3 ideal, Vector3 up) {

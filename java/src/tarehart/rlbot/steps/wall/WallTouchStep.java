@@ -83,7 +83,7 @@ public class WallTouchStep implements Step {
             return false; // Really close to wall, no need to jump. Just chip it.
         }
         CarData car = input.getMyCarData();
-        Vector3 toPosition = carPositionAtContact.space.subCopy(car.position);
+        Vector3 toPosition = carPositionAtContact.space.minus(car.position);
         double correctionAngleRad = VectorUtil.getCorrectionAngle(car.orientation.noseVector, toPosition, car.orientation.roofVector);
         double secondsTillIntercept = TimeUtil.secondsBetween(input.time, carPositionAtContact.time);
         double wallDistanceAtIntercept = ArenaModel.getDistanceFromWall(carPositionAtContact.space);

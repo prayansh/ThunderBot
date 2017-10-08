@@ -86,7 +86,7 @@ public class PredictedVsActualTest {
         for (int i = 0; i < predicted.size(); i++) {
 
             Vector3 actualSlice = actualTrimmed.get(i).getSpace();
-            Vector3 actualToPredicted = predicted.get(i).getSpace().subCopy(actualSlice);
+            Vector3 actualToPredicted = predicted.get(i).getSpace().minus(actualSlice);
             double error = new Vector2(actualToPredicted.x, actualToPredicted.y).magnitude();
             if (error > THRESHOLD) {
                 Duration duration = Duration.between(actualTrimmed.get(0).getTime(), actualTrimmed.get(i).getTime());

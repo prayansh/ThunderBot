@@ -4,10 +4,10 @@ import tarehart.rlbot.math.vector.Vector2;
 import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.input.CarData;
-import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.planning.GoalUtil;
-import tarehart.rlbot.planning.SteerUtil;
+
+import static tarehart.rlbot.planning.GoalUtil.getOwnGoal;
 
 public class KickAwayFromOwnGoal implements KickStrategy {
 
@@ -20,7 +20,7 @@ public class KickAwayFromOwnGoal implements KickStrategy {
     @Override
     public Vector3 getKickDirection(AgentInput input, Vector3 ballPosition) {
         CarData car = input.getMyCarData();
-        Vector3 toBall = ballPosition.subCopy(car.position);
+        Vector3 toBall = ballPosition.minus(car.position);
         return getDirection(input.getMyCarData(), ballPosition, toBall);
     }
 
@@ -30,9 +30,9 @@ public class KickAwayFromOwnGoal implements KickStrategy {
     }
 
     private Vector3 getDirection(CarData car, Vector3 ballPosition, Vector3 easyKick) {
-        Vector2 easyKickFlat = VectorUtil.flatten(easyKick);
-        Vector2 toLeftPost = VectorUtil.flatten(GoalUtil.getOwnGoal(car.team).getLeftPost().subCopy(ballPosition));
-        Vector2 toRightPost = VectorUtil.flatten(GoalUtil.getOwnGoal(car.team).getRightPost().subCopy(ballPosition));
+        Vector2 easyKickFlat = easyKick.flatten();
+        Vector2 toLeftPost = getOwnGoal(car.team).getLeftPost().minus(ballPosition).flatten();
+        Vector2 toRightPost = getOwnGoal(car.team).getRightPost().minus(ballPosition).flatten();
 
         Vector2 safeDirectionRight = VectorUtil.rotateVector(toRightPost, -Math.PI/4);
         Vector2 safeDirectionLeft = VectorUtil.rotateVector(toLeftPost, Math.PI/4);

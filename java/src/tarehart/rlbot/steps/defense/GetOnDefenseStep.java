@@ -56,7 +56,7 @@ public class GetOnDefenseStep implements Step {
         Vector2 targetPosition = new Vector2(Math.signum(ballMotion.getSpace().x) * CENTER_OFFSET, goalCenter.y - Math.signum(goalCenter.y) * AWAY_FROM_GOAL);
         Vector2 targetFacing = new Vector2(-Math.signum(targetPosition.x), 0);
 
-        double distance = VectorUtil.flatten(car.position).distance(targetPosition);
+        double distance = car.position.flatten().distance(targetPosition);
         DistancePlot distancePlot = AccelerationModel.simulateAcceleration(car, Duration.ofSeconds(5), car.boost - 20, distance);
 
         SteerPlan planForCircleTurn = SteerUtil.getPlanForCircleTurn(car, distancePlot, targetPosition, targetFacing);

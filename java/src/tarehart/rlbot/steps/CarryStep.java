@@ -19,6 +19,8 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+import static tarehart.rlbot.planning.GoalUtil.getEnemyGoal;
+
 public class CarryStep implements Step {
 
     private static final double MAX_X_DIFF = 1.3;
@@ -32,7 +34,7 @@ public class CarryStep implements Step {
             return Optional.empty();
         }
 
-        Vector2 ballVelocityFlat = VectorUtil.flatten(input.ballVelocity);
+        Vector2 ballVelocityFlat = input.ballVelocity.flatten();
         double leadSeconds = .2;
 
         BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(2));
@@ -44,13 +46,12 @@ public class CarryStep implements Step {
 
         Vector2 futureBallPosition;
         SpaceTimeVelocity ballFuture = ballPath.getMotionAt(input.time.plus(TimeUtil.toDuration(leadSeconds))).get();
-        futureBallPosition = VectorUtil.flatten(ballFuture.getSpace());
+        futureBallPosition = ballFuture.getSpace().flatten();
 
 
+        Vector2 scoreLocation = getEnemyGoal(input.team).getNearestEntrance(input.ballPosition, 3).flatten();
 
-        Vector2 scoreLocation = VectorUtil.flatten(GoalUtil.getEnemyGoal(input.team).getNearestEntrance(input.ballPosition, 3));
-
-        Vector2 ballToGoal = scoreLocation.subCopy(futureBallPosition);
+        Vector2 ballToGoal = scoreLocation.minus(futureBallPosition);
         Vector2 pushDirection;
         Vector2 pressurePoint;
         double approachDistance = 1;
@@ -59,7 +60,7 @@ public class CarryStep implements Step {
         double velocityCorrectionAngle = ballVelocityFlat.correctionAngle(ballToGoal);
         double angleTweak = Math.min(Math.PI / 6, Math.max(-Math.PI / 6, velocityCorrectionAngle * 2));
         pushDirection = VectorUtil.rotateVector(ballToGoal, angleTweak).normaliseCopy();
-        pressurePoint = futureBallPosition.subCopy(pushDirection.scaleCopy(approachDistance));
+        pressurePoint = futureBallPosition.minus(pushDirection.scaled(approachDistance));
 
 
         LocalDateTime hurryUp = input.time.plus(TimeUtil.toDuration(leadSeconds));
@@ -72,9 +73,9 @@ public class CarryStep implements Step {
         // We will assume that the car is flat on the ground.
 
         // We will treat (0, 1) as the car's natural orientation.
-        double carYaw = new Vector2(0, 1).correctionAngle(VectorUtil.flatten(car.orientation.noseVector));
+        double carYaw = new Vector2(0, 1).correctionAngle(car.orientation.noseVector.flatten());
 
-        Vector2 carToPosition = VectorUtil.flatten(worldPosition.subCopy(car.position));
+        Vector2 carToPosition = worldPosition.minus(car.position).flatten();
 
         Vector2 carToPositionRotated = VectorUtil.rotateVector(carToPosition, -carYaw);
 

@@ -18,6 +18,6 @@ public class SteerPlan {
 
     public SteerPlan(CarData car, Vector3 position) {
         this.immediateSteer = SteerUtil.steerTowardGroundPosition(car, position);
-        this.waypoint = VectorUtil.flatten(position);
+        this.waypoint = position.flatten();
     }
 }

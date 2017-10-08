@@ -74,7 +74,7 @@ public class Readout {
             Vector3 predictedLocation = predictionOfNow.get().predictedLocation;
             ballHeightPredicted.setValue((int) (predictedLocation.z * HEIGHT_BAR_MULTIPLIER));
 
-            Vector3 predictionRelative = predictedLocation.subCopy(input.ballPosition);
+            Vector3 predictionRelative = predictedLocation.minus(input.ballPosition);
             ballPredictionReadout.setPredictionCoordinates(new Vector2(predictionRelative.x, predictionRelative.y));
             ballPredictionReadout.setVelocity(new Vector2(input.ballVelocity.x, input.ballVelocity.y));
             ballPredictionReadout.repaint();

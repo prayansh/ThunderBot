@@ -31,7 +31,7 @@ public class AccelerationModel {
     }
 
     public static double getSteerPenaltySeconds(CarData carData, Vector3 target) {
-        Vector3 toTarget = target.subCopy(carData.position);
+        Vector3 toTarget = target.minus(carData.position);
         double correctionAngleRad = VectorUtil.getCorrectionAngle(carData.orientation.noseVector, toTarget, carData.orientation.roofVector);
         double correctionErr = Math.abs(correctionAngleRad);
         return correctionErr * .1 + correctionErr * carData.velocity.magnitude() * .005;
@@ -106,7 +106,7 @@ public class AccelerationModel {
     }
 
     public static DistancePlot simulateAirAcceleration(CarData car, Duration duration) {
-        double currentSpeed = VectorUtil.flatten(car.velocity).magnitude();
+        double currentSpeed = car.velocity.flatten().magnitude();
         DistancePlot plot = new DistancePlot(new DistanceTimeSpeed(0, 0, currentSpeed));
 
         double boostRemaining = car.boost;
@@ -118,7 +118,7 @@ public class AccelerationModel {
 
         while (secondsSoFar < secondsToSimulate) {
 
-            double acceleration = boostRemaining > 0 ? VectorUtil.flatten(car.orientation.noseVector).magnitude() * INCREMENTAL_BOOST_ACCELERATION : 0;
+            double acceleration = boostRemaining > 0 ? car.orientation.noseVector.flatten().magnitude() * INCREMENTAL_BOOST_ACCELERATION : 0;
             currentSpeed += acceleration * TIME_STEP;
             if (currentSpeed > SUPERSONIC_SPEED) {
                 currentSpeed = SUPERSONIC_SPEED;

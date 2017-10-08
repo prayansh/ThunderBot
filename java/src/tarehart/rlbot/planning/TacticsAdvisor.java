@@ -88,7 +88,7 @@ public class TacticsAdvisor {
                     // Consider this to be a 50-50. Go hard for the intercept
                     Vector3 ownGoalCenter = GoalUtil.getOwnGoal(input.team).getCenter();
                     Vector3 interceptPosition = interceptStepOffering.get().getSpace();
-                    Vector3 toOwnGoal = ownGoalCenter.subCopy(interceptPosition);
+                    Vector3 toOwnGoal = ownGoalCenter.minus(interceptPosition);
                     Vector3 interceptModifier = toOwnGoal.normaliseCopy();
 
                     return new Plan(Plan.Posture.OFFENSIVE).withStep(new InterceptStep(interceptModifier));
@@ -173,7 +173,7 @@ public class TacticsAdvisor {
         Vector2 corner1 = new Vector2(positiveCorner.x, positiveCorner.y * goalSign);
         Vector2 corner2 = new Vector2(-positiveCorner.x, positiveCorner.y * goalSign);
 
-        Vector2 ballFutureFlat = VectorUtil.flatten(futureBallMotion.space);
+        Vector2 ballFutureFlat = futureBallMotion.space.flatten();
 
         return Math.min(ballFutureFlat.distance(corner1), ballFutureFlat.distance(corner2));
     }
@@ -188,19 +188,19 @@ public class TacticsAdvisor {
 
         CarData enemyCar = input.getEnemyCarData();
         Goal myGoal = GoalUtil.getOwnGoal(input.team);
-        Vector3 ballToGoal = myGoal.getCenter().subCopy(enemyContact.space);
+        Vector3 ballToGoal = myGoal.getCenter().minus(enemyContact.space);
 
-        Vector3 carToBall = enemyContact.space.subCopy(enemyCar.position);
+        Vector3 carToBall = enemyContact.space.minus(enemyCar.position);
 
-        return Vector2.angle(VectorUtil.flatten(ballToGoal), VectorUtil.flatten(carToBall));
+        return Vector2.angle(ballToGoal.flatten(), carToBall.flatten());
     }
 
 
     private double measureOutOfPosition(AgentInput input) {
         CarData car = input.getMyCarData();
         Goal myGoal = GoalUtil.getOwnGoal(input.team);
-        Vector3 ballToGoal = myGoal.getCenter().subCopy(input.ballPosition);
-        Vector3 carToBall = input.ballPosition.subCopy(car.position);
+        Vector3 ballToGoal = myGoal.getCenter().minus(input.ballPosition);
+        Vector3 carToBall = input.ballPosition.minus(car.position);
         Vector3 wrongSideVector = VectorUtil.project(carToBall, ballToGoal);
         return wrongSideVector.magnitude() * Math.signum(wrongSideVector.dotProduct(ballToGoal));
     }

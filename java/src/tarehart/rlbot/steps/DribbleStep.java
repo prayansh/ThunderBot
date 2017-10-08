@@ -22,6 +22,8 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+import static tarehart.rlbot.planning.GoalUtil.getEnemyGoal;
+
 public class DribbleStep implements Step {
 
     public static final double DRIBBLE_DISTANCE = 20;
@@ -45,11 +47,11 @@ public class DribbleStep implements Step {
             return Optional.empty();
         }
 
-        Vector2 myPositonFlat = VectorUtil.flatten(car.position);
-        Vector2 myDirectionFlat = VectorUtil.flatten(car.orientation.noseVector);
-        Vector2 ballPositionFlat = VectorUtil.flatten(input.ballPosition);
-        Vector2 ballVelocityFlat = VectorUtil.flatten(input.ballVelocity);
-        Vector2 toBallFlat = ballPositionFlat.subCopy(myPositonFlat);
+        Vector2 myPositonFlat = car.position.flatten();
+        Vector2 myDirectionFlat = car.orientation.noseVector.flatten();
+        Vector2 ballPositionFlat = input.ballPosition.flatten();
+        Vector2 ballVelocityFlat = input.ballVelocity.flatten();
+        Vector2 toBallFlat = ballPositionFlat.minus(myPositonFlat);
         double flatDistance = toBallFlat.magnitude();
 
         double ballSpeed = ballVelocityFlat.magnitude();
@@ -64,13 +66,12 @@ public class DribbleStep implements Step {
 
         Vector2 futureBallPosition;
         SpaceTimeVelocity ballFuture = ballPath.getMotionAt(input.time.plus(TimeUtil.toDuration(leadSeconds))).get();
-        futureBallPosition = VectorUtil.flatten(ballFuture.getSpace());
+        futureBallPosition = ballFuture.getSpace().flatten();
 
 
+        Vector2 scoreLocation = getEnemyGoal(input.team).getNearestEntrance(input.ballPosition, 3).flatten();
 
-        Vector2 scoreLocation = VectorUtil.flatten(GoalUtil.getEnemyGoal(input.team).getNearestEntrance(input.ballPosition, 3));
-
-        Vector2 ballToGoal = scoreLocation.subCopy(futureBallPosition);
+        Vector2 ballToGoal = scoreLocation.minus(futureBallPosition);
         Vector2 pushDirection;
         Vector2 pressurePoint;
         double approachDistance = 0;
@@ -81,22 +82,22 @@ public class DribbleStep implements Step {
             pushDirection = VectorUtil.rotateVector(ballToGoal, angleTweak).normaliseCopy();
             approachDistance = VectorUtil.project(toBallFlat, new Vector2(pushDirection.y, -pushDirection.x)).magnitude() * 1.6 + .8;
             approachDistance = Math.min(approachDistance, 4);
-            pressurePoint = futureBallPosition.subCopy(pushDirection.normaliseCopy().scaleCopy(approachDistance));
+            pressurePoint = futureBallPosition.minus(pushDirection.normaliseCopy().scaled(approachDistance));
         } else {
             pushDirection = ballToGoal.normaliseCopy();
-            pressurePoint = futureBallPosition.subCopy(pushDirection);
+            pressurePoint = futureBallPosition.minus(pushDirection);
         }
 
 
-        Vector2 carToPressurePoint = pressurePoint.subCopy(myPositonFlat);
-        Vector2 carToBall = futureBallPosition.subCopy(myPositonFlat);
+        Vector2 carToPressurePoint = pressurePoint.minus(myPositonFlat);
+        Vector2 carToBall = futureBallPosition.minus(myPositonFlat);
 
         LocalDateTime hurryUp = input.time.plus(TimeUtil.toDuration(leadSeconds));
 
         boolean hasLineOfSight = pushDirection.normaliseCopy().dotProduct(carToBall.normaliseCopy()) > -.2 || input.ballPosition.z > 2;
         if (!hasLineOfSight) {
             // Steer toward a farther-back waypoint.
-            Vector2 fallBack = VectorUtil.orthogonal(pushDirection, v -> v.dotProduct(ballToGoal) < 0).withMagnitude(5);
+            Vector2 fallBack = VectorUtil.orthogonal(pushDirection, v -> v.dotProduct(ballToGoal) < 0).scaledToMagnitude(5);
 
             return Optional.of(SteerUtil.getThereOnTime(car, new SpaceTime(new Vector3(fallBack.x, fallBack.y, 0), hurryUp)));
         }
@@ -119,7 +120,7 @@ public class DribbleStep implements Step {
     public static boolean canDribble(AgentInput input, boolean log) {
 
         CarData car = input.getMyCarData();
-        Vector3 ballToMe = car.position.subCopy(input.ballPosition);
+        Vector3 ballToMe = car.position.minus(input.ballPosition);
 
         if (ballToMe.magnitude() > DRIBBLE_DISTANCE) {
             // It got away from us
@@ -129,8 +130,8 @@ public class DribbleStep implements Step {
             return false;
         }
 
-        if (input.ballPosition.subCopy(car.position).normaliseCopy().dotProduct(
-                GoalUtil.getOwnGoal(input.team).getCenter().subCopy(input.ballPosition).normaliseCopy()) > .9) {
+        if (input.ballPosition.minus(car.position).normaliseCopy().dotProduct(
+                GoalUtil.getOwnGoal(input.team).getCenter().minus(input.ballPosition).normaliseCopy()) > .9) {
             // Wrong side of ball
             if (log) {
                 BotLog.println("Wrong side of ball for dribble", input.team);

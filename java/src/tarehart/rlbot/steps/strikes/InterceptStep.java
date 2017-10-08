@@ -145,8 +145,8 @@ public class InterceptStep implements Step {
 //        double speed = car.velocity.magnitude();
 //        StrikeProfile strikeProfile = intercept.getStrikeProfile();
 //        double backoffDistance = (strikeProfile.speedBoost + speed) * strikeProfile.speedupSeconds;
-//        Vector3 backoffVector = (Vector3) car.position.subCopy(intercept.getSpace()).normaliseCopy().scaleCopy(backoffDistance);
-//        Vector3 backoffPosition = (Vector3) intercept.getSpace().subCopy(backoffVector);
+//        Vector3 backoffVector = (Vector3) car.position.minus(intercept.getSpace()).normaliseCopy().scaled(backoffDistance);
+//        Vector3 backoffPosition = (Vector3) intercept.getSpace().minus(backoffVector);
 //
 //        SpaceTime preStrikePosition = new SpaceTime(backoffPosition, intercept.getTime().minus(TimeUtil.toDuration(strikeProfile.speedupSeconds)));
 
