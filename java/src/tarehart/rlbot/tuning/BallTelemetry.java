@@ -1,6 +1,6 @@
 package tarehart.rlbot.tuning;
 
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.Bot;
 import tarehart.rlbot.physics.BallPath;
 

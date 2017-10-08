@@ -1,18 +1,15 @@
 package tarehart.rlbot.steps;
 
-import mikera.vectorz.Vector2;
-import mikera.vectorz.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.VectorUtil;
-import tarehart.rlbot.physics.DistancePlot;
-import tarehart.rlbot.planning.*;
-import tarehart.rlbot.steps.strikes.DirectedNoseHitStep;
-import tarehart.rlbot.steps.strikes.KickAtEnemyGoal;
+import tarehart.rlbot.math.vector.Vector2;
+import tarehart.rlbot.planning.Plan;
+import tarehart.rlbot.planning.SetPieces;
+import tarehart.rlbot.planning.SteerUtil;
 import tarehart.rlbot.tuning.BotLog;
 
-import java.time.Duration;
 import java.util.Optional;
 
 public class GoForKickoffStep implements Step {

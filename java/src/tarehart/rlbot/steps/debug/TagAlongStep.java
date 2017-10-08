@@ -1,6 +1,6 @@
 package tarehart.rlbot.steps.debug;
 
-import mikera.vectorz.Vector2;
+import tarehart.rlbot.math.vector.Vector2;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;

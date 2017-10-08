@@ -1,7 +1,7 @@
 package tarehart.rlbot.planning;
 
-import mikera.vectorz.Vector2;
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector2;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.SpaceTime;
@@ -79,7 +79,7 @@ public class TacticsAdvisor {
                 return makePlanWithPlentyOfTime(input, situation, ballPath);
             }
 
-            if (Math.abs(situation.enemyOffensiveApproachCorrection) < Math.PI / 3) {
+            if (situation.enemyOffensiveApproachError < Math.PI / 3) {
 
                 // Enemy is threatening us
 
@@ -88,8 +88,8 @@ public class TacticsAdvisor {
                     // Consider this to be a 50-50. Go hard for the intercept
                     Vector3 ownGoalCenter = GoalUtil.getOwnGoal(input.team).getCenter();
                     Vector3 interceptPosition = interceptStepOffering.get().getSpace();
-                    Vector3 toOwnGoal = (Vector3) ownGoalCenter.subCopy(interceptPosition);
-                    Vector3 interceptModifier = (Vector3) toOwnGoal.normaliseCopy();
+                    Vector3 toOwnGoal = ownGoalCenter.subCopy(interceptPosition);
+                    Vector3 interceptModifier = toOwnGoal.normaliseCopy();
 
                     return new Plan(Plan.Posture.OFFENSIVE).withStep(new InterceptStep(interceptModifier));
                 } else {
@@ -103,7 +103,7 @@ public class TacticsAdvisor {
         }
 
         // The enemy is probably going to get there first.
-        if (Math.abs(situation.enemyOffensiveApproachCorrection) < Math.PI / 3 && situation.distanceBallIsBehindUs > -50) {
+        if (situation.enemyOffensiveApproachError < Math.PI / 3 && situation.distanceBallIsBehindUs > -50) {
             // Enemy can probably shoot on goal, so get on defense
             return new Plan(Plan.Posture.DEFENSIVE).withStep(new GetOnDefenseStep());
         } else {
@@ -153,7 +153,7 @@ public class TacticsAdvisor {
         situation.expectedEnemyContact = enemyIntercept.orElse(ballPath.getEndpoint().toSpaceTime());
         situation.ownGoalFutureProximity = VectorUtil.flatDistance(GoalUtil.getOwnGoal(input.team).getCenter(), futureBallMotion.getSpace());
         situation.distanceBallIsBehindUs = measureOutOfPosition(input);
-        situation.enemyOffensiveApproachCorrection = measureEnemyApproachError(input, situation.expectedEnemyContact);
+        situation.enemyOffensiveApproachError = measureEnemyApproachError(input, situation.expectedEnemyContact);
         double enemyGoalY = GoalUtil.getEnemyGoal(input.team).getCenter().y;
         situation.distanceFromEnemyBackWall = Math.abs(enemyGoalY - futureBallMotion.space.y);
         situation.distanceFromEnemyCorner = getDistanceFromEnemyCorner(futureBallMotion, enemyGoalY);
@@ -167,12 +167,11 @@ public class TacticsAdvisor {
     }
 
     private double getDistanceFromEnemyCorner(SpaceTimeVelocity futureBallMotion, double enemyGoalY) {
-        Vector2 corner1 = (Vector2) ArenaModel.CORNER_ANGLE_CENTER.copy();
-        Vector2 corner2 = (Vector2) ArenaModel.CORNER_ANGLE_CENTER.copy();
+        Vector2 positiveCorner = ArenaModel.CORNER_ANGLE_CENTER;
+        double goalSign = Math.signum(enemyGoalY);
 
-        corner1.y *= Math.signum(enemyGoalY);
-        corner2.y *= Math.signum(enemyGoalY);
-        corner2.x *= -1;
+        Vector2 corner1 = new Vector2(positiveCorner.x, positiveCorner.y * goalSign);
+        Vector2 corner2 = new Vector2(-positiveCorner.x, positiveCorner.y * goalSign);
 
         Vector2 ballFutureFlat = VectorUtil.flatten(futureBallMotion.space);
 
@@ -189,19 +188,19 @@ public class TacticsAdvisor {
 
         CarData enemyCar = input.getEnemyCarData();
         Goal myGoal = GoalUtil.getOwnGoal(input.team);
-        Vector3 ballToGoal = (Vector3) myGoal.getCenter().subCopy(enemyContact.space);
+        Vector3 ballToGoal = myGoal.getCenter().subCopy(enemyContact.space);
 
-        Vector3 carToBall = (Vector3) enemyContact.space.subCopy(enemyCar.position);
+        Vector3 carToBall = enemyContact.space.subCopy(enemyCar.position);
 
-        return SteerUtil.getCorrectionAngleRad(VectorUtil.flatten(ballToGoal), VectorUtil.flatten(carToBall));
+        return Vector2.angle(VectorUtil.flatten(ballToGoal), VectorUtil.flatten(carToBall));
     }
 
 
     private double measureOutOfPosition(AgentInput input) {
         CarData car = input.getMyCarData();
         Goal myGoal = GoalUtil.getOwnGoal(input.team);
-        Vector3 ballToGoal = (Vector3) myGoal.getCenter().subCopy(input.ballPosition);
-        Vector3 carToBall = (Vector3) input.ballPosition.subCopy(car.position);
+        Vector3 ballToGoal = myGoal.getCenter().subCopy(input.ballPosition);
+        Vector3 carToBall = input.ballPosition.subCopy(car.position);
         Vector3 wrongSideVector = VectorUtil.project(carToBall, ballToGoal);
         return wrongSideVector.magnitude() * Math.signum(wrongSideVector.dotProduct(ballToGoal));
     }

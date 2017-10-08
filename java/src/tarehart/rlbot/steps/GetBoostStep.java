@@ -1,7 +1,7 @@
 package tarehart.rlbot.steps;
 
-import mikera.vectorz.Vector2;
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector2;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
@@ -58,15 +58,12 @@ public class GetBoostStep implements Step {
             CarData carData = input.getMyCarData();
             Vector2 myPosition = VectorUtil.flatten(carData.position);
             Vector3 target = targetLocation.location;
-            Vector2 toBoost = (Vector2) VectorUtil.flatten(target).subCopy(myPosition);
+            Vector2 toBoost = VectorUtil.flatten(target).subCopy(myPosition);
 
 
 
             DistancePlot distancePlot = AccelerationModel.simulateAcceleration(car, Duration.ofSeconds(4), car.boost);
-            Vector2 facing = VectorUtil.orthogonal((Vector2) VectorUtil.flatten(target).normaliseCopy());
-            if (facing.dotProduct(toBoost) < 0) {
-                facing.scale(-1);
-            }
+            Vector2 facing = VectorUtil.orthogonal(VectorUtil.flatten(target), v -> v.dotProduct(toBoost) > 0).normaliseCopy();
 
             SteerPlan planForCircleTurn = SteerUtil.getPlanForCircleTurn(car, distancePlot, VectorUtil.flatten(target), facing);
 
@@ -105,9 +102,10 @@ public class GetBoostStep implements Step {
         }
 
         BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(4));
-        Vector3 idealPlaceToGetBoost = ballPath.getEndpoint().getSpace().copy();
-        idealPlaceToGetBoost.y += 60 * Math.signum(GoalUtil.getOwnGoal(input.team).getCenter().y); // Add a defensive bias
-        return getNearestBoost(input.fullBoosts, ballPath.getEndpoint().space);
+        Vector3 endpoint = ballPath.getEndpoint().getSpace();
+        // Add a defensive bias.
+        Vector3 idealPlaceToGetBoost = new Vector3(endpoint.x, 40 * Math.signum(GoalUtil.getOwnGoal(input.team).getCenter().y), 0);
+        return getNearestBoost(input.fullBoosts, idealPlaceToGetBoost);
     }
 
     private static FullBoost getNearestBoost(List<FullBoost> boosts, Vector3 position) {

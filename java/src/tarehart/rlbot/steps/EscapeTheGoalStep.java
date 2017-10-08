@@ -1,6 +1,6 @@
 package tarehart.rlbot.steps;
 
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
@@ -18,7 +18,7 @@ public class EscapeTheGoalStep implements Step {
             return Optional.empty();
         }
 
-        Vector3 target = new Vector3(0, 0, 0);
+        Vector3 target = new Vector3();
         return Optional.of(SteerUtil.steerTowardGroundPosition(car, target).withBoost(false));
     }
 

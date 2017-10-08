@@ -1,7 +1,7 @@
 package tarehart.rlbot.steps;
 
-import mikera.vectorz.Vector2;
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector2;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
@@ -48,24 +48,24 @@ public class GetOnOffenseStep implements Step {
 
         BallPath ballPath = ArenaModel.predictBallPath(input, input.time, Duration.ofSeconds(2));
 
-        Vector3 target = input.ballPosition.copy();
+        Vector3 target = input.ballPosition;
         SpaceTimeVelocity futureMotion = ballPath.getMotionAt(input.time.plusSeconds(2)).get();
         if (input.ballVelocity.y * (enemyGoal.getCenter().y - input.ballPosition.y) < 0) {
             // if ball is rolling away from the enemy goal
-            target = futureMotion.getSpace().clone();
+            target = futureMotion.getSpace();
         }
 
         if (futureMotion.getSpace().distance(enemyGoal.getCenter())  < ArenaModel.SIDE_WALL * .8) {
             // Get into a strike position, 10 units behind the ball
-            Vector3 goalToBall = (Vector3) target.subCopy(enemyGoal.getCenter());
-            Vector3 goalToBallNormal = (Vector3) goalToBall.normaliseCopy();
-            target.add(goalToBallNormal.scaleCopy(10));
+            Vector3 goalToBall = target.subCopy(enemyGoal.getCenter());
+            Vector3 goalToBallNormal = goalToBall.normaliseCopy();
+            target = target.addCopy(goalToBallNormal.scaleCopy(10));
 
         } else {
             // Get into a backstop position
-            Vector3 goalToBall = (Vector3) target.subCopy(ownGoal.getCenter());
-            Vector3 goalToBallNormal = (Vector3) goalToBall.normaliseCopy();
-            target.sub(goalToBallNormal.scaleCopy(10));
+            Vector3 goalToBall = target.subCopy(ownGoal.getCenter());
+            Vector3 goalToBallNormal = goalToBall.normaliseCopy();
+            target = target.subCopy(goalToBallNormal.scaleCopy(10));
         }
 
 
@@ -74,12 +74,12 @@ public class GetOnOffenseStep implements Step {
         if (getYAxisWrongSidedness(input) < 0) {
             return Optional.empty();
         }
-        Vector3 targetToBallFuture = (Vector3) futureMotion.getSpace().subCopy(target);
+        Vector3 targetToBallFuture = futureMotion.getSpace().subCopy(target);
 
         DistancePlot plot = AccelerationModel.simulateAcceleration(car, Duration.ofSeconds(4), 0);
 
 
-        Optional<Vector2> circleTurnOption = SteerUtil.getWaypointForCircleTurn(car, plot, VectorUtil.flatten(target), (Vector2) VectorUtil.flatten(targetToBallFuture).normaliseCopy());
+        Optional<Vector2> circleTurnOption = SteerUtil.getWaypointForCircleTurn(car, plot, VectorUtil.flatten(target), VectorUtil.flatten(targetToBallFuture).normaliseCopy());
 
         if (circleTurnOption.isPresent()) {
             Vector2 circleTurn = circleTurnOption.get();

@@ -1,7 +1,7 @@
 package tarehart.rlbot.ui;
 
-import mikera.vectorz.Vector2;
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector2;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.physics.BallPath;
@@ -74,7 +74,7 @@ public class Readout {
             Vector3 predictedLocation = predictionOfNow.get().predictedLocation;
             ballHeightPredicted.setValue((int) (predictedLocation.z * HEIGHT_BAR_MULTIPLIER));
 
-            Vector3 predictionRelative = (Vector3) predictedLocation.subCopy(input.ballPosition);
+            Vector3 predictionRelative = predictedLocation.subCopy(input.ballPosition);
             ballPredictionReadout.setPredictionCoordinates(new Vector2(predictionRelative.x, predictionRelative.y));
             ballPredictionReadout.setVelocity(new Vector2(input.ballVelocity.x, input.ballVelocity.y));
             ballPredictionReadout.repaint();

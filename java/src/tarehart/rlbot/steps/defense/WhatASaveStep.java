@@ -1,7 +1,7 @@
 package tarehart.rlbot.steps.defense;
 
-import mikera.vectorz.Vector2;
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector2;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
@@ -47,8 +47,8 @@ public class WhatASaveStep implements Step {
 
         if (whichPost == null) {
 
-            Vector3 carToThreat = (Vector3) threat.space.subCopy(car.position);
-            double carApproachVsBallApproach = SteerUtil.getCorrectionAngleRad(VectorUtil.flatten(carToThreat), VectorUtil.flatten(input.ballVelocity));
+            Vector3 carToThreat = threat.space.subCopy(car.position);
+            double carApproachVsBallApproach = VectorUtil.flatten(carToThreat).correctionAngle(VectorUtil.flatten(input.ballVelocity));
             // When carApproachVsBallApproach < 0, car is to the right of the ball, angle wise. Right is positive X when we're on the positive Y side of the field.
             whichPost = Math.signum(-carApproachVsBallApproach * threat.space.y);
 
@@ -60,11 +60,11 @@ public class WhatASaveStep implements Step {
 
         SpaceTime intercept = SteerUtil.getInterceptOpportunity(car, ballPath, plot).orElse(threat.toSpaceTime());
 
-        Vector3 carToIntercept = (Vector3) intercept.space.subCopy(car.position);
-        double carApproachVsBallApproach = SteerUtil.getCorrectionAngleRad(VectorUtil.flatten(carToIntercept), VectorUtil.flatten(input.ballVelocity));
+        Vector3 carToIntercept = intercept.space.subCopy(car.position);
+        double carApproachVsBallApproach = VectorUtil.flatten(carToIntercept).correctionAngle(VectorUtil.flatten(input.ballVelocity));
         if (Math.abs(carApproachVsBallApproach) > Math.PI / 5) {
 
-            if (Math.abs(SteerUtil.getCorrectionAngleRad(VectorUtil.flatten(car.orientation.noseVector), VectorUtil.flatten(carToIntercept))) < Math.PI / 12) {
+            if (Vector2.angle(VectorUtil.flatten(car.orientation.noseVector), VectorUtil.flatten(carToIntercept)) < Math.PI / 12) {
 
                 plan = new Plan(Plan.Posture.SAVE).withStep(new InterceptStep(new Vector3(0, Math.signum(goal.getCenter().y) * 1.5, 0)));
                 plan.begin();

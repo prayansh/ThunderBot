@@ -1,6 +1,6 @@
 package tarehart.rlbot.steps.defense;
 
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.SpaceTime;
@@ -59,9 +59,9 @@ public class ThreatAssessor {
 
         CarData enemyCar = input.getEnemyCarData();
         Goal myGoal = GoalUtil.getOwnGoal(input.team);
-        Vector3 ballToGoal = (Vector3) myGoal.getCenter().subCopy(input.ballPosition);
+        Vector3 ballToGoal = myGoal.getCenter().subCopy(input.ballPosition);
 
-        Vector3 carToBall = (Vector3) input.ballPosition.subCopy(enemyCar.position);
+        Vector3 carToBall = input.ballPosition.subCopy(enemyCar.position);
         Vector3 rightSideVector = VectorUtil.project(carToBall, ballToGoal);
 
         return rightSideVector.magnitude() * Math.signum(rightSideVector.dotProduct(ballToGoal));
@@ -72,12 +72,12 @@ public class ThreatAssessor {
 
         CarData car = input.getMyCarData();
         Goal myGoal = GoalUtil.getOwnGoal(input.team);
-        Vector3 ballToGoal = (Vector3) myGoal.getCenter().subCopy(input.ballPosition);
+        Vector3 ballToGoal = myGoal.getCenter().subCopy(input.ballPosition);
 
         Vector3 ballVelocityTowardGoal = VectorUtil.project(input.ballVelocity, ballToGoal);
         double ballSpeedTowardGoal = ballVelocityTowardGoal.magnitude() * Math.signum(ballVelocityTowardGoal.dotProduct(ballToGoal));
 
-        Vector3 carToBall = (Vector3) input.ballPosition.subCopy(car.position);
+        Vector3 carToBall = input.ballPosition.subCopy(car.position);
         Vector3 wrongSideVector = VectorUtil.project(carToBall, ballToGoal);
         double wrongSidedness = wrongSideVector.magnitude() * Math.signum(wrongSideVector.dotProduct(ballToGoal));
 

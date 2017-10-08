@@ -1,7 +1,7 @@
 package tarehart.rlbot.steps.strikes;
 
-import mikera.vectorz.Vector2;
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector2;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.*;
@@ -19,7 +19,7 @@ public class DirectedKickUtil {
     private static final double SIDE_HIT_SPEED = 20;
 
     public static Optional<DirectedKickPlan> planKick(AgentInput input, KickStrategy kickStrategy, boolean isSideHit) {
-        Vector3 interceptModifier = (Vector3) kickStrategy.getKickDirection(input).normaliseCopy().scaleCopy(-2);
+        Vector3 interceptModifier = kickStrategy.getKickDirection(input).normaliseCopy().scaleCopy(-2);
         return planKick(input, kickStrategy, isSideHit, interceptModifier, new StrikeProfile(.5, 0, 0));
     }
 
@@ -46,17 +46,14 @@ public class DirectedKickUtil {
 
         Vector3 easyForce;
         if (isSideHit) {
-            Vector2 carToIntercept = VectorUtil.flatten((Vector3) interceptOpportunity.get().space.subCopy(car.position));
-            Vector2 sideHit = VectorUtil.orthogonal(carToIntercept);
-            if (sideHit.dotProduct(VectorUtil.flatten(interceptModifier)) > 0) {
-                sideHit.scale(-1);
-            }
+            Vector2 carToIntercept = VectorUtil.flatten(interceptOpportunity.get().space.subCopy(car.position));
+            Vector2 sideHit = VectorUtil.orthogonal(carToIntercept, v -> v.dotProduct(VectorUtil.flatten(interceptModifier)) < 0);
             easyForce = new Vector3(sideHit.x, sideHit.y, 0);
         } else {
-            easyForce = (Vector3) kickPlan.ballAtIntercept.getSpace().subCopy(car.position);
+            easyForce = kickPlan.ballAtIntercept.getSpace().subCopy(car.position);
         }
 
-        easyForce.scaleToMagnitude(impactSpeed);
+        easyForce.withMagnitude(impactSpeed);
 
         Vector3 easyKick = bump(kickPlan.ballAtIntercept.getVelocity(), easyForce);
         Vector3 kickDirection = kickStrategy.getKickDirection(input, kickPlan.ballAtIntercept.getSpace(), easyKick);
@@ -70,10 +67,11 @@ public class DirectedKickUtil {
             // TODO: this is a rough approximation.
             Vector2 orthogonal = VectorUtil.orthogonal(VectorUtil.flatten(kickDirection));
             Vector2 transverseBallVelocity = VectorUtil.project(VectorUtil.flatten(kickPlan.ballAtIntercept.getVelocity()), orthogonal);
-            kickPlan.desiredBallVelocity = (Vector3) kickDirection.normaliseCopy().scaleCopy(impactSpeed + transverseBallVelocity.magnitude() * .7);
-            kickPlan.plannedKickForce = kickPlan.desiredBallVelocity.copy();
-            kickPlan.plannedKickForce.x -= transverseBallVelocity.x * BALL_VELOCITY_INFLUENCE;
-            kickPlan.plannedKickForce.y -= transverseBallVelocity.y * BALL_VELOCITY_INFLUENCE;
+            kickPlan.desiredBallVelocity = kickDirection.normaliseCopy().scaleCopy(impactSpeed + transverseBallVelocity.magnitude() * .7);
+            kickPlan.plannedKickForce = new Vector3(
+                    kickPlan.desiredBallVelocity.x - transverseBallVelocity.x * BALL_VELOCITY_INFLUENCE,
+                    kickPlan.desiredBallVelocity.y - transverseBallVelocity.y * BALL_VELOCITY_INFLUENCE,
+                    kickPlan.desiredBallVelocity.z);
         }
 
         return Optional.of(kickPlan);
@@ -84,13 +82,13 @@ public class DirectedKickUtil {
      * https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector
      */
     private static Vector3 reflect(Vector3 incident, Vector3 normal) {
-        normal = (Vector3) normal.normaliseCopy();
-        return (Vector3) incident.subCopy(normal.scaleCopy(2 * incident.dotProduct(normal)));
+        normal = normal.normaliseCopy();
+        return incident.subCopy(normal.scaleCopy(2 * incident.dotProduct(normal)));
     }
 
     private static Vector3 bump(Vector3 incident, Vector3 movingWall) {
         // Move into reference frame of moving wall
-        Vector3 incidentAccordingToWall = (Vector3) incident.subCopy(movingWall);
+        Vector3 incidentAccordingToWall = incident.subCopy(movingWall);
         Vector3 reflectionAccordingToWall = reflect(incidentAccordingToWall, movingWall);
         return reflectionAccordingToWall.addCopy(movingWall);
     }
@@ -99,7 +97,7 @@ public class DirectedKickUtil {
     static double getAngleOfKickFromApproach(CarData car, DirectedKickPlan kickPlan) {
         Vector2 strikeForceFlat = VectorUtil.flatten(kickPlan.plannedKickForce);
         Vector3 carPositionAtIntercept = kickPlan.getCarPositionAtIntercept();
-        Vector2 carToIntercept = VectorUtil.flatten((Vector3) carPositionAtIntercept.subCopy(car.position));
-        return SteerUtil.getCorrectionAngleRad(carToIntercept, strikeForceFlat);
+        Vector2 carToIntercept = VectorUtil.flatten(carPositionAtIntercept.subCopy(car.position));
+        return carToIntercept.correctionAngle(strikeForceFlat);
     }
 }

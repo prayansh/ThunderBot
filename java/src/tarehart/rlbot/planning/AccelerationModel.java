@@ -1,6 +1,6 @@
 package tarehart.rlbot.planning;
 
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.DistanceTimeSpeed;
 import tarehart.rlbot.math.TimeUtil;
@@ -31,7 +31,7 @@ public class AccelerationModel {
     }
 
     public static double getSteerPenaltySeconds(CarData carData, Vector3 target) {
-        Vector3 toTarget = (Vector3) target.subCopy(carData.position);
+        Vector3 toTarget = target.subCopy(carData.position);
         double correctionAngleRad = VectorUtil.getCorrectionAngle(carData.orientation.noseVector, toTarget, carData.orientation.roofVector);
         double correctionErr = Math.abs(correctionAngleRad);
         return correctionErr * .1 + correctionErr * carData.velocity.magnitude() * .005;

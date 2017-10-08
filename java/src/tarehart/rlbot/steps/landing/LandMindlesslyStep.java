@@ -1,6 +1,6 @@
 package tarehart.rlbot.steps.landing;
 
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
@@ -20,8 +20,7 @@ public class LandMindlesslyStep implements Step {
         }
 
         if (ArenaModel.isCarOnWall(car)) {
-            Vector3 groundBeneathMe = car.position.copy();
-            groundBeneathMe.z = 0;
+            Vector3 groundBeneathMe = new Vector3(car.position.x, car.position.y, 0);
             return Optional.of(SteerUtil.steerTowardWallPosition(car, groundBeneathMe));
         }
 

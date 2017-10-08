@@ -1,6 +1,6 @@
 package tarehart.rlbot.steps.wall;
 
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
@@ -16,9 +16,7 @@ public class DescendFromWallStep implements Step {
 
         CarData car = input.getMyCarData();
         if (ArenaModel.isCarOnWall(car)) {
-            Vector3 ballShadow = input.ballPosition.copy();
-            ballShadow.z = 0;
-
+            Vector3 ballShadow = new Vector3(input.ballPosition.x, input.ballPosition.y, 0);
             return Optional.of(SteerUtil.steerTowardWallPosition(car, ballShadow));
         } else if (ArenaModel.isNearFloorEdge(car)) {
             return Optional.of(SteerUtil.steerTowardGroundPosition(car, input.ballPosition));

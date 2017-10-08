@@ -1,7 +1,7 @@
 package tarehart.rlbot.steps.strikes;
 
-import mikera.vectorz.Vector2;
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector2;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.input.CarData;
 import tarehart.rlbot.math.VectorUtil;
@@ -18,7 +18,7 @@ public class FunnelTowardEnemyGoal implements KickStrategy {
     @Override
     public Vector3 getKickDirection(AgentInput input, Vector3 ballPosition) {
         CarData car = input.getMyCarData();
-        Vector3 toBall = (Vector3) ballPosition.subCopy(car.position);
+        Vector3 toBall = ballPosition.subCopy(car.position);
         return getDirection(car, ballPosition, toBall);
     }
 
@@ -31,7 +31,7 @@ public class FunnelTowardEnemyGoal implements KickStrategy {
         Vector2 easyKickFlat = VectorUtil.flatten(easyKick);
         Vector2 idealKick = getIdealDirection(car, ballPosition);
 
-        if (Math.abs(SteerUtil.getCorrectionAngleRad(easyKickFlat, idealKick)) < Math.PI / 8) {
+        if (Vector2.angle(easyKickFlat, idealKick) < Math.PI / 8) {
             return easyKick;
         }
 
@@ -49,8 +49,8 @@ public class FunnelTowardEnemyGoal implements KickStrategy {
             return new Vector2(0, Math.signum(ballPosition.y)); // bounce off corner toward goal
         }
 
-        Vector3 toEnemyGoal = (Vector3) enemyGoal.getCenter().subCopy(ballPosition);
+        Vector3 toEnemyGoal = enemyGoal.getCenter().subCopy(ballPosition);
         Vector3 angleUpWall = new Vector3(Math.signum(toEnemyGoal.x), Math.signum(enemyGoal.getCenter().y), 0);
-        return (Vector2) VectorUtil.flatten(angleUpWall).normaliseCopy();
+        return VectorUtil.flatten(angleUpWall).normaliseCopy();
     }
 }

@@ -1,6 +1,6 @@
 package tarehart.rlbot.planning;
 
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.math.SpaceTime;
 
 import java.time.LocalDateTime;

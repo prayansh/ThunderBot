@@ -1,7 +1,7 @@
 package tarehart.rlbot.steps;
 
-import mikera.vectorz.Vector2;
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector2;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
@@ -50,16 +50,16 @@ public class CarryStep implements Step {
 
         Vector2 scoreLocation = VectorUtil.flatten(GoalUtil.getEnemyGoal(input.team).getNearestEntrance(input.ballPosition, 3));
 
-        Vector2 ballToGoal = (Vector2) scoreLocation.subCopy(futureBallPosition);
+        Vector2 ballToGoal = scoreLocation.subCopy(futureBallPosition);
         Vector2 pushDirection;
         Vector2 pressurePoint;
         double approachDistance = 1;
         // TODO: vary the approachDistance based on whether the ball is forward / off to the side.
 
-        double velocityCorrectionAngle = SteerUtil.getCorrectionAngleRad(ballVelocityFlat, ballToGoal);
+        double velocityCorrectionAngle = ballVelocityFlat.correctionAngle(ballToGoal);
         double angleTweak = Math.min(Math.PI / 6, Math.max(-Math.PI / 6, velocityCorrectionAngle * 2));
-        pushDirection = (Vector2) VectorUtil.rotateVector(ballToGoal, angleTweak).normaliseCopy();
-        pressurePoint = (Vector2) futureBallPosition.subCopy(pushDirection.scaleCopy(approachDistance));
+        pushDirection = VectorUtil.rotateVector(ballToGoal, angleTweak).normaliseCopy();
+        pressurePoint = futureBallPosition.subCopy(pushDirection.scaleCopy(approachDistance));
 
 
         LocalDateTime hurryUp = input.time.plus(TimeUtil.toDuration(leadSeconds));
@@ -72,9 +72,9 @@ public class CarryStep implements Step {
         // We will assume that the car is flat on the ground.
 
         // We will treat (0, 1) as the car's natural orientation.
-        double carYaw = SteerUtil.getCorrectionAngleRad(new Vector2(0, 1), VectorUtil.flatten(car.orientation.noseVector));
+        double carYaw = new Vector2(0, 1).correctionAngle(VectorUtil.flatten(car.orientation.noseVector));
 
-        Vector2 carToPosition = VectorUtil.flatten((Vector3) worldPosition.subCopy(car.position));
+        Vector2 carToPosition = VectorUtil.flatten(worldPosition.subCopy(car.position));
 
         Vector2 carToPositionRotated = VectorUtil.rotateVector(carToPosition, -carYaw);
 

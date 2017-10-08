@@ -1,6 +1,6 @@
 package tarehart.rlbot.math;
 
-import mikera.vectorz.Vector2;
+import tarehart.rlbot.math.vector.Vector2;
 import tarehart.rlbot.planning.SteerUtil;
 
 public class Circle {
@@ -38,6 +38,7 @@ public class Circle {
     }
 
     public static boolean isClockwise(Circle circle, Vector2 tangentPosition, Vector2 tangentDirection) {
-        return SteerUtil.getCorrectionAngleRad((Vector2) tangentPosition.subCopy(circle.center), tangentDirection) < 0;
+        Vector2 tangentToCenter = tangentPosition.subCopy(circle.center);
+        return tangentToCenter.correctionAngle(tangentDirection) < 0;
     }
 }

@@ -1,6 +1,6 @@
 package tarehart.rlbot.input;
 
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector3;
 
 public class CarOrientation {
 
@@ -12,8 +12,6 @@ public class CarOrientation {
 
         this.noseVector = noseVector;
         this.roofVector = roofVector;
-
-        this.rightVector = noseVector.copy();
-        this.rightVector.crossProduct(roofVector);
+        this.rightVector = noseVector.crossProduct(roofVector);
     }
 }

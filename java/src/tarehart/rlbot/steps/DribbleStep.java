@@ -1,7 +1,7 @@
 package tarehart.rlbot.steps;
 
-import mikera.vectorz.Vector2;
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector2;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
@@ -49,7 +49,7 @@ public class DribbleStep implements Step {
         Vector2 myDirectionFlat = VectorUtil.flatten(car.orientation.noseVector);
         Vector2 ballPositionFlat = VectorUtil.flatten(input.ballPosition);
         Vector2 ballVelocityFlat = VectorUtil.flatten(input.ballVelocity);
-        Vector2 toBallFlat = (Vector2) ballPositionFlat.subCopy(myPositonFlat);
+        Vector2 toBallFlat = ballPositionFlat.subCopy(myPositonFlat);
         double flatDistance = toBallFlat.magnitude();
 
         double ballSpeed = ballVelocityFlat.magnitude();
@@ -70,38 +70,33 @@ public class DribbleStep implements Step {
 
         Vector2 scoreLocation = VectorUtil.flatten(GoalUtil.getEnemyGoal(input.team).getNearestEntrance(input.ballPosition, 3));
 
-        Vector2 ballToGoal = (Vector2) scoreLocation.subCopy(futureBallPosition);
+        Vector2 ballToGoal = scoreLocation.subCopy(futureBallPosition);
         Vector2 pushDirection;
         Vector2 pressurePoint;
         double approachDistance = 0;
 
         if (ballSpeed > 20) {
-            double velocityCorrectionAngle = SteerUtil.getCorrectionAngleRad(ballVelocityFlat, ballToGoal);
+            double velocityCorrectionAngle = ballVelocityFlat.correctionAngle(ballToGoal);
             double angleTweak = Math.min(Math.PI / 6, Math.max(-Math.PI / 6, velocityCorrectionAngle * ballSpeed / 10));
-            pushDirection = (Vector2) VectorUtil.rotateVector(ballToGoal, angleTweak).normaliseCopy();
+            pushDirection = VectorUtil.rotateVector(ballToGoal, angleTweak).normaliseCopy();
             approachDistance = VectorUtil.project(toBallFlat, new Vector2(pushDirection.y, -pushDirection.x)).magnitude() * 1.6 + .8;
             approachDistance = Math.min(approachDistance, 4);
-            pressurePoint = (Vector2) futureBallPosition.subCopy(pushDirection.normaliseCopy().scaleCopy(approachDistance));
+            pressurePoint = futureBallPosition.subCopy(pushDirection.normaliseCopy().scaleCopy(approachDistance));
         } else {
-            pushDirection = (Vector2) ballToGoal.normaliseCopy();
-            pressurePoint = (Vector2) futureBallPosition.subCopy(pushDirection);
+            pushDirection = ballToGoal.normaliseCopy();
+            pressurePoint = futureBallPosition.subCopy(pushDirection);
         }
 
 
-        Vector2 carToPressurePoint = (Vector2) pressurePoint.subCopy(myPositonFlat);
-        Vector2 carToBall = (Vector2) futureBallPosition.subCopy(myPositonFlat);
+        Vector2 carToPressurePoint = pressurePoint.subCopy(myPositonFlat);
+        Vector2 carToBall = futureBallPosition.subCopy(myPositonFlat);
 
         LocalDateTime hurryUp = input.time.plus(TimeUtil.toDuration(leadSeconds));
 
         boolean hasLineOfSight = pushDirection.normaliseCopy().dotProduct(carToBall.normaliseCopy()) > -.2 || input.ballPosition.z > 2;
         if (!hasLineOfSight) {
             // Steer toward a farther-back waypoint.
-            Vector2 fallBack = new Vector2(pushDirection.y, -pushDirection.x);
-            if (fallBack.dotProduct(ballToGoal) > 0) {
-                fallBack.scale(-1);
-            }
-            fallBack.normalise();
-            fallBack.scale(5);
+            Vector2 fallBack = VectorUtil.orthogonal(pushDirection, v -> v.dotProduct(ballToGoal) < 0).withMagnitude(5);
 
             return Optional.of(SteerUtil.getThereOnTime(car, new SpaceTime(new Vector3(fallBack.x, fallBack.y, 0), hurryUp)));
         }
@@ -109,7 +104,7 @@ public class DribbleStep implements Step {
         AgentOutput dribble = SteerUtil.getThereOnTime(car, new SpaceTime(new Vector3(pressurePoint.x, pressurePoint.y, 0), hurryUp));
         if (carToPressurePoint.normaliseCopy().dotProduct(ballToGoal.normaliseCopy()) > .80 &&
                 flatDistance > 3 && flatDistance < 5 && input.ballPosition.z < 2 && approachDistance < 2
-                && SteerUtil.getCorrectionAngleRad(myDirectionFlat, carToPressurePoint) < Math.PI / 12) {
+                && Vector2.angle(myDirectionFlat, carToPressurePoint) < Math.PI / 12) {
             if (car.boost > 0) {
                 dribble.withAcceleration(1).withBoost();
             } else {
@@ -124,7 +119,7 @@ public class DribbleStep implements Step {
     public static boolean canDribble(AgentInput input, boolean log) {
 
         CarData car = input.getMyCarData();
-        Vector3 ballToMe = (Vector3) car.position.subCopy(input.ballPosition);
+        Vector3 ballToMe = car.position.subCopy(input.ballPosition);
 
         if (ballToMe.magnitude() > DRIBBLE_DISTANCE) {
             // It got away from us
@@ -135,7 +130,7 @@ public class DribbleStep implements Step {
         }
 
         if (input.ballPosition.subCopy(car.position).normaliseCopy().dotProduct(
-                GoalUtil.getOwnGoal(input.team).navigationSpline.getLocation().subCopy(input.ballPosition).normaliseCopy()) > .9) {
+                GoalUtil.getOwnGoal(input.team).getCenter().subCopy(input.ballPosition).normaliseCopy()) > .9) {
             // Wrong side of ball
             if (log) {
                 BotLog.println("Wrong side of ball for dribble", input.team);

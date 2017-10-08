@@ -1,7 +1,7 @@
 package tarehart.rlbot.steps.landing;
 
-import mikera.vectorz.Vector2;
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector2;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.Bot;
@@ -34,8 +34,8 @@ public class LandGracefullyStep implements Step {
     public static final Function<AgentInput, Vector2> FACE_BALL = LandGracefullyStep::faceBall;
 
     private static Vector2 faceBall(AgentInput input) {
-        Vector2 toBall = VectorUtil.flatten((Vector3) (input.ballPosition).subCopy(input.getMyCarData().position));
-        return (Vector2) toBall.normaliseCopy();
+        Vector2 toBall = VectorUtil.flatten((input.ballPosition).subCopy(input.getMyCarData().position));
+        return toBall.normaliseCopy();
     }
 
 

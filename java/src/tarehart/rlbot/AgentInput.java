@@ -1,6 +1,6 @@
 package tarehart.rlbot;
 
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector3;
 import rlbot.input.*;
 import tarehart.rlbot.input.*;
 import tarehart.rlbot.math.TimeUtil;

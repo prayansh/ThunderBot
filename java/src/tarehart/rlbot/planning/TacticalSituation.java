@@ -10,7 +10,7 @@ public class TacticalSituation {
 
     public double ownGoalFutureProximity;
     public double distanceBallIsBehindUs;
-    public double enemyOffensiveApproachCorrection; // If the enemy wants to shoot on our goal, how many radians away from a direct approach?
+    public double enemyOffensiveApproachError; // If the enemy wants to shoot on our goal, how many radians away from a direct approach? Always positive.
     public SpaceTime expectedEnemyContact;
     public double distanceFromEnemyBackWall;
     public double distanceFromEnemyCorner;

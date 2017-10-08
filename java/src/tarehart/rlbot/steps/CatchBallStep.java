@@ -1,6 +1,6 @@
 package tarehart.rlbot.steps;
 
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
@@ -56,12 +56,10 @@ public class CatchBallStep implements Step {
     }
 
     private AgentOutput playCatch(CarData car, SpaceTime catchLocation) {
-        Vector3 enemyGoal = GoalUtil.getEnemyGoal(car.team).navigationSpline.getLocation();
-        Vector3 awayFromEnemyGoal = (Vector3) catchLocation.space.subCopy(enemyGoal);
-        awayFromEnemyGoal.z = 0;
-        awayFromEnemyGoal.normalise();
-        awayFromEnemyGoal.scale(1.2);
-        Vector3 target = catchLocation.space.addCopy(awayFromEnemyGoal);
+        Vector3 enemyGoal = GoalUtil.getEnemyGoal(car.team).getCenter();
+        Vector3 awayFromEnemyGoal = catchLocation.space.subCopy(enemyGoal);
+        Vector3 offset = new Vector3(awayFromEnemyGoal.x, awayFromEnemyGoal.y, 0).withMagnitude(1.2);
+        Vector3 target = catchLocation.space.addCopy(offset);
 
         return SteerUtil.getThereOnTime(car, new SpaceTime(target, catchLocation.time));
     }

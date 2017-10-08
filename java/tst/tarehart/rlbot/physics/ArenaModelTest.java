@@ -1,7 +1,7 @@
 package tarehart.rlbot.physics;
 
 
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector3;
 import org.junit.Assert;
 import org.junit.Test;
 import tarehart.rlbot.math.SpaceTimeVelocity;
@@ -30,7 +30,7 @@ public class ArenaModelTest {
     public void testFallNextToBackWall() {
         ArenaModel model = new ArenaModel();
         float nextToBackWall = ArenaModel.BACK_WALL - ArenaModel.BALL_RADIUS;
-        BallPath ballPath = model.simulateBall(new SpaceTimeVelocity(new Vector3(0, nextToBackWall, 30), LocalDateTime.now(), new Vector3(0, 0, 0)), Duration.ofSeconds(1));
+        BallPath ballPath = model.simulateBall(new SpaceTimeVelocity(new Vector3(0, nextToBackWall, 30), LocalDateTime.now(), new Vector3()), Duration.ofSeconds(1));
         System.out.println(ballPath.getEndpoint());
         Assert.assertEquals(nextToBackWall, ballPath.getEndpoint().getSpace().y, .001);
     }
@@ -39,7 +39,7 @@ public class ArenaModelTest {
     public void testFallToRailNextToBackWall() {
         ArenaModel model = new ArenaModel();
         float nextToBackWall = ArenaModel.BACK_WALL - ArenaModel.BALL_RADIUS;
-        BallPath ballPath = model.simulateBall(new SpaceTimeVelocity(new Vector3(Goal.EXTENT + 5, nextToBackWall, 30), LocalDateTime.now(), new Vector3(0, 0, 0)), Duration.ofSeconds(4));
+        BallPath ballPath = model.simulateBall(new SpaceTimeVelocity(new Vector3(Goal.EXTENT + 5, nextToBackWall, 30), LocalDateTime.now(), new Vector3()), Duration.ofSeconds(4));
         System.out.println(nextToBackWall - ballPath.getEndpoint().getSpace().y);
         Assert.assertTrue(nextToBackWall - ballPath.getEndpoint().getSpace().y > 10);
     }
@@ -48,7 +48,7 @@ public class ArenaModelTest {
     public void testFallToGroundInFrontOfGoal() {
         ArenaModel model = new ArenaModel();
         float nextToBackWall = ArenaModel.BACK_WALL - ArenaModel.BALL_RADIUS;
-        BallPath ballPath = model.simulateBall(new SpaceTimeVelocity(new Vector3(0, nextToBackWall, 30), LocalDateTime.now(), new Vector3(0, 0, 0)), Duration.ofSeconds(4));
+        BallPath ballPath = model.simulateBall(new SpaceTimeVelocity(new Vector3(0, nextToBackWall, 30), LocalDateTime.now(), new Vector3()), Duration.ofSeconds(4));
         System.out.println(ballPath.getEndpoint().getSpace());
         Assert.assertEquals(0, ballPath.getEndpoint().space.x, .001);
         Assert.assertEquals(nextToBackWall, ballPath.getEndpoint().space.y, .001);
@@ -58,7 +58,7 @@ public class ArenaModelTest {
     public void testFallToRailNextToSideWall() {
         ArenaModel model = new ArenaModel();
         float nextToSideWall = ArenaModel.SIDE_WALL - ArenaModel.BALL_RADIUS;
-        BallPath ballPath = model.simulateBall(new SpaceTimeVelocity(new Vector3(nextToSideWall, 0, 30), LocalDateTime.now(), new Vector3(0, 0, 0)), Duration.ofSeconds(4));
+        BallPath ballPath = model.simulateBall(new SpaceTimeVelocity(new Vector3(nextToSideWall, 0, 30), LocalDateTime.now(), new Vector3()), Duration.ofSeconds(4));
         System.out.println(nextToSideWall - ballPath.getEndpoint().getSpace().x);
         Assert.assertTrue(nextToSideWall - ballPath.getEndpoint().getSpace().x > 10);
     }
@@ -67,7 +67,7 @@ public class ArenaModelTest {
     public void testFallNextToSideWall() {
         ArenaModel model = new ArenaModel();
         float nextToSideWall = ArenaModel.SIDE_WALL - ArenaModel.BALL_RADIUS;
-        BallPath ballPath = model.simulateBall(new SpaceTimeVelocity(new Vector3(nextToSideWall, 0, 30), LocalDateTime.now(), new Vector3(0, 0, 0)), Duration.ofSeconds(1));
+        BallPath ballPath = model.simulateBall(new SpaceTimeVelocity(new Vector3(nextToSideWall, 0, 30), LocalDateTime.now(), new Vector3()), Duration.ofSeconds(1));
         System.out.println(ballPath.getEndpoint());
         Assert.assertEquals(nextToSideWall, ballPath.getEndpoint().getSpace().x, .001);
     }

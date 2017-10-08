@@ -1,6 +1,6 @@
 package tarehart.rlbot.steps.wall;
 
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
@@ -31,7 +31,7 @@ public class MountWallStep implements Step {
         }
 
         SpaceTimeVelocity ballMotion = ballPath.get().getMotionAt(input.time.plusSeconds(3)).orElse(ballPath.get().getEndpoint());
-        Vector3 ballPositionExaggerated = (Vector3) ballMotion.getSpace().scaleCopy(1.04); // This assumes the ball is close to the wall
+        Vector3 ballPositionExaggerated = ballMotion.getSpace().scaleCopy(1.04); // This assumes the ball is close to the wall
 
         return Optional.of(SteerUtil.steerTowardGroundPosition(car, ballPositionExaggerated));
     }

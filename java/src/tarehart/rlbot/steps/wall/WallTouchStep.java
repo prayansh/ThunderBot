@@ -1,6 +1,6 @@
 package tarehart.rlbot.steps.wall;
 
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
@@ -83,7 +83,7 @@ public class WallTouchStep implements Step {
             return false; // Really close to wall, no need to jump. Just chip it.
         }
         CarData car = input.getMyCarData();
-        Vector3 toPosition = (Vector3) carPositionAtContact.space.subCopy(car.position);
+        Vector3 toPosition = carPositionAtContact.space.subCopy(car.position);
         double correctionAngleRad = VectorUtil.getCorrectionAngle(car.orientation.noseVector, toPosition, car.orientation.roofVector);
         double secondsTillIntercept = TimeUtil.secondsBetween(input.time, carPositionAtContact.time);
         double wallDistanceAtIntercept = ArenaModel.getDistanceFromWall(carPositionAtContact.space);

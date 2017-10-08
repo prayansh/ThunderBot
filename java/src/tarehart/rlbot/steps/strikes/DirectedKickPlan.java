@@ -1,6 +1,6 @@
 package tarehart.rlbot.steps.strikes;
 
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.math.SpaceTimeVelocity;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.physics.DistancePlot;

@@ -1,6 +1,6 @@
 package tarehart.rlbot.math;
 
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector3;
 
 public class Plane {
 

@@ -2,7 +2,7 @@ package tarehart.rlbot.tuning;
 
 
 import com.google.gson.Gson;
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector3;
 import org.junit.Assert;
 import org.junit.Test;
 import tarehart.rlbot.math.SpaceTime;

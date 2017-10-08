@@ -1,7 +1,7 @@
 package tarehart.rlbot.steps.strikes;
 
-import mikera.vectorz.Vector2;
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector2;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
@@ -41,11 +41,11 @@ public class DirectedNoseHitStep implements Step {
                 new SpaceTimeVelocity(input.ballPosition, input.time, input.ballVelocity)) > 30;
 
         Vector2 kickDirection = VectorUtil.flatten(kickStrategy.getKickDirection(input));
-        Vector2 carToBall = VectorUtil.flatten((Vector3) input.ballPosition.subCopy(input.getMyCarData().position));
+        Vector2 carToBall = VectorUtil.flatten(input.ballPosition.subCopy(input.getMyCarData().position));
 
-        double correctionAngleRad = SteerUtil.getCorrectionAngleRad(kickDirection, carToBall);
+        double angle = Vector2.angle(kickDirection, carToBall);
 
-        boolean wrongSide = Math.abs(correctionAngleRad) > Math.PI * 2/3;
+        boolean wrongSide = angle > Math.PI * 2/3;
 
         return !tooBouncy && !wrongSide;
     }
@@ -106,9 +106,9 @@ public class DirectedNoseHitStep implements Step {
             circleBackoff = car.position.distance(kickPlan.ballAtIntercept.getSpace()) > 60 ? 5.0 : 1.0;
         }
 
-        Vector2 strikeForceFlat = (Vector2) VectorUtil.flatten(kickPlan.plannedKickForce).normaliseCopy();
+        Vector2 strikeForceFlat = VectorUtil.flatten(kickPlan.plannedKickForce).normaliseCopy();
         Vector3 carPositionAtIntercept = kickPlan.getCarPositionAtIntercept();
-        Vector2 carToIntercept = VectorUtil.flatten((Vector3) carPositionAtIntercept.subCopy(car.position));
+        Vector2 carToIntercept = VectorUtil.flatten(carPositionAtIntercept.subCopy(car.position));
         estimatedAngleOfKickFromApproach = DirectedKickUtil.getAngleOfKickFromApproach(car, kickPlan);
         double rendezvousCorrection = SteerUtil.getCorrectionAngleRad(car, carPositionAtIntercept);
 
@@ -118,8 +118,7 @@ public class DirectedNoseHitStep implements Step {
 
 
         if (interceptModifier == null) {
-            interceptModifier = (Vector3) kickPlan.plannedKickForce.normaliseCopy();
-            interceptModifier.scale(-1.4);
+            interceptModifier = kickPlan.plannedKickForce.withMagnitude(-1.4);
         }
 
         if (carPositionAtIntercept.z > 2 && Math.abs(estimatedAngleOfKickFromApproach) < Math.PI / 12 && Math.abs(rendezvousCorrection) < Math.PI / 12) {
@@ -134,10 +133,10 @@ public class DirectedNoseHitStep implements Step {
             circleTurnPlan = new SteerPlan(SteerUtil.steerTowardGroundPosition(car, steerTarget), steerTarget);
         } else {
 
-            Vector2 circleTerminus = (Vector2) steerTarget.subCopy(strikeForceFlat.scaleCopy(circleBackoff));
+            Vector2 circleTerminus = steerTarget.subCopy(strikeForceFlat.scaleCopy(circleBackoff));
             double correctionNeeded = estimatedAngleOfKickFromApproach - (MAX_NOSE_HIT_ANGLE * Math.signum(estimatedAngleOfKickFromApproach));
             maneuverSeconds = correctionNeeded * MANEUVER_SECONDS_PER_RADIAN;
-            Vector2 terminusFacing = (Vector2) VectorUtil.rotateVector(carToIntercept, correctionNeeded).normaliseCopy();
+            Vector2 terminusFacing = VectorUtil.rotateVector(carToIntercept, correctionNeeded).normaliseCopy();
 
             // Line up for a nose hit
             circleTurnPlan = SteerUtil.getPlanForCircleTurn(car, kickPlan.distancePlot, circleTerminus, terminusFacing);

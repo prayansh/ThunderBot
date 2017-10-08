@@ -1,9 +1,6 @@
 package tarehart.rlbot.input;
 
-import mikera.vectorz.Vector2;
-import mikera.vectorz.Vector3;
-import rlbot.input.PyVector3;
-import tarehart.rlbot.math.SplineHandle;
+import tarehart.rlbot.math.vector.Vector3;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;

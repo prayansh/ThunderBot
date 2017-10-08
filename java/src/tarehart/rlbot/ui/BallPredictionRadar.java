@@ -1,6 +1,6 @@
 package tarehart.rlbot.ui;
 
-import mikera.vectorz.Vector2;
+import tarehart.rlbot.math.vector.Vector2;
 import tarehart.rlbot.physics.ArenaModel;
 
 import javax.swing.*;
@@ -10,8 +10,8 @@ public class BallPredictionRadar extends JPanel {
 
     private static final double PREDICTION_SCALE = 8; // Pixels per meter
     private static final int CIRCLE_RADIUS = (int) (ArenaModel.BALL_RADIUS * PREDICTION_SCALE);
-    private Vector2 predictionRelative = new Vector2();
-    private Vector2 velocity = new Vector2();
+    private Vector2 predictionRelative = new Vector2(0, 0);
+    private Vector2 velocity = new Vector2(0, 0);
 
     public BallPredictionRadar() {
         super();

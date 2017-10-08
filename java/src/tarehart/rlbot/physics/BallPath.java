@@ -1,8 +1,9 @@
 package tarehart.rlbot.physics;
 
-import mikera.vectorz.Vector2;
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector2;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.math.*;
+import tarehart.rlbot.planning.SteerUtil;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -39,8 +40,8 @@ public class BallPath {
 
                 long simulationStepMillis = Duration.between(current.getTime(), next.getTime()).toMillis();
                 double tweenPoint = Duration.between(current.getTime(), time).toMillis() * 1.0 / simulationStepMillis;
-                Vector3 toNext = (Vector3) next.getSpace().subCopy(current.getSpace());
-                Vector3 toTween = (Vector3) toNext.scaleCopy(tweenPoint);
+                Vector3 toNext = next.getSpace().subCopy(current.getSpace());
+                Vector3 toTween = toNext.scaleCopy(tweenPoint);
                 Vector3 space = current.getSpace().addCopy(toTween);
                 Vector3 velocity = averageVectors(current.getVelocity(), next.getVelocity(), 1 - tweenPoint);
                 return Optional.of(new SpaceTimeVelocity(new SpaceTime(space, time), velocity));
@@ -51,9 +52,7 @@ public class BallPath {
     }
 
     private Vector3 averageVectors(Vector3 a, Vector3 b, double weightOfA) {
-        Vector3 average = (Vector3) a.scaleCopy(weightOfA);
-        average.add(b.scaleCopy((1-weightOfA)));
-        return average;
+        return a.scaleCopy(weightOfA).addCopy(b.scaleCopy(1 - weightOfA));
     }
 
     /**
@@ -91,17 +90,10 @@ public class BallPath {
         if (currentVelocity.magnitudeSquared() < .01) {
             return false;
         }
-        Vector2 prev = new Vector2(previousVelocity.x, previousVelocity.y);
-        Vector2 curr = new Vector2(currentVelocity.x, currentVelocity.y);
+        Vector2 prev = VectorUtil.flatten(previousVelocity);
+        Vector2 curr = VectorUtil.flatten(currentVelocity);
 
-        if (curr.magnitude() / prev.magnitude() < 0.5) {
-            return true; //
-        }
-
-        prev.normalise();
-        curr.normalise();
-
-        return prev.dotProduct(curr) < .95;
+        return Vector2.angle(prev, curr) > Math.PI / 6;
     }
 
     private boolean isFloorBounce(Vector3 previousVelocity, Vector3 currentVelocity) {
@@ -185,7 +177,7 @@ public class BallPath {
     }
 
     private Optional<Vector3> getPlaneBreak(Vector3 start, Vector3 end, Plane plane) {
-        return VectorUtil.getPlaneIntersection(plane, start, (Vector3) end.subCopy(start));
+        return VectorUtil.getPlaneIntersection(plane, start, end.subCopy(start));
     }
 
     public Optional<SpaceTimeVelocity> findSlice(Predicate<SpaceTimeVelocity> decider) {

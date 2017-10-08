@@ -1,7 +1,7 @@
 package tarehart.rlbot.steps.strikes;
 
-import mikera.vectorz.Vector2;
-import mikera.vectorz.Vector3;
+import tarehart.rlbot.math.vector.Vector2;
+import tarehart.rlbot.math.vector.Vector3;
 import tarehart.rlbot.AgentInput;
 import tarehart.rlbot.AgentOutput;
 import tarehart.rlbot.input.CarData;
@@ -70,7 +70,7 @@ public class MidairStrikeStep implements Step {
             return Optional.of(new AgentOutput().withBoost());
         }
         SpaceTime intercept = interceptOpportunity.get();
-        Vector3 carToIntercept = (Vector3) intercept.space.subCopy(car.position);
+        Vector3 carToIntercept = intercept.space.subCopy(car.position);
         long millisTillIntercept = Duration.between(input.time, intercept.time).toMillis();
         double distance = car.position.distance(input.ballPosition);
         BotLog.println("Midair strike running... Distance: " + distance, input.team);
@@ -79,7 +79,7 @@ public class MidairStrikeStep implements Step {
 
         if (input.time.isBefore(lastMomentForDodge) && distance < DODGE_DISTANCE) {
             // Let's flip into the ball!
-            if (Math.abs(correctionAngleRad) <= SIDE_DODGE_THRESHOLD && ((Vector3) car.velocity.normaliseCopy()).z < .3) {
+            if (Math.abs(correctionAngleRad) <= SIDE_DODGE_THRESHOLD && car.velocity.normaliseCopy().z < .3) {
                 BotLog.println("Front flip strike", input.team);
                 plan = new Plan().withStep(new TapStep(2, new AgentOutput().withPitch(-1).withJump()));
                 plan.begin();
@@ -101,14 +101,14 @@ public class MidairStrikeStep implements Step {
             return Optional.empty();
         }
 
-        Vector3 idealDirection = (Vector3) carToIntercept.normaliseCopy();
-        Vector3 currentMotion = (Vector3) car.velocity.normaliseCopy();
+        Vector3 idealDirection = carToIntercept.normaliseCopy();
+        Vector3 currentMotion = car.velocity.normaliseCopy();
 
         Vector2 sidescrollerCurrentVelocity = getPitchVector(currentMotion);
         Vector2 sidescrollerIdealVelocity = getPitchVector(idealDirection);
 
-        double currentVelocityAngle = SteerUtil.getCorrectionAngleRad(new Vector2(1, 0), sidescrollerCurrentVelocity);
-        double idealVelocityAngle = SteerUtil.getCorrectionAngleRad(new Vector2(1, 0), sidescrollerIdealVelocity);
+        double currentVelocityAngle = new Vector2(1, 0).correctionAngle(sidescrollerCurrentVelocity);
+        double idealVelocityAngle = new Vector2(1, 0).correctionAngle(sidescrollerIdealVelocity);
 
         double desiredVerticalAngle = idealVelocityAngle + UPWARD_VELOCITY_MAINTENANCE_ANGLE + (idealVelocityAngle - currentVelocityAngle) * .5;
         desiredVerticalAngle = Math.min(desiredVerticalAngle, Math.PI / 2);
@@ -117,19 +117,17 @@ public class MidairStrikeStep implements Step {
 
         Vector2 currentFlatVelocity = VectorUtil.flatten(car.velocity);
 
-        Vector2 desiredFlatOrientation = VectorUtil.rotateVector(currentFlatVelocity, SteerUtil.getCorrectionAngleRad(currentFlatVelocity, flatToIntercept) * 2);
-        desiredFlatOrientation.normalise();
+        double yawCorrection = currentFlatVelocity.correctionAngle(flatToIntercept);
+        Vector2 desiredFlatOrientation = VectorUtil.rotateVector(currentFlatVelocity, yawCorrection * 2).normaliseCopy();
 
 
-        Vector3 desiredNoseVector = new Vector3(desiredFlatOrientation.x, desiredFlatOrientation.y, VectorUtil.rotateVector(new Vector2(1, 0), desiredVerticalAngle).y);
-        desiredNoseVector.normalise();
+        Vector3 desiredNoseVector = new Vector3(
+                desiredFlatOrientation.x,
+                desiredFlatOrientation.y,
+                VectorUtil.rotateVector(new Vector2(1, 0), desiredVerticalAngle).y).normaliseCopy();
 
-        Vector3 pitchPlaneNormal = car.orientation.rightVector.copy();
-        pitchPlaneNormal.crossProduct(desiredNoseVector);
-
-
-        Vector3 yawPlaneNormal = desiredNoseVector.copy();
-        yawPlaneNormal.crossProduct(new Vector3(0, 0, 1));
+        Vector3 pitchPlaneNormal = car.orientation.rightVector.crossProduct(desiredNoseVector);
+        Vector3 yawPlaneNormal = desiredNoseVector.crossProduct(new Vector3(0, 0, 1));
 
         Optional<AgentOutput> pitchOutput = new PitchToPlaneStep(pitchPlaneNormal).getOutput(input);
         Optional<AgentOutput> yawOutput = new PitchToPlaneStep(yawPlaneNormal).getOutput(input);
