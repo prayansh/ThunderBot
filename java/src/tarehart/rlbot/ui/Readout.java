@@ -30,6 +30,12 @@ public class Readout {
     private JTextPane situationText;
     private JLabel predictionTimeSeconds;
     private JTextArea logViewer;
+    private JLabel blueCarPosX;
+    private JLabel blueCarPosY;
+    private JLabel blueCarPosZ;
+    private JLabel orangeCarPosX;
+    private JLabel orangeCarPosY;
+    private JLabel orangeCarPosZ;
 
     private double maxCarSpeedVal;
 
@@ -48,14 +54,37 @@ public class Readout {
 
     public void update(AgentInput input, Plan.Posture posture, String situation, String log, BallPath ballPath) {
 
+        planPosture.setText(posture.name());
         situationText.setText(situation);
         predictionTimeSeconds.setText(String.format("%.2f", predictionTime.getValue() / 1000.0));
+        // ballHeightPredicted.setValue(0); // Commented out to avoid flicker. Should always be fresh anyway.
+        ballHeightActual.setValue((int) (input.ballPosition.z * HEIGHT_BAR_MULTIPLIER));
         logViewer.append(log);
 
-        // ballHeightPredicted.setValue(0); // Commented out to avoid flicker. Should always be fresh anyway.
-        planPosture.setText(posture.name());
-        ballHeightActual.setValue((int) (input.ballPosition.z * HEIGHT_BAR_MULTIPLIER));
+        updateBallPredictionRadar(input, ballPath);
+        updateBallHeightMaxes(input);
+        updateCarPositionInfo(input);
+    }
 
+    private void updateBallHeightMaxes(AgentInput input) {
+        // Calculate and display Ball Height Actual Max
+        if (ballHeightActualMax.getValue() < ballHeightActual.getValue()) {
+            ballHeightActualMax.setValue(ballHeightActual.getValue());
+            actualMaxTime = input.time;
+        } else if(Duration.between(input.time, actualMaxTime).abs().getSeconds() > 3) {
+            ballHeightActualMax.setValue(0);
+        }
+
+        // Calculate and display Ball Height Predicted Max
+        if (ballHeightPredictedMax.getValue() < ballHeightPredicted.getValue()) {
+            ballHeightPredictedMax.setValue(ballHeightPredicted.getValue());
+            predictedMaxTime = input.time;
+        } else if(Duration.between(input.time, predictedMaxTime).abs().getSeconds() > 3) {
+            ballHeightPredictedMax.setValue(0);
+        }
+    }
+
+    private void updateBallPredictionRadar(AgentInput input, BallPath ballPath) {
         int predictionMillis = predictionTime.getValue();
         LocalDateTime predictionTime = input.time.plus(Duration.ofMillis(predictionMillis));
 
@@ -79,22 +108,15 @@ public class Readout {
             ballPredictionReadout.setVelocity(new Vector2(input.ballVelocity.x, input.ballVelocity.y));
             ballPredictionReadout.repaint();
         }
+    }
 
-
-        if (ballHeightActualMax.getValue() < ballHeightActual.getValue()) {
-            ballHeightActualMax.setValue(ballHeightActual.getValue());
-            actualMaxTime = input.time;
-        } else if(Duration.between(input.time, actualMaxTime).abs().getSeconds() > 3) {
-            ballHeightActualMax.setValue(0);
-        }
-
-        if (ballHeightPredictedMax.getValue() < ballHeightPredicted.getValue()) {
-            ballHeightPredictedMax.setValue(ballHeightPredicted.getValue());
-            predictedMaxTime = input.time;
-        } else if(Duration.between(input.time, predictedMaxTime).abs().getSeconds() > 3) {
-            ballHeightPredictedMax.setValue(0);
-        }
-
+    private void updateCarPositionInfo(AgentInput input) {
+        blueCarPosX.setText(String.format("%.2f", input.blueCar.position.x));
+        blueCarPosY.setText(String.format("%.2f", input.blueCar.position.y));
+        blueCarPosZ.setText(String.format("%.2f", input.blueCar.position.z));
+        orangeCarPosX.setText(String.format("%.2f", input.orangeCar.position.x));
+        orangeCarPosY.setText(String.format("%.2f", input.orangeCar.position.y));
+        orangeCarPosZ.setText(String.format("%.2f", input.orangeCar.position.z));
     }
 
     public JPanel getRootPanel() {

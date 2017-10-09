@@ -34,10 +34,12 @@ public class Agent {
             PyGameTickPacket packet = gson.fromJson(packetJson, PyGameTickPacket.class);
             AgentInput translatedInput = new AgentInput(packet, team, chronometer, spinTracker, frameCount++);
 
+            // Do nothing if we know nothing about our car
             if (translatedInput.getMyCarData() == null) {
                 return new AgentOutput();
             }
 
+            // Setup bot from this packet if necessary
             synchronized (this) {
                 if (!bots.containsKey(team)) {
                     ReliefBot bot = new ReliefBot(team);
