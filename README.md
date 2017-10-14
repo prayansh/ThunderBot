@@ -9,7 +9,7 @@ ReliefBot uses a framework called RLBot.
 ## ReliefBot Development Environment Setup
 
 For deluxe instructions, check out https://github.com/aherbig/ReliefBotSetupInstructions,
-courtesy of Andreas, a.k.a. @groen.
+courtesy of Andreas, a.k.a. groen.
 
 In brief:
 
