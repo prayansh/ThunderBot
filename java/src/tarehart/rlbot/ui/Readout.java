@@ -115,12 +115,12 @@ public class Readout {
     }
 
     private void updateCarPositionInfo(AgentInput input) {
-        blueCarPosX.setText(String.format("%.2f", input.blueCar.position.x));
-        blueCarPosY.setText(String.format("%.2f", input.blueCar.position.y));
-        blueCarPosZ.setText(String.format("%.2f", input.blueCar.position.z));
-        orangeCarPosX.setText(String.format("%.2f", input.orangeCar.position.x));
-        orangeCarPosY.setText(String.format("%.2f", input.orangeCar.position.y));
-        orangeCarPosZ.setText(String.format("%.2f", input.orangeCar.position.z));
+        blueCarPosX.setText(String.format("%.2f", input.blueCar.map(c -> c.position.x).orElse(0D)));
+        blueCarPosY.setText(String.format("%.2f", input.blueCar.map(c -> c.position.y).orElse(0D)));
+        blueCarPosZ.setText(String.format("%.2f", input.blueCar.map(c -> c.position.z).orElse(0D)));
+        orangeCarPosX.setText(String.format("%.2f", input.orangeCar.map(c -> c.position.x).orElse(0D)));
+        orangeCarPosY.setText(String.format("%.2f", input.orangeCar.map(c -> c.position.y).orElse(0D)));
+        orangeCarPosZ.setText(String.format("%.2f", input.orangeCar.map(c -> c.position.z).orElse(0D)));
     }
 
     public JPanel getRootPanel() {

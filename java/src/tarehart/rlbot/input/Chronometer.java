@@ -1,6 +1,6 @@
 package tarehart.rlbot.input;
 
-import rlbot.input.PyGameInfo;
+import rlbot.api.GameData;
 import tarehart.rlbot.math.TimeUtil;
 
 import java.time.Duration;
@@ -19,22 +19,26 @@ public class Chronometer {
         previousGameTime = null;
     }
 
-    public void readInput(PyGameInfo timeInfo, boolean isKickoff) {
+    public void readInput(GameData.GameInfo timeInfo, boolean isKickoff) {
+        readInput(timeInfo.getGameTimeRemaining(), timeInfo.getSecondsElapsed(), isKickoff);
+    }
+
+    private void readInput(double gameTimeRemaining, double secondsElapsed, boolean isKickoff) {
 
         if (previousGameTimeRemaining != null && previousTimeSeconds != null) {
             double deltaSeconds;
-            if (timeInfo.GameTimeRemaining > 0 && !isKickoff) {
-                deltaSeconds = Math.abs(previousGameTimeRemaining - timeInfo.GameTimeRemaining);
+            if (gameTimeRemaining > 0 && !isKickoff) {
+                deltaSeconds = Math.abs(previousGameTimeRemaining - gameTimeRemaining);
             } else {
-                deltaSeconds = timeInfo.TimeSeconds - previousTimeSeconds;
+                deltaSeconds = secondsElapsed - previousTimeSeconds;
             }
 
             previousGameTime = gameTime;
             gameTime = gameTime.plus(TimeUtil.toDuration(deltaSeconds));
         }
 
-        previousGameTimeRemaining = timeInfo.GameTimeRemaining;
-        previousTimeSeconds = timeInfo.TimeSeconds;
+        previousGameTimeRemaining = gameTimeRemaining;
+        previousTimeSeconds = secondsElapsed;
     }
 
     public LocalDateTime getGameTime() {

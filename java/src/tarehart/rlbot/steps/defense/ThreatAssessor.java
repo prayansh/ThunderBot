@@ -36,10 +36,9 @@ public class ThreatAssessor {
         BallPath ballPath = ArenaModel.predictBallPath(input, input.time, simDuration);
 
         CarData myCar = input.getMyCarData();
-        CarData enemyCar = input.getEnemyCarData();
 
         Optional<SpaceTime> myInterceptOption = SteerUtil.getInterceptOpportunityAssumingMaxAccel(myCar, ballPath, myCar.boost);
-        Optional<SpaceTime> enemyInterceptOption = SteerUtil.getInterceptOpportunityAssumingMaxAccel(enemyCar, ballPath, enemyCar.boost);
+        Optional<SpaceTime> enemyInterceptOption = input.getEnemyCarData().flatMap(enemyCar -> SteerUtil.getInterceptOpportunityAssumingMaxAccel(enemyCar, ballPath, enemyCar.boost));
 
         if (!enemyInterceptOption.isPresent()) {
             return 0;
@@ -57,11 +56,10 @@ public class ThreatAssessor {
 
     private double measureEnemyPosture(AgentInput input) {
 
-        CarData enemyCar = input.getEnemyCarData();
         Goal myGoal = GoalUtil.getOwnGoal(input.team);
         Vector3 ballToGoal = myGoal.getCenter().minus(input.ballPosition);
 
-        Vector3 carToBall = input.ballPosition.minus(enemyCar.position);
+        Vector3 carToBall = input.getEnemyCarData().map(enemyCar -> input.ballPosition.minus(enemyCar.position)).orElse(new Vector3());
         Vector3 rightSideVector = VectorUtil.project(carToBall, ballToGoal);
 
         return rightSideVector.magnitude() * Math.signum(rightSideVector.dotProduct(ballToGoal));

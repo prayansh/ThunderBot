@@ -179,14 +179,16 @@ public class TacticsAdvisor {
     }
 
     private Optional<SpaceTime> getEnemyIntercept(AgentInput input, BallPath ballPath) {
-
-        CarData enemyCar = input.getEnemyCarData();
-        return SteerUtil.getInterceptOpportunityAssumingMaxAccel(enemyCar, ballPath, enemyCar.boost);
+        return input.getEnemyCarData().flatMap(enemyCar -> SteerUtil.getInterceptOpportunityAssumingMaxAccel(enemyCar, ballPath, enemyCar.boost));
     }
 
     private double measureEnemyApproachError(AgentInput input, SpaceTime enemyContact) {
 
-        CarData enemyCar = input.getEnemyCarData();
+        Optional<CarData> enemyCarOpt = input.getEnemyCarData();
+        if (!enemyCarOpt.isPresent()) {
+            return Double.MAX_VALUE;
+        }
+        CarData enemyCar = input.getEnemyCarData().get();
         Goal myGoal = GoalUtil.getOwnGoal(input.team);
         Vector3 ballToGoal = myGoal.getCenter().minus(enemyContact.space);
 

@@ -1,7 +1,6 @@
 package tarehart.rlbot;
 
 import tarehart.rlbot.input.CarData;
-import tarehart.rlbot.math.VectorUtil;
 import tarehart.rlbot.physics.ArenaModel;
 import tarehart.rlbot.physics.BallPath;
 import tarehart.rlbot.planning.*;
@@ -16,8 +15,8 @@ public class ReliefBot extends Bot {
 
     private TacticsAdvisor tacticsAdvisor;
 
-    public ReliefBot(Team team) {
-        super(team);
+    public ReliefBot(Team team, int playerIndex) {
+        super(team, playerIndex);
         tacticsAdvisor = new TacticsAdvisor();
     }
 
