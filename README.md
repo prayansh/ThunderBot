@@ -1,4 +1,4 @@
-# ReliefBot
+# ThunderBot 
 
 ## Initial RLBot Setup
 
